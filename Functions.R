@@ -1,221 +1,3 @@
-aitken            <- function(loglik) {
-  if(!is.numeric(loglik) ||
-     length(loglik)      != 3)   stop("'loglik' must be a numeric vector of length 3", call.=FALSE)
-  l1              <- loglik[1L]
-  l2              <- loglik[2L]
-  l3              <- loglik[3L]
-  if(any(is.infinite(loglik))) {
-    linf          <- Inf
-    a             <- NA
-  } else {
-    a             <- ifelse(l2 > l1, (l3 - l2) / (l2 - l1),    0L)
-    denom         <- max(1L - a, .Machine$double.eps)
-    linf          <- ifelse(a  < 1L,  l2 + (l3 - l2) / denom, Inf)
-  }
-    return(list(ll = l3, linf  = linf, a = a))
-}
-
-char_to_num       <- function(x) {
-    as.numeric(strsplit(x, "")[[1L]])
-}
-
-choice_crit       <- function(ll, seqs, z, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), nonzero = NULL, equalPro = FALSE) {
-  G               <- ifelse(noise <- is.element(l.meth, c("CCN", "UCN", "CUN", "UUN")), attr(seqs, "G") - 1L, attr(seqs, "G"))
-  P               <- attr(seqs, "P")
-  kpar            <- ifelse(is.null(nonzero),
-                            switch(EXPR= l.meth,
-                                   CC  = G * P   + 1L,
-                                   CCN = G * P   + (G > 0),
-                                   UC  =,
-                                   UCN = G * (P  + 1L),
-                                   CU  =,
-                                   CUN = P * (G  + 1L),
-                                   UU  =,
-                                   UUN = P * G   * 2L),
-                            switch(EXPR= l.meth,
-                                   CC  = nonzero * G  * P   + 1L,
-                                   CCN = nonzero * G  * P   + (G > 0),
-                                   UC  =,
-                                   UCN = nonzero * P  + G,
-                                   CU  =,
-                                   CUN = nonzero * G  + P,
-                                   UU  =,
-                                   UUN = nonzero + G  * P)) +
-                     ifelse(isFALSE(equalPro), G - !noise, noise)
-  ll2             <- ll  * 2
-  bic             <- ll2 - kpar * log(attr(seqs, "N"))
-    return(list(bic = bic, icl = bic + 2L * sum(log(matrixStats::rowMaxs(z)), na.rm=TRUE), aic = ll2 - kpar * 2, df = kpar))
-}
-
-dbar              <- function(seqs, theta) {
-    mean(stringdist::stringdistmatrix(seqs, theta, method="hamming"))
-}
-
-dseq              <- function(seqs, theta) {
-    stringdist::stringdistmatrix(seqs, theta, method="hamming")
-}
-
-E_step            <- function(seqs, params, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl = NULL, numseq = NULL) {
-  G               <- attr(seqs, "G")
-  N               <- attr(seqs, "N")
-  P               <- attr(seqs, "P")
-  V1              <- attr(seqs, "V1")
-  G0              <- ifelse(noise <- attr(seqs, "Noise"), attr(seqs, "G0"), G)
-  Gseq            <- seq_len(G0)
-  N1              <- N > 1
-  theta           <- params$theta
-  lambda          <- switch(EXPR=l.meth, CC=, CCN=as.vector(params$lambda), params$lambda)
-  dG.X            <- is.null(params$dG)
-  if(is.null(numseq)       &&
-     isFALSE(ctrl$numseq)  &&
-    (G  == 1L     || dG.X) &&
-     is.element(l.meth,
-     c("CU",   "UU",
-       "CUN", "UUN")))      {
-    numseq        <- sapply(seqs, char_to_num)
-  }
-
-  if(G  == 1L)     {
-    return(switch(EXPR=l.meth,
-                  CC  =,
-                  UC  = -ifelse(lambda == 0, N * P * log1p(V1), sum(lambda * N * dbar(seqs, theta), N * P * log1p(V1 * exp(-lambda)), na.rm=TRUE)),
-                  CCN = -N * P * log1p(V1),
-                  CU  =,
-                  UU  = -sum(sweep(numseq != char_to_num(theta), 1L, lambda, FUN="*", check.margin=FALSE), na.rm=TRUE) - N * sum(log1p(V1 * exp(-lambda)))))
-  } else {
-    if(is.null(ctrl))            stop("'ctrl' must be supplied if G > 1", call.=FALSE)
-    dG  <- if(dG.X)  switch(EXPR=l.meth,
-                            CC=, UC=, CCN=, UCN=vapply(Gseq, function(g) dseq(seqs, theta[g]), numeric(N)),
-                            CU=, UU=, CUN=, UUN=lapply(Gseq, function(g) unname(apply(numseq, 2L, "!=", char_to_num(theta[g]))))) else params$dG
-    log.tau       <- log(params$tau)
-    if(noise)      {
-      tau0        <- log.tau[G]
-      log.tau     <- log.tau[-G]
-    }
-    if(N1)         {
-      numer       <- switch(EXPR=l.meth,
-                            CC  =,
-                            UC  = sweep(-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE),
-                                        2L, log.tau - P * log1p(V1 * exp(-lambda)),  FUN="+", check.margin=FALSE),
-                            CU  = sweep(-vapply(lapply(dG, sweep, 1L, lambda, "*", check.margin=FALSE), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)),
-                                        2L, log.tau - sum(log1p(V1 * exp(-lambda))), FUN="+", check.margin=FALSE),
-                            UU  = sweep(-vapply(Gseq, function(g) matrixStats::colSums2(sweep(dG[[g]], 1L, lambda[g,], FUN="*", check.margin=FALSE), na.rm=TRUE), numeric(N)),
-                                        2L, log.tau - matrixStats::rowSums2(log1p(V1 * exp(-lambda))), FUN="+", check.margin=FALSE),
-                            CCN = cbind(sweep(-sweep(dG, 2L, lambda[1L],  FUN="*", check.margin=FALSE),
-                                              2L, log.tau - P * log1p(V1 * exp(-lambda[1L])),   FUN="+", check.margin=FALSE), tau0 - P * log1p(V1)),
-                            UCN = cbind(sweep(-sweep(dG, 2L, lambda[-G,], FUN="*", check.margin=FALSE),
-                                              2L, log.tau - P * log1p(V1 * exp(-lambda[-G,])),  FUN="+", check.margin=FALSE), tau0 - P * log1p(V1)),
-                            CUN = cbind(sweep(-vapply(lapply(dG, sweep, 1L, lambda[1L,], "*", check.margin=FALSE), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)),
-                                              2L, log.tau - sum(log1p(V1 * exp(-lambda[1L,]))), FUN="+", check.margin=FALSE), tau0 - P * log1p(V1)),
-                            UUN = cbind(sweep(-vapply(Gseq, function(g) matrixStats::colSums2(sweep(dG[[g]], 1L, lambda[g,],  FUN="*", check.margin=FALSE), na.rm=TRUE), numeric(N)),
-                                              2L, log.tau - matrixStats::rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), FUN="+", check.margin=FALSE), tau0 - P * log1p(V1)))
-    } else         {
-      numer       <- switch(EXPR=l.meth,
-                            CC  = -dG * lambda + log.tau - P * log1p(V1 * exp(-lambda)),
-                            UC  = sweep(-dG * lambda, 2L, log.tau - P * log1p(V1 * exp(-lambda)), FUN="+", check.margin=FALSE),
-                            CU  = -vapply(lapply(dG, sweep, 1L, lambda, "*", check.margin=FALSE), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)) + log.tau - sum(log1p(V1 * exp(-lambda))),
-                            UU  = -vapply(Gseq, function(g) matrixStats::colSums2(sweep(dG[[g]],   1L, lambda[g,], FUN="*", check.margin=FALSE), na.rm=TRUE), numeric(N)) + log.tau - matrixStats::rowSums2(log1p(V1 * exp(-lambda))),
-                            CCN = c(-dG * lambda[1L] + log.tau - P * log1p(V1 * exp(-lambda[1L])), tau0 - P * log1p(V1)),
-                            UCN = c(sweep(-dG * lambda[-G,, drop=FALSE], 2L, log.tau - P * log1p(V1 * exp(-lambda[-G])), FUN="+", check.margin=FALSE), tau0 - P * log1p(V1)),
-                            CUN = c(-vapply(lapply(dG, sweep, 1L, lambda[1L,], "*", check.margin=FALSE), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)) + log.tau - sum(log1p(V1 * exp(-lambda[1L,]))), tau0 - P * log1p(V1)),
-                            UUN = c(-vapply(Gseq, function(g) matrixStats::colSums2(sweep(dG[[g]], 1L, lambda[g,], FUN="*", check.margin=FALSE), na.rm=TRUE), numeric(N)) + log.tau - matrixStats::rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), tau0 - P * log1p(V1)))
-      numer       <- matrix(numer, nrow=1L)
-    }
-
-    if(any(iLAM   <- is.infinite(lambda))) {
-      switch(EXPR  = l.meth,
-             CC    =,
-             CCN   = numer[is.na(numer)]  <- matrix(log.tau - P * log1p(V1), nrow=N, ncol=G0, byrow=TRUE),
-             UC    =,
-             UCN   =         {
-             i.x  <- which(dG == 0, arr.ind=TRUE)
-             i.x  <- i.x[i.x[,2L] %in% which(switch(EXPR=l.meth, UC=iLAM, UCN=iLAM[-G])),, drop=FALSE]
-             numer[i.x]     <- log.tau[i.x[,2L]] - P * log1p(V1)
-      })
-    }
-    if(ctrl$do.cv && !noise &&
-       any(i.x    <- apply(is.infinite(numer), 1L, all))) {
-      numer[i.x,] <- matrix(log.tau - P * log1p(V1), nrow=sum(i.x), ncol=G, byrow=TRUE)
-    }
-
-    switch(EXPR=ctrl$algo,
-           EM=     {
-      if(N1)       {
-        denom     <- matrixStats::rowLogSumExps(numer)
-        loglike   <- sum(denom)
-        if(ctrl$do.cv)       {
-            return(loglike)
-        } else     {
-            return(list(loglike = loglike, z = exp(sweep(numer, 1L, denom, FUN="-", check.margin=FALSE))))
-        }
-      }   else     {
-            return(matrixStats::logSumExp(numer))
-      }
-    },    CEM=     {
-      if(N1)       {
-        z         <- mclust::unmap(max.col(numer), groups=seq_len(G))
-        loglike   <- sum(z * numer, na.rm=TRUE)
-        if(ctrl$do.cv)       {
-            return(loglike)
-        } else     {
-            return(list(loglike = loglike, z = z))
-        }
-      }   else     {
-            return(max(numer))
-      }
-    })
-  }
-}
-
-EM_algorithm      <- function(SEQ, numseq, g, modtype, z, ctrl, ll = NULL) {
-  algo            <- ctrl$algo
-  itmax           <- ctrl$itmax
-  st.ait          <- ctrl$stopping == "aitken"
-  tol             <- ctrl$tol
-  if(!(runEM      <- g > 1))   {
-    Mstep         <- M_step(SEQ, l.meth=modtype, numseq=numseq, ctrl=ctrl)
-    ll            <- E_step(SEQ, l.meth=modtype, numseq=numseq, params=Mstep)
-    j             <- 1L
-    ERR           <- FALSE
-  } else           {
-    ll            <- if(is.null(ll)) c(-Inf, -sqrt(.Machine$double.xmax)) else ll
-    j             <- 2L
-    emptywarn     <- TRUE
-    while(isTRUE(runEM))       {
-      j           <- j + 1L
-      Mstep       <- M_step(SEQ, l.meth=modtype, ctrl=ctrl, numseq=numseq, z=z)
-      Estep       <- E_step(SEQ, l.meth=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
-      z           <- Estep$z
-      ERR         <- any(is.nan(z))
-      if(isTRUE(ERR))            break
-      if(any(colz <- matrixStats::colSums2(z)  == 0)   &&
-         isTRUE(emptywarn))    { warning(paste0("\tThere were empty components: ", modtype, " (G=", g, ")\n"), call.=FALSE, immediate.=TRUE) # REORDER
-        emptywarn <- FALSE
-      }
-      ll          <- c(ll, Estep$loglike)
-      if(isTRUE(st.ait))       {
-        ait       <- aitken(ll[seq(j - 2L, j, 1L)])
-        dX        <- ifelse(is.numeric(ait$a)  && ait$a < 0, 0L, abs(ait$linf - ll[j - 1L]))
-        dX[is.nan(dX)]     <- Inf
-      } else       {
-        dX        <- abs(ll[j] - ll[j - 1L])/(1 + abs(ll[j]))
-      }
-      runEM       <- dX >= tol && j   < itmax  && !ERR
-    } # while (j)
-  }
-    return(list(ERR = ERR, j = j, Mstep = Mstep, ll = ll, z = z))
-}
-
-entropy           <- function(p) {
-  p               <- p[p > 0]
-    sum(-p * log(p))
-}
-
-fac_to_num        <- function(x) {
-  Vseq            <- seq_len(nlevels(x[[1L]]))
-    as.data.frame(lapply(x, function(y) { levels(y) <- Vseq; y} ))
-}
-
 get_partition              <- function(x, rank = 1L, criterion = c("bic", "icl", "aic", "cv", "loglik"), G = NULL, modtype = NULL, MAP = FALSE, noise = TRUE, ...) {
     UseMethod("get_partition")
 }
@@ -283,10 +65,10 @@ get_partition.MEDseq       <- function(x, rank = 1L, criterion = c("bic", "icl",
     return(z)
 }
 
-hamming_control   <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "hc", "random"), dist.mat = NULL, nstarts = 1L,
+MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "hc", "random"), dist.mat = NULL, nstarts = 1L,
                               criterion = c("bic", "icl", "aic", "cv"), do.cv = TRUE, nfolds = 10L, stopping = c("aitken", "relative"),
-                              tau0 = NULL, opti = c("mode", "first", "GA", "medoid"), ordering = c("none", "decreasing", "increasing"),
-                              equalPro = FALSE, tol = 1E-05, itmax = .Machine$integer.max, nonzero = TRUE, verbose = TRUE, ...) {
+                              tau0 = NULL, opti = c("mode", "first", "GA", "medoid"), ordering = c("none", "decreasing", "increasing"), noise.gate = TRUE,
+                              equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 100L), nonzero = TRUE, verbose = TRUE, ...) {
   if(!missing(algo)        &&
     (length(algo)      > 1 ||
      !is.character(algo)))       stop("'algo' must be a character vector of length 1",      call.=FALSE)
@@ -324,31 +106,44 @@ hamming_control   <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
   if(!missing(ordering)    &&
     (length(ordering)  > 1 ||
      !is.character(ordering)))   stop("'ordering' must be a character vector of length 1",  call.=FALSE)
+  if(length(noise.gate)     > 1 ||
+     !is.logical(noise.gate))    stop("'noise.gate' must be a single logical indicator",    call.=FALSE)
   if(length(equalPro)  > 1 ||
      !is.logical(equalPro))      stop("'equalPro' must be a single logical indicator",      call.=FALSE)
-  if(length(tol)  != 1     ||
-     !is.numeric(tol)      ||
-     (tol          < 0     ||
-      tol         >= 1))         stop("'tol' must be a scalar in the interval [0, 1)",      call.=FALSE)
-  if(length(itmax)    != 1 ||
-     !is.numeric(itmax)    ||
-     itmax        <= 0)          stop("'itmax' must be a strictly positive scalar",         call.=FALSE)
+  if(length(equalNoise)     > 1 ||
+     !is.logical(equalNoise))    stop("'equalNoise' must be a single logical indicator",    call.=FALSE)
+  if((len.tol     <- 
+      length(tol)) > 2     ||
+     !is.numeric(tol))           stop("'tol' must be a numeric vector of length at most 2", call.=FALSE)
+  if(any(tol   < 0,
+         tol  >= 1))             stop("'tol' must be in the interval [0, 1)",               call.=FALSE)
+  if(len.tol  == 1)    tol <- rep(tol, 2L)
+  if(length(itmax)         == 1) {
+    itmax     <- c(itmax, 100L)
+  } else if(length(itmax)  != 2) stop("'itmax' must be of length 2",                        call.=FALSE)
+  if(!is.numeric(itmax)    ||
+     any(floor(itmax) != itmax) ||
+     any(itmax    <= 0))         stop("'itmax' must contain strictly positive integers",    call.=FALSE)
+  inf         <- is.infinite(itmax)
+  if(any(inf))   itmax[inf]     <- .Machine$integer.max
+  itmax[1L]   <- ifelse(itmax[1L] == .Machine$integer.max, itmax[1L], itmax[1L] + 2L)
   if(length(nonzero)   > 1 ||
      !is.logical(nonzero))       stop("'nonzero' must be a single logical indicator",       call.=FALSE)
   if(length(verbose)   > 1 ||
      !is.logical(verbose))       stop("'verbose' must be a single logical indicator",       call.=FALSE)
-  control                  <- list(algo = match.arg(algo), init.z = init.z, dist.mat = dist.mat, nstarts = nstarts, criterion = match.arg(criterion), nfolds = nfolds, do.cv = do.cv, stopping = match.arg(stopping), tau0 = tau0,
-                                   opti = match.arg(opti), ordering = match.arg(ordering), equalPro = equalPro, tol = tol, itmax = ifelse(is.infinite(itmax), .Machine$integer.max, itmax), nonzero = nonzero, verbose = verbose)
+  control                  <- list(algo = match.arg(algo), init.z = init.z, dist.mat = dist.mat, nstarts = nstarts, criterion = match.arg(criterion), nfolds = nfolds, do.cv = do.cv, stopping = match.arg(stopping), tau0 = tau0, opti = match.arg(opti), 
+                                   ordering = match.arg(ordering), noise.gate = noise.gate, equalPro = equalPro, equalNoise = equalNoise, tol = tol[1L], g.tol = tol[2L], itmax = itmax[1L], g.itmax = itmax[2L], nonzero = nonzero, verbose = verbose)
   attr(control, "missing") <- miss.args
     return(control)
 }
 
-hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl = hamming_control(...), ...) {
+MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
+                              gating = NULL, covars = NULL, ctrl = MEDseq_control(...), ...) {
   call            <- match.call()
   if(!inherits(seqs, "stslist")) stop("'seqs' must be of class 'stslist'",        call.=FALSE)
   if(any(seqs     ==
          attr(seqs, "nr")))      stop("Missing values in 'seqs' are not allowed", call.=FALSE)
-  SEQ             <- apply(fac_to_num(seqs), 1L, num_to_char)
+  SEQ             <- apply(.fac_to_num(seqs), 1L, .num_to_char)
   levs            <- attr(seqs, "alphabet")
   attr(SEQ, "N")  <- N   <- nrow(seqs)
   attr(SEQ, "P")  <- P   <- ncol(seqs)
@@ -358,6 +153,10 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(SEQ, "logV1")     <- log(V1)
   if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the sequence vocabulary must all be > 1", call.=FALSE)
   if(!is.character(l.meth))      stop("'l.meth' must be a character vector of length 1",       call.=FALSE)
+  covmiss         <- missing(covars)
+  if((gate.x      <- !missing(gating)) &&
+     !inherits(gating, 
+               "formula"))       stop("'gating' must be a formula", call.=FALSE)
   l.meth          <- match.arg(l.meth, several.ok=TRUE)
   algo            <- ctrl$algo
   criterion       <- ctrl$criterion
@@ -366,6 +165,7 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   nstarts         <- switch(EXPR=init.z, random=ctrl$nstarts, 1L)
   startseq        <- seq_len(nstarts)
   equalPro        <- ctrl$equalPro
+  equalNoise      <- ctrl$equalNoise
   nonzero         <- ctrl$nonzero
   verbose         <- ctrl$verbose
   ctrl$ordering   <- ifelse(ctrl$opti == "first", ctrl$ordering, "none")
@@ -382,11 +182,12 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   mt1             <- unique(vapply(l.meth, function(lx) switch(EXPR=lx, CC=, UC="CC", CU=, UU="CU", "CCN"), character(1L)))
   mt2             <- unique(vapply(l.meth, function(lx) switch(EXPR=lx, UCN="CCN", UUN="CUN", lx),          character(1L)))
   mtg             <- unique(l.meth)
-  if(!(tmiss      <- miss.args$tau0) &&
+  n.meths         <- c("CCN", "UCN", "CUN", "UUN")
+  n.meth          <- l.meth %in% n.meths
+  if(!(tmiss      <- miss.args$tau0) && 
      ctrl$tau0    == 0)        {
-    n.meth        <- l.meth %in% c("CCN", "UCN", "CUN", "UUN")
-    if(all(n.meth))             stop("'tau0' is zero: models with noise component will not be fitted", call.=FALSE)
-    if(any(n.meth))             warning("'tau0' is zero: models with noise component will not be fitted\n", call.=FALSE, immediate.=TRUE)
+    if(all(n.meth))              stop("'tau0' is zero: models with noise component will not be fitted",      call.=FALSE)
+    if(any(n.meth))              warning("'tau0' is zero: models with noise component will not be fitted\n", call.=FALSE, immediate.=TRUE)
     l.meths       <- c("CC", "UC", "CU", "UU")
   } else l.meths  <- c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN")
   if(is.null(dist.mat))        {
@@ -412,7 +213,7 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   ctrl$do.cv      <- FALSE
   cvsel           <- any(cvsel, criterion == "cv")
   if(ctrl$numseq  <- any(c("CU", "UU", "CUN", "UUN") %in% all.mod, ctrl$opti == "mode", ctrl$ordering != "none")) {
-    numseq        <- sapply(SEQ, char_to_num)
+    numseq        <- sapply(SEQ, .char_to_num)
     attr(numseq, "P")    <- P
   } else numseq   <- NULL
   BICs            <-
@@ -444,19 +245,78 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   crit.tx         <-
   crit.gx         <- -sqrt(.Machine$double.xmax)
   noise           <- all.mod %in% c("CCN", "UCN", "CUN", "UUN")
-  nonoise         <- all(noise)
+  nonoise         <- any(!noise)
   noise           <- any(noise)
-
+  
+  # Define the gating formula
+  if(!covmiss     &&
+     !is.data.frame(covars))     stop("'covars' must be a data.frame if supplied", call.=FALSE)
+  gate.G          <- matrix(ifelse(rG > 1, gate.x, FALSE), nrow=2L, ncol=length(rG), byrow=TRUE)
+  if(gate.x)       {
+    if(all(inherits(try(stats::terms(gating), silent=TRUE), 
+       "try-error"), covmiss))   stop("Can't use '.' in 'gating' formula without supplying 'covars' argument", call.=FALSE)
+    gating        <- tryCatch(stats::update.formula(stats::as.formula(gating), z ~ .), error=function(e) {
+                                 stop("Invalid 'gating' network formula supplied", call.=FALSE) })
+    if(gating[[3L]]   == 1) { 
+      if(verbose)                message("Not including gating network covariates with only intercept on gating formula RHS\n")
+      gate.x      <- 
+      gate.G[]    <- FALSE
+    }
+    Gn            <- G - !ctrl$noise.gate
+    if((verbose   && gate.x)       &&
+      ((any(Gn    <= 1)  && noise) ||
+       any(G      <= 1))) {      message(paste0("Can't include gating network covariates ", ifelse(ctrl$noise.gate, "in a single component mixture", "where G is less than 3 when 'noise.gate' is FALSE\n")))
+     gate.G[2L,Gn <= 1]  <- FALSE
+    }
+    gate.names    <- labels(stats::terms(gating))
+  } 
+  if(!gate.x)      {
+    gate.G[]      <- FALSE
+    Gn            <- G
+    gating        <- stats::as.formula(z ~ 1)
+    environment(gating)  <- environment()
+  }
+  noise.gate      <- ifelse(gate.G, ctrl$noise.gate, TRUE)
+  if(all(equalPro, gate.x)) { 
+    if(verbose)                   message("Can't constrain mixing proportions to be equal when gating covariates are supplied\n")
+    equalPro      <- FALSE
+  }
+  equal.tau       <- rbind(ifelse(G == 1, TRUE, equalPro), ifelse(Gn < 1, TRUE, equalPro)) & !gate.G
+  equal.n0        <- (rbind(G == 1, Gn == 1) | equalNoise) & equal.tau
+  
+  # Tell network formulas where to look for variables
+  gate.names      <- if(gate.x) gate.names[!is.na(gate.names)]
+  if(!covmiss)     {
+    if(!all(gate.names   %in% 
+            colnames(covars)))    stop("Supplied gating covariates not found in supplied 'covars'", call.=FALSE)
+    covars        <- if(gate.x)   covars[,gate.names, drop=FALSE]    else as.data.frame(matrix(0L, nrow=N, ncol=0L))
+  } else {
+    if(any(grepl("\\$", 
+                 gate.names)))    stop("Don't supply covariates to the gating network using the $ operator: use the 'covars' argument instead", call.=FALSE)
+    covars        <- if(gate.x)   stats::model.frame(gating[-2L])    else as.data.frame(matrix(0L, nrow=N, ncol=0L))
+  }
+  if(nrow(covars) != N)           stop("'gating' covariates must contain the same number of rows as 'seqs'", call.=FALSE)
+  glogi           <- vapply(covars, is.logical, logical(1L))
+  covars[,glogi]  <- sapply(covars[,glogi], as.factor)
+  if(covmiss)      {
+    covars        <- data.frame(if(ncol(covars) > 0) covars[,gate.names] else covars, stringsAsFactors=TRUE)
+  }
+  attr(covars, "Gating") <- gate.names
+  colnames(covars)       <- if(gate.x) gate.names
+  if(!identical(gating, 
+                .drop_constants(covars, 
+                gating)))        stop("Constant columns exist in gating formula; remove offending gating covariate(s) and try again", call.=FALSE)
+  
   G.last          <- G[len.G]
   for(g  in G)     {
     if(isTRUE(verbose))     {    cat(paste0("\n", g, " cluster model", ifelse(multi, "s", ""), " -\n"))
-      last.G      <- g == G.last
+      last.G      <- g   == G.last
     }
     if(ctrl$numseq)         {
       attr(numseq,   "G")  <-
       attr(SEQ,      "G")  <- g
     } else attr(SEQ, "G")  <- g
-    h             <- which(G  == g)
+    h             <- which(G   == g)
     g0 <- attr(SEQ, "G0")  <- g - noise
     if(isTRUE(noise))   {
       tau0        <- ifelse(tmiss, 1/g, ctrl$tau0)
@@ -464,9 +324,9 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
 
     if(g  > 1)     {
       algog       <- algo
-      if(init.z   == "random" &&
+      if(init.z   == "random"  &&
          nstarts   > 1)     {
-        if(!nonoise)        {
+        if(isTRUE(nonoise)) {
           zg      <- replicate(nstarts, list(mclust::unmap(sample(seq_len(g),  size=N, replace=TRUE), groups=seq_len(g))))
         }
         if(isTRUE(noise))   {
@@ -478,7 +338,7 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
           }
         }
       } else       {
-        if(!nonoise)        {
+        if(isTRUE(nonoise)) {
           zg      <- mclust::unmap(switch(EXPR=init.z, kmedoids=cluster::pam(dist.mat, k=g,  cluster.only=TRUE), hc=cutree(hcZ, k=g)),  groups=seq_len(g))
         }
         if(isTRUE(noise))   {
@@ -490,19 +350,27 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
           }
         }
       }
-      modtypes    <- if(g == 2L) mt2 else mtg
+      modtypes    <- if(g  == 2L) mt2 else mtg
     } else         {
       algog       <- "EM"
       zg  <- zg0  <- matrix(1L, nrow=N)
       modtypes    <- mt1
     }
+      
     T.last        <- modtypes[length(modtypes)]
     for(modtype   in modtypes) {
       if(isTRUE(verbose))      { cat(paste0("\n\tModel: ", modtype, "\n"))
         last.T    <- modtype  == T.last
       }
-
-      zm          <- if(attr(SEQ, "Noise") <- gN0 <- is.element(modtype, c("CCN", "UCN", "CUN", "UUN"))) zg0 else zg
+      ctrl$nmeth  <- is.element(modtype, n.meths)
+      ctrl$equalNoise    <- equal.n0[ctrl$nmeth   + 1L,h]
+      ctrl$equalPro      <- equal.tau[ctrl$nmeth  + 1L,h]
+      ctrl$gate.g        <- gate.G[(g > 1)        + 1L,h]
+      ctrl$noise.gate    <- ifelse(ctrl$nmeth, ctrl$noise.gate, TRUE)
+      zm          <- if(attr(SEQ, "Noise") <- gN0 <- ctrl$nmeth) zg0 else zg
+      if(gN0   && !ctrl$noise.gate && ctrl$algo   != "EM")  {
+        zm[,-G]   <- replace(zm[,-G], zm[,-G] > 0, 1L)
+      }
       m           <- which(modtype == modtypes)
       if(init.z   == "random" &&
          g - gN0   > 1        &&
@@ -513,34 +381,34 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
          switch(EXPR=algog,
                cemEM=          {
             ctrl$algo      <- "CEM"
-            EMX[[i]]       <- EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],    ctrl=ctrl)
+            EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],    ctrl=ctrl, gating=gating, covars=covars)
             if(!EMX[[i]]$ERR)  {
               ctrl$algo    <- "EM"
               tmpEMX       <- EMX[[i]]
-              EMX[[i]]     <- EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=EMX[[i]]$z, ctrl=ctrl, ll=tmpEMX$ll[c(tmpEMX$j - 1L, tmpEMX$j)])
+              EMX[[i]]     <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=EMX[[i]]$z, ctrl=ctrl, gating=gating, covars=covars, ll=tmpEMX$ll[c(tmpEMX$j - 1L, tmpEMX$j)])
               if(EMX[[i]]$ERR) {
                 EMX[[i]]   <- tmpEMX
                 ctrl$algo  <- "CEM"
               }
             }
-         }, EMX[[i]]       <- EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],    ctrl=ctrl))
+         }, EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],    ctrl=ctrl, gating=gating, covars=covars))
         }
         EMX       <- EMX[[which.max(vapply(lapply(EMX, "[[", "ll"), max, numeric(1L)))]]
       } else       {
         switch(EXPR=algog,
               cemEM=        {
           ctrl$algo        <- "CEM"
-          EMX              <- EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,         ctrl=ctrl)
+          EMX              <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,         ctrl=ctrl, gating=gating, covars=covars)
           if(!EMX$ERR)      {
             ctrl$algo      <- "EM"
             tmpEMX         <- EMX
-            EMX            <- EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=EMX$z,      ctrl=ctrl, ll=tmpEMX$ll[c(tmpEMX$j - 1L, tmpEMX$j)])
+            EMX            <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=EMX$z,      ctrl=ctrl, gating=gating, covars=covars, ll=tmpEMX$ll[c(tmpEMX$j - 1L, tmpEMX$j)])
             if(EMX$ERR)     {
               EMX          <- tmpEMX
               ctrl$algo    <- "CEM"
             }
           }
-        }, EMX             <- EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,         ctrl=ctrl))
+        }, EMX             <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,         ctrl=ctrl, gating=gating, covars=covars))
       }
       ERR         <- EMX$ERR
       j           <- EMX$j
@@ -555,12 +423,14 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         CVll      <- -N * P * log(V)
       } else if(cvsel.X)    {
         lCV       <- vector("numeric", nfolds)
-        zCV       <- z[cv.ind,, drop=FALSE]
+        zCV       <- z[cv.ind,,      drop=FALSE]
+        gCV       <- covars[cv.ind,, drop=FALSE]
         for(i in foldseq)   {
           testX   <- which(cv.folds == i)
           CVS     <- cv.SEQ[testX]
           SCV     <- cv.SEQ[-testX]
-          CVz     <- zCV[-testX,, drop=FALSE]
+          CVz     <- zCV[-testX,,    drop=FALSE]
+          CVg     <- gCV[-testX,,    drop=FALSE]
           attributes(CVS)  <-
           attributes(SCV)  <- attributes(SEQ)
           attr(CVS, "N")   <- fcount[i]
@@ -574,43 +444,55 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
             nCV   <-
             CVn   <- NULL
           }
-          EMX     <- EM_algorithm(SEQ=SCV, numseq=nCV, g=g, modtype=modtype, z=CVz, ctrl=ctrl)
+          EMX     <- .EM_algorithm(SEQ=SCV, numseq=nCV, g=g, modtype=modtype, z=CVz, ctrl=ctrl, gating=gating, covars=CVg)
           MCV     <- EMX$Mstep
+          if(is.matrix(MCV$tau)) {
+            tau.tmp        <- stats::predict(MCV$fitG, newdata=gCV[testX,, drop=FALSE], type="probs")
+            MCV$tau        <- if(ctrl$noise.gate) tau.tmp else cbind(tau.tmp * (1 - MCV$tau[1L,g]), MCV$tau[1L,g])
+            rm(tau.tmp)
+          }
           MCV$dG  <- NULL
           ctrl$do.cv       <- TRUE
-          lCV[i] <- E_step(seqs=CVS, params=MCV, l.meth=modtype, ctrl=ctrl, numseq=CVn)
+          lCV[i] <- .E_step(seqs=CVS, params=MCV, l.meth=modtype, ctrl=ctrl, numseq=CVn)
           ctrl$do.cv       <- FALSE
         }
         CVll      <- sum(lCV)
       }
-
+      
       nzero       <- sum(lambda == 0)
       ninfty      <- sum(is.infinite(lambda))
-      choice      <- choice_crit(ll=ll[j], seqs=SEQ, z=z, l.meth=modtype, nonzero=ifelse(nonzero, sum(lambda != 0), NA), equalPro=equalPro)
+      fitG        <- if(ctrl$gate.g) Mstep$fitG
+      gate.pen    <- ifelse(ctrl$gate.g, length(stats::coef(fitG)) + !ctrl$noise.gate, 
+                     ifelse(ctrl$equalPro, as.integer(ctrl$nmeth - ctrl$equalNoise), g - 1L))
+      choice      <- .choice_crit(ll=ll[j], seqs=SEQ, z=z, l.meth=modtype, nonzero=ifelse(nonzero, sum(lambda != 0), NA), gate.pen=gate.pen)
       bicx        <- choice$bic
       iclx        <- choice$icl
       aicx        <- choice$aic
       dfx         <- choice$df
       crit.t      <- switch(EXPR=criterion, cv=CVll, bic=bicx, icl=iclx, aic=aicx)
       crit.t      <- ifelse(is.na(crit.t) || ERR, -Inf, crit.t)
-      if(crit.t    > crit.tx)  {
+      if(crit.t    > crit.tx)     {
         crit.tx   <- crit.t
         theta.x   <- Mstep$theta
         lambda.x  <- lambda
         tau.x     <- Mstep$tau
         z.x       <- z
         ll.x      <- ll
+        gp.x      <- gate.pen
+        if(gcov.x <- ctrl$gate.g) {
+          fit.x   <- fitG  
+        }
       }
-      BICs[h,modtype]         <- ifelse(ERR, -Inf, bicx)
-      ICLs[h,modtype]         <- ifelse(ERR, -Inf, iclx)
-      DF.x[h,modtype]         <- ifelse(ERR, -Inf, dfx)
-      AICs[h,modtype]         <- ifelse(ERR, -Inf, aicx)
-      IT.x[h,modtype]         <- ifelse(ERR,  Inf, j2)
-      Nzero.x[h,modtype]      <- ifelse(ERR,  NA,  nzero)
-      Ninfty.x[h,modtype]     <- ifelse(ERR,  NA,  ninfty)
-      ZS[[h]][[m]]            <- if(ERR)      NA   else z
+      BICs[h,modtype]      <- ifelse(ERR, -Inf, bicx)
+      ICLs[h,modtype]      <- ifelse(ERR, -Inf, iclx)
+      DF.x[h,modtype]      <- ifelse(ERR, -Inf, dfx)
+      AICs[h,modtype]      <- ifelse(ERR, -Inf, aicx)
+      IT.x[h,modtype]      <- ifelse(ERR,  Inf, j2)
+      Nzero.x[h,modtype]   <- ifelse(ERR,  NA,  nzero)
+      Ninfty.x[h,modtype]  <- ifelse(ERR,  NA,  ninfty)
+      ZS[[h]][[m]]         <- if(ERR)      NA   else z
       if(cvsel)    {
-        CV.x[h,modtype]       <- ifelse(ERR, -Inf, CVll)
+        CV.x[h,modtype]    <- ifelse(ERR, -Inf, CVll)
       }
     } # for (modtype)
 
@@ -621,12 +503,18 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       x.tau       <- tau.x
       x.z         <- z.x
       x.ll        <- ll.x
+      x.gp        <- gp.x
+      if(x.gcov   <- gcov.x)   {
+        fitG      <- fit.x
+      }
     }
     ZS[[h]]       <- stats::setNames(ZS[[h]], modtypes)
   } # for (g)
 
-  if(any(x.ll     !=
-         cummax(x.ll)))          warning("Log-likelihoods are not strictly increasing\n", call.=FALSE)
+  if(any(l.warn   <- x.ll  != cummax(x.ll))) {
+    if(which.max(l.warn)   != 
+       length(x.ll))             warning("Log-likelihoods are not strictly increasing\n", call.=FALSE)
+  }
   if(any(IT.x[!is.na(IT.x)]
          == ctrl$itmax))         warning(paste0("One or more models failed to converge in the maximum number of allowed iterations (", itmax, ")\n"), call.=FALSE)
   CRITs           <- switch(EXPR=criterion, cv=CV.x, bic=BICs, icl=ICLs, aic=AICs)
@@ -646,46 +534,91 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   class(ICLs)     <-
   class(AICs)     <-
   class(LL.x)     <- "MEDcriterion"
-  attr(BICs, "Criterion")        <- "BIC"
-  attr(ICLs, "Criterion")        <- "ICL"
-  attr(AICs, "Criterion")        <- "AIC"
-  attr(LL.x, "Criterion")        <- "loglik"
+  attr(BICs, "Criterion")  <- "BIC"
+  attr(ICLs, "Criterion")  <- "ICL"
+  attr(AICs, "Criterion")  <- "AIC"
+  attr(LL.x, "Criterion")  <- "loglik"
+  attr(BICs, "G")          <-
+  attr(ICLs, "G")          <-
+  attr(AICs, "G")          <-
+  attr(DF.x, "G")          <-
+  attr(IT.x, "G")          <-
+  attr(LL.x, "G")          <- rownames(BICs)
+  attr(BICs, "modelNames") <-
+  attr(ICLs, "modelNames") <-
+  attr(AICs, "modelNames") <-
+  attr(DF.x, "modelNames") <-
+  attr(IT.x, "modelNames") <-
+  attr(LL.x, "modelNames") <- colnames(BICs)
   if(cvsel)        {
     CV.x          <- CV.x * 2
     x.cv          <- CV.x[best.ind]
     class(CV.x)   <- "MEDcriterion"
-    attr(CV.x, "Criterion")      <- "CV"
+    attr(CV.x, "Criterion")    <- "CV"
+    attr(CV.x, "G")            <- rownames(BICs)
+    attr(CV.x, "modelNames")   <- colnames(BICs)
   }
-  if(len.G > 1    && verbose)     {
+  if(len.G > 1    && verbose)   {
     if(G          == min(rG))    message("Best model occurs at the min of the number of components considered\n")
     if(G          == max(rG))    message("Best model occurs at the max of the number of components considered\n")
   }
-
+  
+  attr(x.lambda, "Nzero")      <- Nzero.x[best.ind]
+  attr(x.lambda, "Ninfty")     <- Ninfty.x[best.ind]
+  attr(DF.x,     "Nzero")      <- Nzero.x
+  attr(DF.x,     "Ninfty")     <- Ninfty.x
+  attr(DF.x,     "Gate.Pen")   <- x.gp
+  x.theta                      <- do.call(rbind, lapply(x.theta, .char_to_num))
+  storage.mode(x.theta)        <- "integer"
+  attr(x.theta, "alphabet")    <- levs
+  attr(x.theta, "labels")      <- attr(seqs, "labels")
+  attr(x.theta, "lambda")      <- switch(EXPR=best.mod, CCN=, CUN=rbind(matrix(x.lambda[1L,], nrow=G - 1L, ncol=P, byrow=best.mod == "CUN"), 0L), matrix(x.lambda, nrow=G, ncol=P, byrow=best.mod == "CU"))
+  class(x.theta)               <- "MEDtheta"
+  Gseq            <- seq_len(G)
+  z               <- x.z
+  colnames(z)     <- if(G == 1 && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq)
+  MAP             <- max.col(z)
+  noise           <- best.mod %in% c("CCN", "UCN", "CUN", "UUN")
+  MAP             <- if(noise) replace(MAP, MAP == G, 0L) else MAP
+  equalPro        <- equal.tau[1L   + noise,best.G] 
+  equalNoise      <- equal.n0[1L    + noise,best.G] 
+  noise.gate      <- noise.gate[1L  + noise,best.G]
+  noise.gate      <- ifelse(noise, noise.gate, TRUE)
+  if(!(gate.G[1L   + noise,best.G] -> bG))  {
+    if(G > 1)      {
+      fitG        <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol)
+      if(equalPro && !equalNoise && !noise) {
+        tau0      <- mean(z[,G])
+        x.tau     <- c(rep((1 - tau0)/(G - 1L), G  - 1L), tau0)
+      } else       {
+        x.tau     <- if(equalPro || equalNoise) rep(1/G, G) else fitG$fitted.values[1L,]
+      }
+      x.tau       <- stats::setNames(x.tau, paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq))
+    }   else       {
+      fitG        <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial()))
+    }
+  }
+  fitG$lab        <- if(noise.gate && G  > 1) replace(Gseq, G, 0L) else Gseq
+  attr(fitG, "EqualNoise")     <- equalNoise
+  attr(fitG, "EqualPro")       <- equalPro
+  attr(fitG, "Formula")        <- Reduce(paste, deparse(gating[-2L]))
+  attr(fitG, "Noise")          <- noise
+  attr(fitG, "NoiseGate")      <- noise.gate
+  class(fitG)     <- c("MED_gating", class(fitG))
   if(isTRUE(verbose))            cat(paste0("\n\t\tBest Model", ifelse(length(CRITs) > 1, paste0(" (according to ", toupper(criterion), "): "), ": "), best.mod, ", with ",  paste0(G, " component", ifelse(G > 1, "s", ""))),
+                                     ifelse(bG | x.gcov, "(incl. gating network covariates)", ""),
                                      ifelse(cvsel, paste0("\n\t\tCV = ", round(x.cv, 2L), " |"), "\n\t       "),
                                      "BIC =", round(x.bic, 2L), "| ICL =", round(x.icl, 2L), "| AIC =", round(x.aic, 2L), "\n\n")
-  attr(x.lambda, "Nzero")        <- Nzero.x[best.ind]
-  attr(x.lambda, "Ninfty")       <- Ninfty.x[best.ind]
-  attr(DF.x,     "Nzero")        <- Nzero.x
-  attr(DF.x,     "Ninfty")       <- Ninfty.x
-  x.theta                        <- do.call(rbind, lapply(x.theta, char_to_num))
-  storage.mode(x.theta)          <- "integer"
-  attr(x.theta, "alphabet")      <- levs
-  attr(x.theta, "labels")        <- attr(seqs, "labels")
-  attr(x.theta, "lambda")        <- switch(EXPR=best.mod, CCN=, CUN=rbind(matrix(x.lambda[1L,], nrow=G - 1L, ncol=P, byrow=best.mod == "CUN"), 0L), matrix(x.lambda, nrow=G, ncol=P, byrow=best.mod == "CU"))
-  class(x.theta)                 <- "MEDtheta"
   params          <- list(theta   = x.theta,
                           lambda  = x.lambda,
                           tau     = x.tau)
-  MAP             <- max.col(x.z)
-  noise           <- best.mod %in% c("CCN", "UCN", "CUN", "UUN")
-  MAP             <- if(noise) replace(MAP, MAP == G, 0L) else MAP
   results         <- list(call    = call,
                           data    = seqs,
                           modName = best.mod,
                           G       = G,
                           params  = params,
-                          z       = x.z,
+                          gating  = fitG,
+                          z       = z,
                           MAP     = MAP,
                           ZS      = stats::setNames(ZS, rG))
   if(cvsel)        {
@@ -699,8 +632,8 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
                           AIC     = AICs,
                           aic     = x.aic,
                           LOGLIK  = LL.x,
-                          loglik  = x.ll[if(G > 1) switch(EXPR=algo, cemEM=-1L, -c(1L:2L)) else 1L],
-                          uncert  = if(G > 1) 1 - matrixStats::rowMaxs(x.z) else vector("integer", N),
+                          loglik  = x.ll[if(G > 1) switch(EXPR=algo, cemEM=-1L, -seq_len(2L)) else 1L],
+                          uncert  = if(G > 1) 1 - matrixStats::rowMaxs(z) else vector("integer", N),
                           DF      = DF.x,
                           df      = DF.x[best.ind],
                           ITERS   = IT.x,
@@ -711,102 +644,24 @@ hamming_fit       <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   meds            <- NULL
   set.seed(100)
   for(g in sort(unip[unip > 0]))  {
-    srows         <- Nseq[MAP == g]
+    srows         <- Nseq[MAP  == g]
     meds          <- c(meds, srows[which.min(matrixStats::rowSums2(dist.mat[srows,srows]))])
   }
   perm            <- seriation::get_order(seriation::seriate(as.dist(dist.mat[meds,meds]), method="TSP"))
-  attr(results, "Criterion")     <- criterion
-  attr(results, "CV")            <- cvsel
-  attr(results, "DistMat")       <- dist.mat
-  attr(results, "EqualPro")      <- equalPro
-  attr(results, "N")             <- N
-  attr(results, "Noise")         <- noise
-  attr(results, "P")             <- P
-  attr(results, "Seriate")       <- if(noise) c(perm, G) else perm
-  attr(results, "V")             <- V
+  attr(results, "Criterion")   <- criterion
+  attr(results, "CV")          <- cvsel
+  attr(results, "DistMat")     <- dist.mat
+  attr(results, "EqualPro")    <- equalPro
+  attr(results, "EqualNoise")  <- equalNoise
+  attr(results, "Gating")      <- x.gcov | bG
+  attr(results, "N")           <- N
+  attr(results, "Noise")       <- noise
+  attr(results, "NoiseGate")   <- noise.gate
+  attr(results, "P")           <- P
+  attr(results, "Seriate")     <- if(noise) c(perm, G) else perm
+  attr(results, "V")           <- V
   class(results)  <- "MEDseq"
     return(results)
-}
-
-lambda_mle        <- function(seqs, params, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), numseq = NULL) {
-  theta           <- params$theta
-  P               <- attr(seqs, "P")
-  V1V             <- attr(seqs, "V1V")
-  lV1             <- attr(seqs, "logV1")
-  l.meth          <- match.arg(l.meth)
-  noise           <- attr(seqs, "Noise")
-  if(is.null(numseq) && is.element(l.meth, c("CU", "UU", "CUN", "UUN"))) {
-    numseq        <- sapply(seqs, char_to_num)
-  }
-  if((G           <- attr(seqs, "G")) == 1L) {
-    if(l.meth == "CCN")                   {
-        return(list(lambda = matrix(0L, nrow=1L, ncol=1L)))
-    }
-    numer         <- switch(EXPR=l.meth, CC=P,                 CU=1)
-    denom         <- switch(EXPR=l.meth, CC=dbar(seqs, theta), CU=rowMeans(numseq != char_to_num(theta)))
-  } else           {
-    N             <- attr(seqs, "N")
-    G0            <- ifelse(noise, attr(seqs, "G0"), G)
-    if(is.null(z  <- params$z))  stop("'z' must be supplied if 'G'>1",   call.=FALSE)
-    if(is.element(l.meth, c("UC", "UU", "UCN", "UUN")) &&
-       is.null(tau    <-
-                 params$tau))    stop("'tau' must be supplied if 'G'>1", call.=FALSE)
-    if(noise)      {
-      z           <- z[,-G, drop=FALSE]
-      switch(EXPR=l.meth, UCN=, UUN=      {
-        tau       <- tau[-G]
-      })
-    }
-    switch(EXPR=l.meth, CU=, UU=, CUN=, UUN= {
-      dG          <- lapply(seq_len(G0), function(g) unname(apply(numseq,                 2L, "!=",  char_to_num(theta[g]))))
-      dGp         <- vapply(seq_len(G0), function(g) matrixStats::rowSums2(sweep(dG[[g]], 2L, z[,g], FUN="*", check.margin=FALSE)), numeric(P))
-    },             {
-      pN          <- P * switch(EXPR=l.meth, CCN=sum(z), N)
-      dG          <- vapply(seq_len(G0), function(g) dseq(seqs, theta[g]), numeric(N))
-    })
-    numer         <- switch(EXPR=l.meth, CC=, CCN=pN,       CUN=sum(z),
-                                         UC=, UCN=pN * tau, N)
-    denom         <- switch(EXPR=l.meth, CC=, CCN=sum(z * dG),
-                                         UC=, UCN=matrixStats::colSums2(z * dG),
-                                         CU=, CUN=matrixStats::rowSums2(dGp),
-                                         UU=, UUN=sweep(dGp, 2L, tau, FUN="/", check.margin=FALSE))
-  }
-  lambda          <- ifelse(denom < numer * V1V, lV1 + log(numer - denom) - log(denom), 0L)
-  lambda          <- matrix(lambda, nrow=switch(EXPR=l.meth, UC=, UU=, UCN=, UUN=G0, 1L), ncol=switch(EXPR=l.meth, CU=, UU=, CUN=, UUN=P, 1L), byrow=is.element(l.meth, c("UU", "UUN")))
-  switch(EXPR=l.meth, UC=,  UU=,
-                     UCN=, UUN=           {
-    lambda[tau == 0,] <- Inf
-  })
-    return(list(lambda = if(noise) rbind(lambda, 0L) else lambda, dG = if(G > 1) dG))
-}
-
-M_step            <- function(seqs, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, z = NULL, numseq = NULL) {
-  G               <- attr(seqs, "G")
-  if(is.null(numseq)     && isFALSE(ctrl$numseq)) {
-    numseq        <- sapply(seqs, char_to_num)
-    attr(numseq,  "G")   <- G
-    attr(numseq,  "P")   <- attr(seqs, "P")
-  }
-  if(G > 1L)       {
-    if(is.null(z))               stop("'z' must be supplied when 'G'>1", call.=FALSE)
-    tau2          <- colMeans(z)
-    tau           <- if(isFALSE(ctrl$equalPro)) tau2 else if(attr(seqs, "Noise")) c(rep((1 - tau2[G])/attr(seqs, "G0"), attr(seqs, "G0")), tau2[G]) else rep(1/G, G)
-  } else tau2     <- tau <- 1L
-  theta           <- optimise_theta(seqs=seqs, ctrl=ctrl, z=z, numseq=numseq)
-  MLE             <- lambda_mle(seqs=seqs, params=list(theta=theta, z=z, tau=tau2), l.meth=l.meth, numseq=numseq)
-  param           <- list(theta=theta, lambda=MLE$lambda, dG=if(G > 1) MLE$dG, tau=tau)
-  attr(param, "l.meth")  <- l.meth
-    return(param)
-}
-
-modal             <- function(x) {
-  ux              <- unique(x[x != 0])
-  tab             <- tabulate(match(x, ux))
-    ux[which(tab  == max(tab))]
-}
-
-num_to_char       <- function(x) {
-    paste(x, sep="", collapse="")
 }
 
 optimise_theta    <- function(seqs, ctrl, z = NULL, numseq = NULL) {
@@ -818,23 +673,23 @@ optimise_theta    <- function(seqs, ctrl, z = NULL, numseq = NULL) {
   if(G     > 1L   && is.null(z))  stop("'z' must be supplied when 'G'>1", call.=FALSE)
   if(opti         == "mode" || ordering != "none")   {
     if(is.null(numseq)      && isFALSE(ctrl$numseq)) {
-      numseq      <- sapply(seqs, char_to_num)
+      numseq      <- sapply(seqs, .char_to_num)
       attr(numseq, "G")     <- G
       attr(numseq, "P")     <- P
     }
     if(opti       == "mode") {
       if(G > 1L)   {
-        theta     <- weighted_mode(numseq=numseq, z=z)
+        theta     <- .weighted_mode(numseq=numseq, z=z)
         if(is.list(theta)   && any(nonu <- apply(theta,   2L, function(x) any(nchar(x) > 1)))) {
           theta[,nonu]      <- lapply(theta[,nonu], "[[", 1L)
         } else       nonu   <- rep(FALSE, G)
-        theta     <- apply(theta,  2L, num_to_char)
+        theta     <- apply(theta,  2L, .num_to_char)
       } else       {
-        theta     <- apply(numseq, 1L, modal)
+        theta     <- apply(numseq, 1L, .modal)
         if(nonu   <- is.list(theta)) {
           theta   <- lapply(theta, "[[",  1L)
         }
-        theta     <- num_to_char(theta)
+        theta     <- .num_to_char(theta)
       }
       attr(theta, "NonUnique")   <- nonu
         return(theta)
@@ -842,7 +697,7 @@ optimise_theta    <- function(seqs, ctrl, z = NULL, numseq = NULL) {
   }
 
   V               <- attr(seqs, "V")
-  theta.opt       <- theta_data(seqs=seqs, z=z)
+  theta.opt       <- .theta_data(seqs=seqs, z=z)
   if(opti == "medoid")       {
       return(theta.opt$theta)
   }
@@ -851,16 +706,16 @@ optimise_theta    <- function(seqs, ctrl, z = NULL, numseq = NULL) {
   vseq            <- seq_len(V)
   opt             <- theta.opt$dsum
   if(G > 1L)       {
-    theta         <- lapply(theta.opt$theta, char_to_num)
+    theta         <- lapply(theta.opt$theta, .char_to_num)
   } else           {
     z             <- matrix(1L, nrow=N)
-    theta         <- list(char_to_num(theta.opt$theta))
+    theta         <- list(.char_to_num(theta.opt$theta))
   }
   if(ordering     != "none") {
     stab          <- if(G   == 1) list(apply(numseq, 1L, tabulate, V)) else lapply(Gseq, function(g) apply(sweep(numseq, 2L, z[,g], FUN="*", check.margin=FALSE), 1L, tabulate, V))
-    sorder        <- lapply(Gseq, function(g) order(apply(stab[[g]], 2L, entropy), decreasing=ordering == "decreasing"))
+    sorder        <- lapply(Gseq, function(g) order(apply(stab[[g]], 2L, .entropy), decreasing=ordering == "decreasing"))
     theta         <- lapply(Gseq, function(g) theta[[g]][sorder[[g]]])
-    seqs          <- lapply(Gseq, function(g) unname(apply(numseq[sorder[[g]],], 2L, num_to_char)))
+    seqs          <- lapply(Gseq, function(g) unname(apply(numseq[sorder[[g]],], 2L, .num_to_char)))
   } else seqs     <- replicate(G, list(seqs))
 
   for(g in Gseq)   {
@@ -873,7 +728,7 @@ optimise_theta    <- function(seqs, ctrl, z = NULL, numseq = NULL) {
                for(p    in pseq)         {
                  vdiff  <- setdiff(vseq, theta[[g]][p])
                  for(v in vdiff)         {
-                   opts[v]              <- sum(z[,g] * dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
+                   opts[v]              <- sum(z[,g] * .dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
                  }
                  opts[theta[[g]][p]]    <- opt[g]
                  opt[g] <- min(opts)
@@ -887,7 +742,7 @@ optimise_theta    <- function(seqs, ctrl, z = NULL, numseq = NULL) {
                for(p   in pseq)          {
                  vdiff  <- setdiff(vseq, theta[[g]][p])
                  for(v in vdiff)         {
-                   opts[p, v]           <- sum(z[,g] * dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
+                   opts[p, v]           <- sum(z[,g] * .dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
                  }
                  opts[p, theta[[g]][p]] <- opt[g]
                }
@@ -902,14 +757,14 @@ optimise_theta    <- function(seqs, ctrl, z = NULL, numseq = NULL) {
 
   theta          <- switch(EXPR=ordering,
                            none=if(G > 1)  {
-                             do.call(base::c, lapply(theta, num_to_char))
-                           } else num_to_char(theta[[1L]]),
+                             do.call(base::c, lapply(theta, .num_to_char))
+                           } else .num_to_char(theta[[1L]]),
                            if(G > 1)       {
-                             do.call(base::c, lapply(Gseq, function(g) num_to_char(theta[[g]][match(pseq, sorder[[g]])])))
-                           } else num_to_char(theta[[1L]][match(pseq, sorder[[1L]])]))
+                             do.call(base::c, lapply(Gseq, function(g) .num_to_char(theta[[g]][match(pseq, sorder[[g]])])))
+                           } else .num_to_char(theta[[1L]][match(pseq, sorder[[1L]])]))
 }
 
-plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "bic", "icl", "aic", "LOGLIK", "quality", "uncert.bar", "uncert.profile",
+plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating", "cv", "bic", "icl", "aic", "LOGLIK", "quality", "uncert.bar", "uncert.profile",
                               "loglik", "d", "f", "Ht", "i", "I"), seriate = TRUE, preczero = TRUE, log.scale = NULL, qual = "ASW", ...) {
   if(!missing(type)           &&
      (length(type)       > 1  ||
@@ -931,7 +786,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "b
   Nseq            <- seq_len(N)
   Pseq            <- seq_len(P)
   symbols         <- c(17, 2, 16, 10, 13, 18, 15, 7)
-  use.col         <- c("gray", "dodgerblue1", "red3", "slateblue", "green3", "skyblue1", "gold", "hotpink")
+  use.col         <- c("gray", "dodgerblue1", "red3", "slateblue", "green3", "violet", "gold", "hotpink")
   alpha.x         <- attr(dat, "alphabet")
   cpal.x          <- attr(dat, "cpal")
   label.x <- lab  <- attr(dat, "labels")
@@ -940,6 +795,13 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "b
     theta         <- x$params$theta
     lambda        <- attr(theta, "lambda")
     class(theta)  <- NULL
+  }
+  dots            <- list(...)
+  if((has.MAP     <- length(dots) > 0 && any(names(dots)  == "MAP")))  {
+    MAP           <- dots$MAP
+    if(length(MAP)      != N  ||
+       !is.numeric(MAP)       ||
+       MAP        != floor(MAP)) stop(paste0("'MAP' must be an integer vector of length N=", N),  call.=FALSE)
   }
   if(is.element(type, c("clusters", "d", "f", "Ht", "i", "I"))   ||
      all(isTRUE(seriate), is.element(type, c("mean", "lambda")))) {
@@ -954,14 +816,17 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "b
         lambda    <- lambda[perm,, drop=FALSE]
       })
     },             {
-      dots        <- list(...)
-      dots        <- dots[names(dots) != "MAP"]
       if(length(dots) > 0)     {
-        MAP       <- do.call(get_partition, c(list(x=x, MAP=TRUE), dots))
-        G         <- attr(MAP, "G")
+        if(has.MAP)   {
+          G       <- length(unique(MAP))
+          noise   <- any(MAP  == 0)
+        } else     {
+          MAP     <- do.call(get_partition, c(list(x=x, MAP=TRUE), dots))
+          G       <- attr(MAP, "G")
+          noise   <- attr(MAP, "Noise")
+        }
         Gseq      <-
         perm      <- seq_len(G)
-        noise     <- attr(MAP, "Noise")
         if(isTRUE(seriate))    {
           unip    <- unique(MAP)
           meds    <- NULL
@@ -994,7 +859,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "b
     cum.cl        <- cumsum(num.cl)
 
     layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
-    OrderedStates <- data.matrix(fac_to_num(dat))[glo.order,]
+    OrderedStates <- data.matrix(.fac_to_num(dat))[glo.order,]
     image(x=Pseq, z=t(OrderedStates), y=Nseq, zlim=c(1, length(cpal.x)), xlim=c(1, P), ylim=c(1, N),
           axes=FALSE, xlab="", ylab="Clusters", col=cpal.x, main=ifelse(seriate, "Observations Ordered by Cluster", "Clusters"))
     box(lwd=2)
@@ -1085,6 +950,28 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "b
     legend("center", c(expression(paste(lambda, " = 0")), expression(paste(lambda %->% infinity))), fill=c("green3", "grey50"), ncol=2, text.width=0.1, cex=1.25)
     graphics::layout(1)
       invisible()
+  }, gating=       {
+    suppressWarnings(par(pty="m"))
+    Tau        <- .mat_byrow(x$params$tau, nrow=N, ncol=ncol(x$z))
+    dots       <- list(...)
+    miss.x     <- length(dots) > 0 && any(names(dots) == "x.axis")
+    x.axis     <- if(miss.x) dots$x.axis else seq_len(N)
+    xlab       <- ifelse(miss.x, "", "Observation")
+    type       <- ifelse(miss.x, "p", "l")
+    col        <- if(noise)  replace(seq_len(G), G, "grey65") else seq_len(G)
+    if(length(x.axis) != N)      stop("'x.axis' must be of length N", call.=FALSE)
+    if(x.fac   <- is.factor(x.axis)) {
+      xlev     <- levels(x.axis)
+      x.axis   <- as.integer(x.axis)
+      xaxt     <- "n"
+    } else      {
+      xaxt     <- "s"
+    }
+    graphics::matplot(x=x.axis, y=Tau, type=type, main="Gating Network", xaxt=xaxt, xlab=xlab, ylab="", col=col, pch=1)
+    mtext(expression(widehat(tau)[g]), side=2, las=2, line=3)
+    if(x.fac)   {
+      graphics::axis(1, at=unique(x.axis), labels=xlev)
+    }
   }, cv=,
      bic=,
      icl=,
@@ -1103,35 +990,43 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "b
     legend("bottomright", ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col)
       invisible()
   }, quality=      {
-    Qual          <- list()
-    ZS            <- x$ZS
-    Gseq          <- seq_along(ZS)
-    if(all(Gseq   == 1)) {    message("No solutions with G > 1 clusters\n")
-        break
-    }
-    Gseq          <- Gseq[Gseq > 1]
-    znames        <- names(ZS[[which.max(lengths(ZS))]])
-    for(g   in Gseq)     {
-      z           <- ZS[[g]]
-      qg          <- provideDimnames(matrix(NA, nrow=length(znames), ncol=10), base=list(znames, c("PBC", "HG", "HGSD", "ASW", "ASWw", "CH", "R2", "CHsq", "R2sq", "HC")))
-      for(m in names(z)) {
-        qg[m,]    <- WeightedCluster::wcClusterQuality(dmat, max.col(z[[m]]))$stats
+    if(has.MAP)    {
+      Gseq        <- length(unique(MAP))
+      if(Gseq     == 1)    {      message("No solutions with G > 1 clusters\n")
+          break
       }
-      Qual[[g]]   <- qg
+      Qual        <- list(t(WeightedCluster::wcClusterQuality(dmat, MAP)$stats))
+    } else         {
+      Qual        <- list()
+      ZS          <- x$ZS
+      Gseq        <- as.numeric(names(ZS))
+      if(all(Gseq == 1))   {     message("No solutions with G > 1 clusters\n")
+          break
+      }
+      G1          <- length(Gseq) > 1 && any(Gseq == 1)
+      znames      <- names(ZS[[which.max(lengths(ZS))]])
+      for(g   in    (if(G1) seq_along(Gseq)[-1L] else seq_along(Gseq))) {
+        z         <- ZS[[g]]
+        qg        <- provideDimnames(matrix(NA, nrow=length(znames), ncol=10), base=list(znames, c("PBC", "HG", "HGSD", "ASW", "ASWw", "CH", "R2", "CHsq", "R2sq", "HC")))
+        for(m in names(z)) {
+          qg[m,]  <- WeightedCluster::wcClusterQuality(dmat, max.col(z[[m]]))$stats
+        }
+        Qual[[g]] <- qg
+      }
+      Qual        <- if(G1) stats::setNames(Qual[-1L], as.character(Gseq[-1L])) else stats::setNames(Qual, as.character(Gseq))
     }
-    Qual          <- stats::setNames(Qual[-1L], as.character(Gseq))
-    if(length(qual)      > 1 ||
-       !is.character(qual)   ||
-       !(qual %in%
+    if(length(qual)        > 1 ||
+       !is.character(qual)     ||
+       !(qual   %in%
          colnames(Qual[[1L]])))  stop("Invalid 'qual' measure", call.=FALSE)
-    ms            <- which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% znames)
+    ms            <- if(has.MAP) 1L else which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% znames)
     symbols       <- symbols[ms]
     use.col       <- use.col[ms]
-    quality       <- sapply(Qual, "[" , TRUE, qual)
+    quality       <- sapply(Qual, "[", TRUE, qual)
     matplot(t(quality), type="b", pch=symbols, col=use.col, lty=1, ylab=qual, xaxt="n",
             xlab="Number of Components", main=paste0("Cluster Quality Index: ", qual))
     axis(1, at=seq_along(Gseq), labels=Gseq)
-    legend("bottomright", ncol=2, cex=1, inset=0.01, legend=znames, pch=symbols, col=use.col)
+    if(!has.MAP)     legend("bottomright", ncol=2, cex=1, inset=0.01, legend=znames, pch=symbols, col=use.col)
     attr(quality, "quality") <- qual
       invisible(list(all = Qual, qual = quality))
   }, uncert.profile=,
@@ -1145,7 +1040,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "b
     cm            <- c("dodgerblue2", "red3", "green3")
     switch(EXPR=type,
            uncert.bar=         {
-             cu   <- cm[1L:2L][(uncX >= oneG) + 1L]
+             cu   <- cm[seq_len(2L)][(uncX >= oneG) + 1L]
              cu[uncX == 0] <- NA
              plot(uncX, type="h", ylim=range(yx), col=cu, yaxt="n", ylab="", xlab="Observations", lend=1)
              lines(x=c(0, N), y=c(oneG, oneG), lty=2, col=cm[3L])
@@ -1179,6 +1074,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "cv", "b
     dots          <- dots[!(names(dots) %in% c("G", "modtype", "noise"))]
     dots          <- c(dots, list(seqdata=dat, with.legend=FALSE, group=MAP, type=type, with.missing=FALSE))
     dots          <- if(type == "i") dots else c(dots, list(border=NA))
+    dots          <- dots[unique(names(dots))]
     if(type       != "Ht")     {
       l.ncol      <- ceiling(V/ifelse(V > 6 | G %% 2 != 0, 3, 2))
       if(G  %% 2  == 0)        {
@@ -1236,21 +1132,43 @@ print.MEDcriterion       <- function(x, pick = 3L, show = TRUE, ...) {
     invisible(crits)
 }
 
+print.MED_gating   <- function(x, ...) {
+  noise            <- attr(x, "Noise")
+  equalpro         <- attr(x, "EqualPro")
+  formula          <- attr(x, "Formula")
+  equalNoise       <- noise && equalpro
+  gateNoise        <- noise && !equalpro && formula != "~1"
+  class(x)         <- class(x)[class(x) != "MED_gating"]
+  print(x, ...)
+  cat(paste("Formula:", formula, "\n"))
+  cat(paste("Noise:",   noise,   "\n"))
+  if(gateNoise)                  cat(paste("Noise Component Gating:", attr(x, "NoiseGate"), "\n"))
+  cat(paste("EqualPro:", equalpro, ifelse(equalNoise, "\n", "")))
+  if(equalNoise)                 cat(paste("Noise Proportion Estimated:", attr(x, "EqualNoise")))
+  message("\n\nUsers are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network\n")
+    invisible(x)
+}
+
 print.MEDseq      <- function(x, digits = 2L, ...) {
   cat("Call:\t");  print(x$call)
   if(length(digits)  > 1   || !is.numeric(digits) ||
      digits       <= 0)          stop("Invalid 'digits'", call.=FALSE)
   name            <- x$modName
   G               <- x$G
+  gating          <- attr(x$gating, "Formula")
+  gate.x          <- !attr(x, "Gating")
   equalP          <- G < 1 || attr(x, "EqualPro")
   crit            <- round(unname(c(x$bic, x$icl, x$aic)), digits)
+  equalN          <- attr(x, "Noise") && attr(x$gating, "EqualNoise")
   cat(paste0("\nBest Model", ifelse(length(x$BIC)  > 1, paste0(" (according to ", toupper(attr(x, "Criterion")), "): "), ": "), name, ", with ",
-             G, " component",      ifelse(G > 1, "s\n", "\n"),
-             ifelse(!equalP, "",   paste0("Equal Mixing Proportions\n")),
+             G, " component",      ifelse(G > 1, "s", ""),
+             ifelse(gate.x,        " (no covariates)\n", " (incl. gating network covariates)\n"),
+             ifelse(!equalP, "",   paste0("Equal Mixing Proportions", ifelse(equalN, "\n", " (with estimated noise component mixing proportion)\n"))),
              ifelse(attr(x, "CV"), paste0("CV = ", round(unname(x$cv), digits), " | "), ""),
              "BIC = ",             crit[1L],
              " | ICL = ",          crit[2L],
-             " | AIC = ",          crit[3L]))
+             " | AIC = ",          crit[3L],
+             ifelse(gate.x,  "",   paste0("\nGating: ", gating, "\n"))))
     invisible()
 }
 
@@ -1276,32 +1194,8 @@ print.MEDtheta    <- function(x, preczero = TRUE, ...) {
     missind       <- which(tabulate(x[!lam0], nbins=V) == 0)
   } else missind  <- which(tabulate(x,        nbins=V) == 0)
   if(any(missind))               message(paste0("One or more sequence categories (", paste(shQuote(lab.x[missind]), collapse=" & "), ") are entirely missing\n"))
-  theta           <- as.data.frame(lapply(as.data.frame(x), function(theta) replace_levels(num_to_char(theta), alpha)))
+  theta           <- as.data.frame(lapply(as.data.frame(x), function(theta) .replace_levels(.num_to_char(theta), alpha)))
     print(theta, ...)
-}
-
-replace_levels    <- function(seq, levels = NULL) {
-  seq             <- as.numeric(strsplit(seq, "")[[1L]])
-    if(is.null(levels)) factor(seq) else factor(seq, levels=seq_along(levels) - any(seq == 0), labels=as.character(levels))
-}
-
-summary.MEDseq    <- function(object, digits = 2L, ...) {
-  x               <- object
-  cat("Call:\t");  print(x$call)
-  if(length(digits)  > 1   || !is.numeric(digits) ||
-     digits       <= 0)          stop("Invalid 'digits'", call.=FALSE)
-  name            <- x$modName
-  G               <- x$G
-  equalP          <- G < 1 || attr(x, "EqualPro")
-  crit            <- round(unname(c(x$bic, x$icl, x$aic)), digits)
-  cat(paste0("\nBest Model", ifelse(length(x$BIC)  > 1, paste0(" (according to ", toupper(attr(x, "Criterion")), "): "), ": "), name, ", with ",
-             G, " component",      ifelse(G > 1, "s\n", "\n"),
-             ifelse(!equalP, "",   paste0("Equal Mixing Proportions\n")),
-             ifelse(attr(x, "CV"), paste0("CV = ", round(unname(x$cv), digits), " | "), ""),
-             "BIC = ",             crit[1L],
-             " | ICL = ",          crit[2L],
-             " | AIC = ",          crit[3L]))
-    invisible()
 }
 
 tabcluster        <- function(x, norm = FALSE) {
@@ -1325,27 +1219,4 @@ tabcluster.MEDseq <- function(x, norm = FALSE) {
   colnames(temp)  <- c("Size", alph)
     temp
 }
-
-theta_data        <- function(seqs, z = NULL) {
-  if((G <- attr(seqs, "G"))   == 1L)  {
-    sumdist       <- vapply(seq_len(attr(seqs, "N")), function(i) sum(dseq(seqs, seqs[i])), numeric(1L))
-    sumdist       <- sumdist[sumdist  > 0]
-      return(list(theta = seqs[which.min(sumdist)], dsum = min(sumdist)))
-  } else           {
-    if(is.null(z))               stop("'z' must be supplied if 'G'>1", call.=FALSE)
-    theta         <- dsum     <- list()
-    for(g in seq_len(G))       {
-      sumdist     <- vapply(seq_len(attr(seqs, "N")), function(i) sum(dseq(seqs, seqs[i]) * z[,g]), numeric(1L))
-      sumdist     <- sumdist[sumdist  > 0]
-      theta[[g]]  <- seqs[which.min(sumdist)]
-      dsum[[g]]   <- min(sumdist)
-    }
-      return(list(theta = do.call(base::c, theta), dsum = do.call(base::c, dsum)))
-  }
-}
-
-weighted_mode     <- function(numseq, z) {
-    sapply(seq_len(attr(numseq, "G")), function(g)
-    sapply(seq_len(attr(numseq, "P")), function(p, x=tapply(z[,g], numseq[p,], sum)) names(which(x == max(x)))))
-}
-
+#
