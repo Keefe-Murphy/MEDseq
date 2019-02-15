@@ -3,6 +3,7 @@ get_partition              <- function(x, rank = 1L, criterion = c("bic", "icl",
 }
 
 get_partition.MEDseq       <- function(x, rank = 1L, criterion = c("bic", "icl", "aic", "cv", "loglik"), G = NULL, modtype = NULL, MAP = FALSE, noise = TRUE, ...) {
+  x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   ZS              <- x$ZS
   if(!(missing(G) -> m.G)  &&
     (length(G)    != 1     ||
@@ -39,9 +40,8 @@ get_partition.MEDseq       <- function(x, rank = 1L, criterion = c("bic", "icl",
        !is.numeric(rank)   ||
        rank != floor(rank) ||
        rank <= 0  ||
-       rank  > sum(!is.na(tmp))) stop("Invalid 'rank'", call.=FALSE)
-    best          <- print(tmp, pick=rank, show=FALSE)
-    best          <- strsplit(names(best[rank]), ",")[[1L]]
+       rank  > sum(!is.na(tmp))) stop("Invalid 'rank'",    call.=FALSE)
+    best          <- strsplit(names(.pick_MEDCrit(tmp, pick=rank)$crits[rank]), ",")[[1L]]
     modtype       <- best[1L]
     G             <- as.numeric(best[2L])
   }
@@ -65,8 +65,146 @@ get_partition.MEDseq       <- function(x, rank = 1L, criterion = c("bic", "icl",
     return(z)
 }
 
+MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv"), pick = 10L, optimal.only = FALSE) {
+  crit.miss       <- missing(criterion)
+  if(!missing(criterion)  && (length(criterion) > 1 ||
+     !is.character(criterion)))  stop("'criterion' must be a single character string", call.=FALSE)
+  criterion       <- match.arg(criterion)
+  num.miss        <- missing(pick)
+  opt.miss        <- missing(optimal.only)
+  if(length(pick) != 1    ||
+     !is.numeric(pick))          stop("'pick' must be a single number", call.=FALSE)
+  if(floor(pick)  != pick ||
+     pick          < 1)          stop("'pick' must be a strictly positive integer", call.=FALSE)
+  if(length(optimal.only)  > 1 ||
+     !is.logical(optimal.only))  stop("'optimal.only' must be a single logical indicator", call.=FALSE)
+  call            <- match.call(expand.dots=TRUE)[-1L]
+  call            <- if(crit.miss) call else call[-which(names(call) == "criterion")]
+  call            <- if(num.miss)  call else call[-which(names(call) == "pick")]
+  call            <- if(opt.miss)  call else call[-which(names(call) == "optimal.only")]
+  len.call        <- length(as.list(call))
+  if(len.call     == 1    && inherits(..., "list") && !inherits(..., "MEDseq")) {
+    mod.names     <- unique(names(...))
+    MEDs          <- as.list(...)[mod.names]
+    if(is.null(mod.names))       stop("When supplying models as a list, every element of the list must be named", call.=FALSE)
+  } else           {
+    mod.names     <- vapply(call, deparse, character(1L))
+    MEDs          <- stats::setNames(list(...), mod.names)
+    mod.names     <- unique(mod.names)
+    MEDs          <- MEDs[mod.names]
+  }
+  Mclass          <- vapply(MEDs, class,          character(1L))
+  if(any(Mclass   != "MEDseq"))  stop("All models must be of class 'MEDseq'!", call.=FALSE)
+  if(length(unique(lapply(MEDs, "[[", 
+     "seqs")))    != 1)          stop("All models being compared must have been fit to the same data set!", call.=FALSE)
+  title           <- "Mixtures of Exponential-Distance Models with Covariates"
+  dat.name        <- deparse(MEDs[[1L]]$call$seqs)
+  gate.x          <- lapply(MEDs, "[[", "gating")
+  algo            <- sapply(MEDs,   attr, "Algo")
+  equalNoise      <- sapply(MEDs,   attr, "EqualNoise")
+  equalPro        <- sapply(MEDs,   attr, "EqualPro")
+  noise.gate      <- sapply(MEDs,   attr, "NoiseGate")
+  gating          <- lapply(gate.x, attr, "Formula")
+  BICs            <- lapply(MEDs, "[[", "BIC")
+  ICLs            <- lapply(MEDs, "[[", "ICL")
+  AICs            <- lapply(MEDs, "[[", "AIC")
+  CVs             <- lapply(MEDs, "[[", "CV")
+  cvnull          <- vapply(CVs, is.null, logical(1L))
+  if(all(cvnull)  && 
+     criterion    == "cv")       stop("'criterion' cannot be 'cv' when cross-validation was not performed for any of the supplied models", call.=FALSE)
+  LLxs            <- lapply(MEDs, "[[", "LOGLIK")
+  DFxs            <- lapply(MEDs, "[[", "DF")
+  ITxs            <- lapply(MEDs, "[[", "ITERS")
+  choice          <- max(lengths(switch(EXPR=criterion, bic=BICs, icl=ICLs, aic=AICs, cv=CVs)))
+  bics            <- lapply(BICs, function(x) .pick_MEDCrit(x, choice)$crits)
+  icls            <- lapply(ICLs, function(x) .pick_MEDCrit(x, choice)$crits)
+  aics            <- lapply(AICs, function(x) .pick_MEDCrit(x, choice)$crits)
+  cvs             <- lapply(CVs,  function(x) if(!is.null(x)) .pick_MEDCrit(x, choice)$crits)[!cvnull]
+  llxs            <- lapply(LLxs, function(x) .pick_MEDCrit(x, choice)$crits)
+  dfxs            <- lapply(DFxs, function(x) .pick_MEDCrit(x, choice)$crits)
+  itxs            <- lapply(ITxs, function(x) .pick_MEDCrit(x, choice)$crits)
+  if(optimal.only) {
+    opt.names     <- names(.crits_names(lapply(switch(EXPR=criterion, bic=bics, icl=icls, aic=aics, cv=cvs), "[", 1L)))
+  }
+  bics            <- .crits_names(bics)
+  icls            <- .crits_names(icls)
+  aics            <- .crits_names(aics)
+  cvs             <- .crits_names(cvs)
+  llxs            <- .crits_names(llxs)
+  dfxs            <- .crits_names(dfxs)
+  itxs            <- .crits_names(itxs)
+  if(optimal.only) {
+    bics          <- bics[names(bics) %in% opt.names]
+    icls          <- icls[names(icls) %in% opt.names]
+    aics          <- aics[names(aics) %in% opt.names]
+    cvs           <- cvs[names(cvs)   %in% opt.names]
+    llxs          <- llxs[names(llxs) %in% opt.names]
+    dfxs          <- dfxs[names(dfxs) %in% opt.names]
+    itxs          <- itxs[names(itxs) %in% opt.names]
+  }
+  crits           <- switch(EXPR=criterion, bic=bics, icl=icls, aic=aics, cv=cvs)
+  pick            <- min(pick, length(crits))
+  max.crits       <- sort(crits, decreasing=TRUE)[seq_len(pick)]
+  if(length(unique(max.crits))  < pick) {
+    ties          <- max.crits == max.crits[1L]
+    if(any(ties[-1L]))     {     warning(paste0("Ties for the optimal model exist according to the '", criterion, "' criterion: choosing the most parsimonious model\n"), call.=FALSE, immediate.=TRUE)
+      df.ties     <- dfxs[names(max.crits)][which(ties)]
+      max.crits[ties]     <- max.crits[order(df.ties)]
+      if(any((df.ties     == df.ties[1L])[-1L])) {
+        max.crits[ties]   <- max.crits[order(as.numeric(gsub(".*,", "", names(max.crits[ties]))))]
+      }
+    } else                       warning(paste0("Ties exist according to the '", criterion, "' criterion\n"), call.=FALSE, immediate.=TRUE)
+  }
+  max.names       <- names(max.crits)
+  crit.names      <- gsub("\\|.*", "",          max.names)
+  G               <- as.numeric(gsub(".*,", "", max.names))
+  gating          <- unname(unlist(gating[crit.names]))
+  modelNames      <- gsub(",.*", "", gsub(".*\\|", "", max.names))
+  best.model      <- MEDs[[crit.names[1L]]]
+  if(best.model$modName != modelNames[1L] || best.model$G != G[1L]) {
+    cat("Re-fitting optimal model due to mismatched 'criterion'...\n\n")
+    old.call    <- best.model$call
+    old.call    <- c(as.list(old.call)[1L], list(criterion=criterion), as.list(old.call)[-1L])
+    old.call    <- as.call(old.call[!duplicated(names(old.call))])
+    best.call   <- c(list(data=best.model$data, l.meth=modelNames[1L], G=G[1L], verbose=FALSE, do.cv=FALSE), as.list(old.call[-1L]))
+    best.mod    <- try(do.call(MEDseq_fit, best.call[!duplicated(names(best.call))]), silent=TRUE)
+    if(!inherits(best.model, "try-error")) {
+      best.model$call               <- old.call
+      best.model$modName            <- best.mod$modName
+      best.model$G                  <- best.mod$G
+      best.model$bic                <- best.mod$bic
+      best.model$icl                <- best.mod$icl
+      best.model$aic                <- best.mod$aic
+      best.model$cv                 <- if(attr(best.model, "CV")) best.model$CV[best.mod$G,best.mod$modName]
+      best.model$gating             <- best.mod$gating
+      best.model$loglik             <- best.mod$loglik
+      best.model$df                 <- best.mod$df
+      best.model$iters              <- best.mod$iters
+      best.model$params             <- best.mod$params
+      best.model$z                  <- best.mod$z
+      best.model$MAP                <- best.mod$MAP
+      best.model$uncert             <- best.mod$uncert
+      attributes(best.model)        <- attributes(best.mod)
+    } else best.model               <- paste0("Failed to re-fit the optimal model: ", gsub("\"", "'", deparse(old.call, width.cutoff=500L), fixed=TRUE))
+  }
+  gating[gating == "~1" | G   == 1] <- "None"
+  noise         <- modelNames %in% c("CCN", "UCN", "CUN", "UUN")
+  noise.gate    <- ifelse(!noise, NA, noise.gate[crit.names])
+  equalPro      <- replace(unname(equalPro[crit.names]), gating != "None" | G == 1, NA)
+  equalNoise    <- ifelse(!noise | G == 1, NA, equalNoise[crit.names] & vapply(equalPro, isTRUE, logical(1L)))
+  comp          <- list(title = title, data = dat.name, optimal = best.model, pick = pick, MEDNames = crit.names, modelNames = modelNames, G = as.integer(G), 
+                        df = as.integer(unname(dfxs[max.names])), iters = as.integer(unname(itxs[max.names])), bic = unname(bics[max.names]), icl = unname(icls[max.names]), 
+                        aic = unname(aics[max.names]), cvs = unname(cvs[max.names]), loglik = unname(llxs[max.names]), gating = gating, algo = unname(algo[crit.names]), 
+                        equalPro = equalPro, noise = unname(noise), noise.gate = unname(replace(noise.gate, gating == "None" | G <= 2, NA)), equalNoise = unname(replace(equalNoise, !equalPro | is.na(equalPro), NA)))
+  class(comp)   <- c("MEDseqCompare", "MEDseq")
+  bic.tmp       <- sapply(BICs, as.vector)
+  attr(comp, "NMods")  <- c(tried = sum(vapply(bic.tmp, function(x) length(x[!is.na(x)]),    numeric(1L))),
+                            ran   = sum(vapply(bic.tmp, function(x) length(x[is.finite(x)]), numeric(1L))))
+    comp
+}
+
 MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "hc", "random"), dist.mat = NULL, nstarts = 1L,
-                              criterion = c("bic", "icl", "aic", "cv"), do.cv = TRUE, nfolds = 10L, stopping = c("aitken", "relative"),
+                              criterion = c("bic", "icl", "aic", "cv"), do.cv = FALSE, nfolds = 10L, stopping = c("aitken", "relative"),
                               tau0 = NULL, opti = c("mode", "first", "GA", "medoid"), ordering = c("none", "decreasing", "increasing"), noise.gate = TRUE,
                               equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 100L), nonzero = TRUE, verbose = TRUE, ...) {
   if(!missing(algo)        &&
@@ -87,7 +225,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
        floor(nstarts) !=
        nstarts))                 stop(paste0("'nstarts' must be a single integer >= 1 if when 'init.z'=", init.z), call.=FALSE)
   }
-  miss.args                <- list(do.cv=missing(do.cv), tau0=missing(tau0))
+  miss.args                <- list(tau0=missing(tau0))
   if(!missing(criterion)   &&
     (length(criterion) > 1 ||
      !is.character(criterion)))  stop("'criterion' must be a character vector of length 1", call.=FALSE)
@@ -166,8 +304,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   startseq        <- seq_len(nstarts)
   equalPro        <- ctrl$equalPro
   equalNoise      <- ctrl$equalNoise
+  noise.gate      <- ctrl$noise.gate
   nonzero         <- ctrl$nonzero
   verbose         <- ctrl$verbose
+  x.ctrl          <- list(equalPro=equalPro, noise.gate=noise.gate, equalNoise=equalNoise)
   ctrl$ordering   <- ifelse(ctrl$opti == "first", ctrl$ordering, "none")
   miss.args       <- attr(ctrl, "missing")
   if(any(G        != floor(G))    &&
@@ -204,12 +344,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       hcZ         <- cluster::agnes(dist.mat, diss=TRUE, method="ward")
     }
   } else all.mod  <- l.meths[l.meths %in% mt1]
-  if(any(len.G     > 1,
-    (multi        <- length(all.mod) > 1))) {
-    cvsel         <- ctrl$do.cv
-  } else           {
-    cvsel         <- ifelse(miss.args$do.cv, FALSE, ctrl$do.cv)
-  }
+  multi           <- length(all.mod) > 1
+  cvsel           <- ctrl$do.cv
   ctrl$do.cv      <- FALSE
   cvsel           <- any(cvsel, criterion == "cv")
   if(ctrl$numseq  <- any(c("CU", "UU", "CUN", "UUN") %in% all.mod, ctrl$opti == "mode", ctrl$ordering != "none")) {
@@ -262,10 +398,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       gate.x      <- 
       gate.G[]    <- FALSE
     }
-    Gn            <- G - !ctrl$noise.gate
+    Gn            <- G - !noise.gate
     if((verbose   && gate.x)       &&
       ((any(Gn    <= 1)  && noise) ||
-       any(G      <= 1))) {      message(paste0("Can't include gating network covariates ", ifelse(ctrl$noise.gate, "in a single component mixture", "where G is less than 3 when 'noise.gate' is FALSE\n")))
+       any(G      <= 1))) {      message(paste0("Can't include gating network covariates ", ifelse(noise.gate, "in a single component mixture", "where G is less than 3 when 'noise.gate' is FALSE\n")))
      gate.G[2L,Gn <= 1]  <- FALSE
     }
     gate.names    <- labels(stats::terms(gating))
@@ -276,7 +412,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     gating        <- stats::as.formula(z ~ 1)
     environment(gating)  <- environment()
   }
-  noise.gate      <- ifelse(gate.G, ctrl$noise.gate, TRUE)
+  noise.gate      <- ifelse(gate.G, noise.gate, TRUE)
   if(all(equalPro, gate.x)) { 
     if(verbose)                   message("Can't constrain mixing proportions to be equal when gating covariates are supplied\n")
     equalPro      <- FALSE
@@ -366,7 +502,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       ctrl$equalNoise    <- equal.n0[ctrl$nmeth   + 1L,h]
       ctrl$equalPro      <- equal.tau[ctrl$nmeth  + 1L,h]
       ctrl$gate.g        <- gate.G[(g > 1)        + 1L,h]
-      ctrl$noise.gate    <- ifelse(ctrl$nmeth, ctrl$noise.gate, TRUE)
+      ctrl$noise.gate    <- ifelse(ctrl$nmeth, noise.gate[2L,h], TRUE)
       zm          <- if(attr(SEQ, "Noise") <- gN0 <- ctrl$nmeth) zg0 else zg
       if(gN0   && !ctrl$noise.gate && ctrl$algo   != "EM")  {
         zm[,-G]   <- replace(zm[,-G], zm[,-G] > 0, 1L)
@@ -533,10 +669,14 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   class(BICs)     <-
   class(ICLs)     <-
   class(AICs)     <-
+  class(DF.x)     <- 
+  class(IT.x)     <-
   class(LL.x)     <- "MEDcriterion"
   attr(BICs, "Criterion")  <- "BIC"
   attr(ICLs, "Criterion")  <- "ICL"
   attr(AICs, "Criterion")  <- "AIC"
+  attr(DF.x, "Criterion")  <- "DF"
+  attr(IT.x, "Criterion")  <- "ITERS"
   attr(LL.x, "Criterion")  <- "loglik"
   attr(BICs, "G")          <-
   attr(ICLs, "G")          <-
@@ -604,7 +744,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(fitG, "Formula")        <- Reduce(paste, deparse(gating[-2L]))
   attr(fitG, "Noise")          <- noise
   attr(fitG, "NoiseGate")      <- noise.gate
-  class(fitG)     <- c("MED_gating", class(fitG))
+  class(fitG)     <- c("MEDgating", class(fitG))
   if(isTRUE(verbose))            cat(paste0("\n\t\tBest Model", ifelse(length(CRITs) > 1, paste0(" (according to ", toupper(criterion), "): "), ": "), best.mod, ", with ",  paste0(G, " component", ifelse(G > 1, "s", ""))),
                                      ifelse(bG | x.gcov, "(incl. gating network covariates)", ""),
                                      ifelse(cvsel, paste0("\n\t\tCV = ", round(x.cv, 2L), " |"), "\n\t       "),
@@ -634,6 +774,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
                           LOGLIK  = LL.x,
                           loglik  = x.ll[if(G > 1) switch(EXPR=algo, cemEM=-1L, -seq_len(2L)) else 1L],
                           uncert  = if(G > 1) 1 - matrixStats::rowMaxs(z) else vector("integer", N),
+                          covars  = covars,
                           DF      = DF.x,
                           df      = DF.x[best.ind],
                           ITERS   = IT.x,
@@ -648,15 +789,16 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     meds          <- c(meds, srows[which.min(matrixStats::rowSums2(dist.mat[srows,srows]))])
   }
   perm            <- seriation::get_order(seriation::seriate(as.dist(dist.mat[meds,meds]), method="TSP"))
+  attr(results, "Algo")        <- algo
   attr(results, "Criterion")   <- criterion
   attr(results, "CV")          <- cvsel
   attr(results, "DistMat")     <- dist.mat
-  attr(results, "EqualPro")    <- equalPro
-  attr(results, "EqualNoise")  <- equalNoise
+  attr(results, "EqualPro")    <- x.ctrl$equalPro
+  attr(results, "EqualNoise")  <- x.ctrl$equalNoise
   attr(results, "Gating")      <- x.gcov | bG
   attr(results, "N")           <- N
   attr(results, "Noise")       <- noise
-  attr(results, "NoiseGate")   <- noise.gate
+  attr(results, "NoiseGate")   <- x.ctrl$noise.gate
   attr(results, "P")           <- P
   attr(results, "Seriate")     <- if(noise) c(perm, G) else perm
   attr(results, "V")           <- V
@@ -664,108 +806,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     return(results)
 }
 
-optimise_theta    <- function(seqs, ctrl, z = NULL, numseq = NULL) {
-  opti            <- ctrl$opti
-  ordering        <- ctrl$ordering
-  P               <- attr(seqs, "P")
-  G               <- attr(seqs, "G")
-  Gseq            <- seq_len(G)
-  if(G     > 1L   && is.null(z))  stop("'z' must be supplied when 'G'>1", call.=FALSE)
-  if(opti         == "mode" || ordering != "none")   {
-    if(is.null(numseq)      && isFALSE(ctrl$numseq)) {
-      numseq      <- sapply(seqs, .char_to_num)
-      attr(numseq, "G")     <- G
-      attr(numseq, "P")     <- P
-    }
-    if(opti       == "mode") {
-      if(G > 1L)   {
-        theta     <- .weighted_mode(numseq=numseq, z=z)
-        if(is.list(theta)   && any(nonu <- apply(theta,   2L, function(x) any(nchar(x) > 1)))) {
-          theta[,nonu]      <- lapply(theta[,nonu], "[[", 1L)
-        } else       nonu   <- rep(FALSE, G)
-        theta     <- apply(theta,  2L, .num_to_char)
-      } else       {
-        theta     <- apply(numseq, 1L, .modal)
-        if(nonu   <- is.list(theta)) {
-          theta   <- lapply(theta, "[[",  1L)
-        }
-        theta     <- .num_to_char(theta)
-      }
-      attr(theta, "NonUnique")   <- nonu
-        return(theta)
-    }
-  }
-
-  V               <- attr(seqs, "V")
-  theta.opt       <- .theta_data(seqs=seqs, z=z)
-  if(opti == "medoid")       {
-      return(theta.opt$theta)
-  }
-  N               <- attr(seqs, "N")
-  pseq            <- seq_len(P)
-  vseq            <- seq_len(V)
-  opt             <- theta.opt$dsum
-  if(G > 1L)       {
-    theta         <- lapply(theta.opt$theta, .char_to_num)
-  } else           {
-    z             <- matrix(1L, nrow=N)
-    theta         <- list(.char_to_num(theta.opt$theta))
-  }
-  if(ordering     != "none") {
-    stab          <- if(G   == 1) list(apply(numseq, 1L, tabulate, V)) else lapply(Gseq, function(g) apply(sweep(numseq, 2L, z[,g], FUN="*", check.margin=FALSE), 1L, tabulate, V))
-    sorder        <- lapply(Gseq, function(g) order(apply(stab[[g]], 2L, .entropy), decreasing=ordering == "decreasing"))
-    theta         <- lapply(Gseq, function(g) theta[[g]][sorder[[g]]])
-    seqs          <- lapply(Gseq, function(g) unname(apply(numseq[sorder[[g]],], 2L, .num_to_char)))
-  } else seqs     <- replicate(G, list(seqs))
-
-  for(g in Gseq)   {
-    p.opt         <- Inf
-    switch(EXPR    = opti,
-           first   =     {
-             opts       <- rep(NA, V)
-             while(p.opt > opt[g])       {
-               p.opt    <- opt[g]
-               for(p    in pseq)         {
-                 vdiff  <- setdiff(vseq, theta[[g]][p])
-                 for(v in vdiff)         {
-                   opts[v]              <- sum(z[,g] * .dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
-                 }
-                 opts[theta[[g]][p]]    <- opt[g]
-                 opt[g] <- min(opts)
-                 theta[[g]][p]          <- which.min(opts)
-               }
-             }
-           }, GA   =     {
-             opts       <- matrix(NA, nrow=P, ncol=V)
-             while(p.opt > opt[g])       {
-               p.opt    <- opt[g]
-               for(p   in pseq)          {
-                 vdiff  <- setdiff(vseq, theta[[g]][p])
-                 for(v in vdiff)         {
-                   opts[p, v]           <- sum(z[,g] * .dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
-                 }
-                 opts[p, theta[[g]][p]] <- opt[g]
-               }
-               opt[g]   <- min(opts)
-               if(p.opt  > opt[g])       {
-                 oi     <- which(opts == opt[g], arr.ind=TRUE)[1L,]
-                 theta[[g]][oi[1L]]     <- oi[2L]
-               }
-             }
-           })
-  }
-
-  theta          <- switch(EXPR=ordering,
-                           none=if(G > 1)  {
-                             do.call(base::c, lapply(theta, .num_to_char))
-                           } else .num_to_char(theta[[1L]]),
-                           if(G > 1)       {
-                             do.call(base::c, lapply(Gseq, function(g) .num_to_char(theta[[g]][match(pseq, sorder[[g]])])))
-                           } else .num_to_char(theta[[1L]][match(pseq, sorder[[1L]])]))
-}
-
 plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating", "cv", "bic", "icl", "aic", "LOGLIK", "quality", "uncert.bar", "uncert.profile",
                               "loglik", "d", "f", "Ht", "i", "I"), seriate = TRUE, preczero = TRUE, log.scale = NULL, qual = "ASW", ...) {
+  x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(type)           &&
      (length(type)       > 1  ||
       !is.character(type)))      stop("'type' must be a character vector of length 1", call.=FALSE)
@@ -1095,50 +1138,79 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
   })
 }
 
-print.MEDcriterion       <- function(x, pick = 3L, show = TRUE, ...) {
+print.MEDseqCompare    <- function(x, index=seq_len(x$pick), digits = 3L, ...) {
+  index           <- if(is.logical(index)) which(index) else index
+  if(length(index) < 1 || (!is.numeric(index) &&
+     (any(index    < 1  | 
+          index    > x$pick))))  stop("Invalid 'index'",  call.=FALSE)
+  if(length(digits)     > 1 ||
+     !is.numeric(digits)    ||
+     digits       <= 0)          stop("Invalid 'digits'", call.=FALSE)
+  x$bic           <- round(x$bic,    digits)
+  x$icl           <- round(x$icl,    digits)
+  x$aic           <- round(x$aic,    digits)
+  x$loglik        <- round(x$loglik, digits)
+  na.cvs          <- is.na(x$cvs)
+  x$cvs[!na.cvs]  <- if(!all(na.cvs)) round(x$cvs[!na.cvs], digits)
+  cvs             <- replace(x$cvs, na.cvs, "")
+  x$cvs           <- NULL
+  x$cvs           <- if(all(na.cvs))             NULL else cvs
+  x               <- c(x[seq_len(which(names(x) == "loglik") - 1L)], list(cvs=x$cvs), x[seq(from=which(names(x) == "loglik"), to=length(x) - 1L, by=1L)])
+  n.all           <- all(x$noise)
+  x$noise         <- if(n.all)                   NULL else x$noise
+  noise.gate      <- if(n.all)                   NULL else replace(x$noise.gate, is.na(x$noise.gate), "")
+  x$noise.gate    <- NULL
+  x$noise.gate    <- if(all(x$gating == "None")) NULL else noise.gate
+  equalPro        <- if(all(is.na(x$equalPro)))  NULL else replace(x$equalPro,   is.na(x$equalPro),   "")
+  x$equalPro      <- NULL
+  x$equalPro      <- equalPro
+  na.equalNoise   <- is.na(x$equalNoise)
+  equalNoise      <- replace(x$equalNoise, na.equalNoise,    "")
+  x$equalNoise    <- NULL
+  x$equalNoise    <- if(all(na.equalNoise))      NULL else equalNoise
+  cat(paste0("------------------------------------------------------------------------------\n", x$title, "\nData: ",
+             x$data,"\n", "------------------------------------------------------------------------------\n\n"))
+  compX           <- data.frame(do.call(cbind, x[-seq_len(4L)]))[index,]
+  compX           <- cbind(rank = rownames(compX), compX)
+  rownames(compX) <- NULL
+  print(compX, row.names = FALSE)
+    invisible()
+}
+
+print.MEDcriterion       <- function(x, pick = 3L, ...) {
   if(length(pick)        != 1 ||
      !is.numeric(pick))          stop("'pick' must be a single number", call.=FALSE)
   if(floor(pick)  != pick     ||
      pick          < 1)          stop("'pick' be a strictly positive integer", call.=FALSE)
-  if(length(show) != 1        ||
-     !is.logical(show))          stop("'show' must be a single logical indicator", call.=FALSE)
+  algo            <- attr(x, "algo")
   crit            <- attr(x, "Criterion")
-  x2              <- replace(x, !is.finite(x), NA)
-  pick            <- min(pick,        length(x2[!is.na(x2)]))
-  x.crit          <- x2  >= sort(x2,  decreasing=TRUE)[pick]
-  x.ind           <- which(x.crit,    arr.ind=TRUE)
-  x.val           <- sort(x2[x.ind],  decreasing=TRUE)
-  ind.x           <- order(x2[x.ind], decreasing=TRUE)
-  x.ind           <- x.ind[ind.x,,    drop=FALSE]
-  x.ind[,1L]      <- gsub(".*= ", "", rownames(x)[x.ind[,1L]])
-  x.ind[,2L]      <- colnames(x2)[as.numeric(x.ind[,2L])]
-  crits           <- stats::setNames(x.val, vapply(seq_len(pick), function(p, b=x.ind[p,]) paste0(b[2L], ",", b[1L]), character(1L)))
+  choice          <- .pick_MEDCrit(x, pick)
+  pick            <- choice$pick
   dim1            <- attr(x, "dim")
   dim2            <- attr(x, "dimnames")
   attributes(x)   <- NULL
-  attr(x, "dim")       <- dim1
-  attr(x, "dimnames")  <- dim2
-  if(isTRUE(show)) {
-    cat(switch(EXPR= crit,
-               CV="Cross-Validated Log-Likelihood (CV):\n",
-               BIC="Bayesian Information Criterion (BIC):\n",
-               ICL="Integrated Completed Likelihood (ICL):\n",
-               AIC="Akaike Information Criterion (AIC):\n"),
-            LOGLIK="Maximal Log-Likelihood:\n")
-    print(unclass(x))
-    cat(paste0("\nTop ", ifelse(pick > 1, paste0(pick, " models"), "model"), " based on the ", crit, " criterion:\n"))
-    print(crits)
-  }
-    invisible(crits)
+  attr(x, "dim")         <- dim1
+  attr(x, "dimnames")    <- dim2
+  cat(switch(EXPR= crit,
+             CV="Cross-Validated Log-Likelihood (CV):\n",
+             BIC="Bayesian Information Criterion (BIC):\n",
+             ICL="Integrated Completed Likelihood (ICL):\n",
+             AIC="Akaike Information Criterion (AIC):\n",
+              DF="Number of Estimated Parameters (Residual DF):\n",
+           ITERS=paste0("Number of ", algo, " Iterations:\n"),
+          LOGLIK="Maximal Log-Likelihood:\n"))
+  print(unclass(x))
+  cat(paste0("\nTop ", ifelse(pick > 1, paste0(pick, " models"), "model"), " based on the ", crit, " criterion:\n"))
+  print(choice$crits)
 }
 
-print.MED_gating   <- function(x, ...) {
+print.MEDgating    <- function(x, ...) {
   noise            <- attr(x, "Noise")
   equalpro         <- attr(x, "EqualPro")
   formula          <- attr(x, "Formula")
   equalNoise       <- noise && equalpro
   gateNoise        <- noise && !equalpro && formula != "~1"
-  class(x)         <- class(x)[class(x) != "MED_gating"]
+  class(x)         <- class(x)[class(x) != "MEDgating"]
   print(x, ...)
   cat(paste("Formula:", formula, "\n"))
   cat(paste("Noise:",   noise,   "\n"))
@@ -1151,19 +1223,21 @@ print.MED_gating   <- function(x, ...) {
 
 print.MEDseq      <- function(x, digits = 2L, ...) {
   cat("Call:\t");  print(x$call)
-  if(length(digits)  > 1   || !is.numeric(digits) ||
+  if(length(digits)  > 1    || !is.numeric(digits) ||
      digits       <= 0)          stop("Invalid 'digits'", call.=FALSE)
   name            <- x$modName
   G               <- x$G
+  noise           <- attr(x, "Noise")
   gating          <- attr(x$gating, "Formula")
   gate.x          <- !attr(x, "Gating")
-  equalP          <- G < 1 || attr(x, "EqualPro")
+  equalP          <- G == 1 || attr(x$gating, "EqualPro")
+  equalN          <- noise && attr(x$gating, "EqualNoise") && equalP
   crit            <- round(unname(c(x$bic, x$icl, x$aic)), digits)
-  equalN          <- attr(x, "Noise") && attr(x$gating, "EqualNoise")
   cat(paste0("\nBest Model", ifelse(length(x$BIC)  > 1, paste0(" (according to ", toupper(attr(x, "Criterion")), "): "), ": "), name, ", with ",
              G, " component",      ifelse(G > 1, "s", ""),
              ifelse(gate.x,        " (no covariates)\n", " (incl. gating network covariates)\n"),
-             ifelse(!equalP, "",   paste0("Equal Mixing Proportions", ifelse(equalN, "\n", " (with estimated noise component mixing proportion)\n"))),
+             ifelse(!equalP ||
+                     G == 1, "",   paste0("Equal Mixing Proportions", ifelse(equalN | G == 1 | !noise, "\n", " (with estimated noise component mixing proportion)\n"))),
              ifelse(attr(x, "CV"), paste0("CV = ", round(unname(x$cv), digits), " | "), ""),
              "BIC = ",             crit[1L],
              " | ICL = ",          crit[2L],
@@ -1203,6 +1277,7 @@ tabcluster        <- function(x, norm = FALSE) {
 }
 
 tabcluster.MEDseq <- function(x, norm = FALSE) {
+  x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   alph            <- attr(x$params$theta, "alphabet")
   V               <- attr(x, "V")
   P               <- ifelse(isTRUE(norm), attr(x, "P"), 1L)

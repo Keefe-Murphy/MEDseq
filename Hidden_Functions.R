@@ -46,12 +46,16 @@
     return(list(bic = bic, icl = bic + 2L * sum(log(matrixStats::rowMaxs(z)), na.rm=TRUE), aic = ll2 - kpar * 2, df = kpar))
 }
 
+.crits_names      <- function(x) {
+    unlist(lapply(seq_along(x), function(i) stats::setNames(x[[i]], paste0(names(x[i]), "|", names(x[[i]])))))
+}
+
 .dbar             <- function(seqs, theta) {
-  mean(stringdist::stringdistmatrix(seqs, theta, method="hamming"))
+    mean(stringdist::stringdistmatrix(seqs, theta, method="hamming"))
 }
 
 .dseq             <- function(seqs, theta) {
-  stringdist::stringdistmatrix(seqs, theta, method="hamming")
+    stringdist::stringdistmatrix(seqs, theta, method="hamming")
 }
 
 .drop_constants   <- function(dat, formula, sub = NULL) {
@@ -434,13 +438,30 @@
            })
   }
   
-  theta          <- switch(EXPR=ordering,
-                           none=if(G > 1)  {
-                             do.call(base::c, lapply(theta, .num_to_char))
-                           } else .num_to_char(theta[[1L]]),
-                           if(G > 1)       {
-                             do.call(base::c, lapply(Gseq, function(g) .num_to_char(theta[[g]][match(pseq, sorder[[g]])])))
-                           } else .num_to_char(theta[[1L]][match(pseq, sorder[[1L]])]))
+  theta           <- switch(EXPR=ordering,
+                            none=if(G > 1)  {
+                              do.call(base::c, lapply(theta, .num_to_char))
+                            } else .num_to_char(theta[[1L]]),
+                            if(G > 1)       {
+                              do.call(base::c, lapply(Gseq, function(g) .num_to_char(theta[[g]][match(pseq, sorder[[g]])])))
+                            } else .num_to_char(theta[[1L]][match(pseq, sorder[[1L]])]))
+} 
+
+.pick_MEDCrit     <- function(x, pick = 3L) {
+  if(!inherits(x, 
+     "MEDcriterion"))            stop("'x' must be an object of class 'MEDcriterion'", call.=FALSE)
+  x               <- replace(x, !is.finite(x), NA)
+  pick            <- min(pick,        length(x[!is.na(x)]))
+  decrease        <- !is.element(attr(x, "Criterion"), c("DF", "ITERS"))
+  x.sx            <- sort(x,          decreasing=decrease)[pick]
+  x.crit          <- if(decrease)     x   >= x.sx else x <= x.sx
+  x.ind           <- which(x.crit,    arr.ind=TRUE)
+  x.val           <- sort(x[x.ind],   decreasing=decrease)
+  ind.x           <- order(x[x.ind],  decreasing=decrease)
+  x.ind           <- x.ind[ind.x,,    drop=FALSE]
+  x.ind[,1L]      <- gsub(".*= ", "", rownames(x)[x.ind[,1L]])
+  x.ind[,2L]      <- colnames(x)[as.numeric(x.ind[,2L])]
+    return(list(crits = stats::setNames(x.val, vapply(seq_len(pick), function(p, b=x.ind[p,]) paste0(b[2L], ",", b[1L]), character(1L))), pick = pick))
 }
 
 .replace_levels   <- function(seq, levels = NULL) {
