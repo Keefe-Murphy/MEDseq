@@ -452,7 +452,7 @@
      "MEDcriterion"))            stop("'x' must be an object of class 'MEDcriterion'", call.=FALSE)
   x               <- replace(x, !is.finite(x), NA)
   pick            <- min(pick,        length(x[!is.na(x)]))
-  decrease        <- !is.element(attr(x, "Criterion"), c("DF", "ITERS"))
+  decrease        <- !is.element(attr(x, "Criterion"), c("DF", "ITERS", "NEC"))
   x.sx            <- sort(x,          decreasing=decrease)[pick]
   x.crit          <- if(decrease)     x   >= x.sx else x <= x.sx
   x.ind           <- which(x.crit,    arr.ind=TRUE)
