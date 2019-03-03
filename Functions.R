@@ -2,9 +2,10 @@ dbs               <- function(z) {
   MAP             <- max.col(z)
   if(any(!is.matrix(z), !is.numeric(z)) ||
      ncol(z)      <= 1)          stop("'z' must be a numeric matrix with 2 or more columns", call.=FALSE)
-  z               <- matrix(z[order(row(z), -z)], nrow(z), byrow = TRUE)
+  z               <- matrix(z[order(row(z), -z)], nrow(z), byrow=TRUE)
   zz              <- log(z[,1L]) - log(z[,2L])
   ds              <- zz/max(abs(zz))
+  ds[is.nan(ds)]  <- 0L
   DS              <- cbind(cluster=MAP, dbs_width=ds)
   class(DS)       <- "MEDsil"
     return(list(silvals = DS, msw = median(ds)))
@@ -282,7 +283,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
        floor(nstarts) !=
        nstarts))                 stop(paste0("'nstarts' must be a single integer >= 1 if when 'init.z'=", init.z), call.=FALSE)
   }
-  miss.args                <- list(tau0=missing(tau0))
+  miss.args                <- list(do.nec = missing(do.nec), tau0=missing(tau0))
   if(!missing(criterion)   &&
     (length(criterion) > 1 ||
      !is.character(criterion)))  stop("'criterion' must be a character vector of length 1", call.=FALSE)
@@ -367,6 +368,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   noise.gate      <- ctrl$noise.gate
   nonzero         <- ctrl$nonzero
   verbose         <- ctrl$verbose
+  ctrl$warn       <- TRUE
   x.ctrl          <- list(equalPro=equalPro, noise.gate=noise.gate, equalNoise=equalNoise)
   ctrl$ordering   <- ifelse(ctrl$opti == "first", ctrl$ordering, "none")
   miss.args       <- attr(ctrl, "missing")
@@ -377,24 +379,6 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     if(length(G)   > 1)        { warning("Removing G values >= the number of observations\n",  call.=FALSE, immediate.=TRUE)
     } else                       stop("G values must be less than the number of observations", call.=FALSE)
   }
-  G               <- rG  <- unique(sort(as.integer(G)))
-  if(!(do.nec     <- ctrl$do.nec) &&
-     criterion    == "nec"        &&
-     !all(G == 1))             { message("Forcing 'do.nec' to TRUE as criterion='nec'\n")
-    do.nec        <- TRUE
-  }
-  if(do.nec &&
-     !any(G == 1))             { message("Forcing G=1 models to be fitted for NEC criterion computation\n")
-    G             <- rG  <- unique(c(1L, G))  
-  }
-  if(all(G  == 1)) {             message("Density-based silhouettes not computed as only single component models are being fit\n")
-    do.dbs        <- FALSE
-    if(criterion  == "dbs")      stop("DBS criterion cannot be used to select among only single-component models", call.=FALSE)
-    if(do.nec     && 
-       !(do.nec   <- FALSE))     message("Forcing 'do.nec' to FALSE as only single component models are being fit\n")
-    if(criterion  == "nec")      stop("NEC criterion cannot be used to select among only single-component models", call.=FALSE)
-  } else do.dbs   <- TRUE
-  len.G           <- length(G)
   mt1             <- unique(vapply(l.meth, function(lx) switch(EXPR=lx, CC=, UC="CC", CU=, UU="CU", "CCN"), character(1L)))
   mt2             <- unique(vapply(l.meth, function(lx) switch(EXPR=lx, UCN="CCN", UUN="CUN", lx),          character(1L)))
   mtg             <- unique(l.meth)
@@ -407,9 +391,34 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     l.meths       <- c("CC", "UC", "CU", "UU")
   } else l.meths  <- c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN")
   if(is.null(dist.mat))        {
-    dist.mat      <- as.dist(suppressMessages(seqdist(seqs, method="OM", indel=1, sm=suppressMessages(seqsubm(seqs, method="TRATE")))))
+    dist.mat      <- as.dist(as.dist(suppressMessages(seqdist(seqs, "HAM"))))
   } else if((sqrt(length(dist.mat) * 2L + N) !=
-             N))                stop("Invalid 'dist.mat' dimensions", call.=FALSE)
+             N))                 stop("Invalid 'dist.mat' dimensions", call.=FALSE)
+  
+  G               <- rG  <- unique(sort(as.integer(G)))
+  if((len.G       <- length(G)) > 1 || 
+     ifelse(G > 2, length(mtg), length(mt2)) > 1) {
+    do.nec        <- ctrl$do.nec  
+  } else           {
+    do.nec        <- ifelse(miss.args$do.nec, FALSE, ctrl$do.nec)
+  }
+  if(!do.nec      &&
+     criterion    == "nec"    &&
+     !all(G == 1))             { message("Forcing 'do.nec' to TRUE as criterion='nec'\n")
+    do.nec        <- TRUE
+  }
+  if(do.nec &&
+     !any(G == 1))             { message("Forcing G=1 models to be fitted for NEC criterion computation\n")
+    G             <- rG  <- unique(c(1L, G))  
+    len.G         <- length(G)
+  }
+  if(all(G  == 1)) {             message("Density-based silhouettes not computed as only single component models are being fit\n")
+    do.dbs        <- FALSE
+    if(criterion  == "dbs")      stop("DBS criterion cannot be used to select among only single-component models", call.=FALSE)
+    if(do.nec     && 
+       !(do.nec   <- FALSE))     message("Forcing 'do.nec' to FALSE as only single component models are being fit\n")
+    if(criterion  == "nec")      stop("NEC criterion cannot be used to select among only single-component models", call.=FALSE)
+  } else do.dbs   <- TRUE
   if(any(G > 1L))  {
     G1            <- any(G == 1L)
     G2            <- any(G == 2L)
@@ -431,6 +440,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     numseq        <- sapply(SEQ, .char_to_num)
     attr(numseq, "P")    <- P
   } else numseq   <- NULL
+  
   BICs            <-
   ICLs            <-
   AICs            <-
@@ -643,6 +653,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       if(all((Mstep$lambda -> lambda) == 0) && cvsel.X) {
         CVll      <- -N * P * log(V)
       } else if(cvsel.X)    {
+        ctrl$warn <- FALSE
         lCV       <- vector("numeric", nfolds)
         zCV       <- z[cv.ind,,      drop=FALSE]
         gCV       <- covars[cv.ind,, drop=FALSE]
@@ -674,10 +685,13 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
           }
           MCV$dG  <- NULL
           ctrl$do.cv       <- TRUE
-          lCV[i] <- .E_step(seqs=CVS, params=MCV, l.meth=modtype, ctrl=ctrl, numseq=CVn)
+          if(is.infinite(lCV[i] <- 
+             .E_step(seqs=CVS, params=MCV, l.meth=modtype, ctrl=ctrl, 
+             numseq=CVn)))       break
           ctrl$do.cv       <- FALSE
         }
         CVll      <- sum(lCV)
+        ctrl$warn <- TRUE
       }
       
       log.lik     <- ll[j]
@@ -685,7 +699,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       ninfty      <- sum(is.infinite(lambda))
       fitG        <- if(ctrl$gate.g) Mstep$fitG
       gate.pen    <- ifelse(ctrl$gate.g, length(stats::coef(fitG)) + !ctrl$noise.gate, 
-                     ifelse(ctrl$equalPro, as.integer(ctrl$nmeth - ctrl$equalNoise), g - 1L))
+                     ifelse(ctrl$equalPro, as.integer(ctrl$nmeth && !ctrl$equalNoise), g - 1L))
       choice      <- .choice_crit(ll=log.lik, seqs=SEQ, z=z, l.meth=modtype, nonzero=ifelse(nonzero, sum(lambda != 0), NA), gate.pen=gate.pen)
       bicx        <- choice$bic
       iclx        <- choice$icl
@@ -717,7 +731,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       ICLs[h,modtype]      <- ifelse(ERR, -Inf, iclx)
       AICs[h,modtype]      <- ifelse(ERR, -Inf, aicx)
       NECs[h,modtype]      <- ifelse(ERR,  Inf, -necx)
-      DBSs[h,modtype]      <- ifelse(ERR, -Inf, dbsx)
+      DBSs[h,modtype]      <- ifelse(ERR || !do.dbs, -Inf, dbsx)
       LL.x[h,modtype]      <- ifelse(ERR, -Inf, log.lik)
       DF.x[h,modtype]      <- ifelse(ERR, -Inf, dfx)
       IT.x[h,modtype]      <- ifelse(ERR,  Inf, j2)
@@ -795,31 +809,33 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     CV.x          <- CV.x * 2
     x.cv          <- CV.x[best.ind]
     class(CV.x)   <- "MEDcriterion"
-    attr(CV.x, "Criterion")    <- "CV"
-    attr(CV.x, "G")            <- rownames(BICs)
-    attr(CV.x, "modelNames")   <- colnames(BICs)
+    attr(CV.x, "Criterion")     <- "CV"
+    attr(CV.x, "G")             <- rownames(BICs)
+    attr(CV.x, "modelNames")    <- colnames(BICs)
   }
-  if(len.G > 1    && verbose)   {
+  if(len.G > 1    && verbose)    {
     if(G          == min(rG))    message("Best model occurs at the min of the number of components considered\n")
     if(G          == max(rG))    message("Best model occurs at the max of the number of components considered\n")
   }
   
-  attr(x.lambda, "Nzero")      <- Nzero.x[best.ind]
-  attr(x.lambda, "Ninfty")     <- Ninfty.x[best.ind]
-  attr(DF.x,     "Nzero")      <- Nzero.x
-  attr(DF.x,     "Ninfty")     <- Ninfty.x
-  attr(DF.x,     "Gate.Pen")   <- x.gp
-  x.theta                      <- do.call(rbind, lapply(x.theta, .char_to_num))
-  storage.mode(x.theta)        <- "integer"
-  attr(x.theta, "alphabet")    <- levs
-  attr(x.theta, "labels")      <- attr(seqs, "labels")
-  attr(x.theta, "lambda")      <- switch(EXPR=best.mod, CCN=, CUN=rbind(matrix(x.lambda[1L,], nrow=G - 1L, ncol=P, byrow=best.mod == "CUN"), 0L), matrix(x.lambda, nrow=G, ncol=P, byrow=best.mod == "CU"))
-  class(x.theta)               <- "MEDtheta"
+  noise           <- best.mod %in% c("CCN", "UCN", "CUN", "UUN")
+  attr(x.lambda, "Nzero")       <- Nzero.x[best.ind]
+  attr(x.lambda, "Ninfty")      <- Ninfty.x[best.ind]
+  attr(DF.x,     "Nzero")       <- Nzero.x
+  attr(DF.x,     "Ninfty")      <- Ninfty.x
+  attr(DF.x,     "Gate.Pen")    <- x.gp
+  if(any(apply(x.lambda == 0, 1L, all))) {
+    x.theta                     <- if(G > 1) rbind(do.call(rbind, lapply(x.theta[-G], .char_to_num)), NA) else matrix(NaN, nrow=1L, ncol=P)
+  } else x.theta                <- do.call(rbind, lapply(x.theta, .char_to_num))
+  storage.mode(x.theta)         <- "integer"
+  attr(x.theta, "alphabet")     <- levs
+  attr(x.theta, "labels")       <- attr(seqs, "labels")
+  attr(x.theta, "lambda")       <- switch(EXPR=best.mod, CCN=, CUN=rbind(matrix(x.lambda[1L,], nrow=G - 1L, ncol=P, byrow=best.mod == "CUN"), 0L), matrix(x.lambda, nrow=G, ncol=P, byrow=best.mod == "CU"))
+  class(x.theta)                <- "MEDtheta"
   Gseq            <- seq_len(G)
   z               <- x.z
-  colnames(z)     <- if(G == 1 && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq)
-  MAP             <- max.col(z)
-  noise           <- best.mod %in% c("CCN", "UCN", "CUN", "UUN")
+  colnames(z)     <- if(G == 1  && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq)
+  MAP             <- MAP2       <- max.col(z)
   MAP             <- if(noise) replace(MAP, MAP == G, 0L) else MAP
   equalPro        <- equal.tau[1L   + noise,best.G] 
   equalNoise      <- equal.n0[1L    + noise,best.G] 
@@ -840,11 +856,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     }
   }
   fitG$lab        <- if(noise.gate && G  > 1) replace(Gseq, G, 0L) else Gseq
-  attr(fitG, "EqualNoise")     <- equalNoise
-  attr(fitG, "EqualPro")       <- equalPro
-  attr(fitG, "Formula")        <- Reduce(paste, deparse(gating[-2L]))
-  attr(fitG, "Noise")          <- noise
-  attr(fitG, "NoiseGate")      <- noise.gate
+  attr(fitG, "EqualNoise")      <- equalNoise
+  attr(fitG, "EqualPro")        <- equalPro
+  attr(fitG, "Formula")         <- Reduce(paste, deparse(gating[-2L]))
+  attr(fitG, "Noise")           <- noise
+  attr(fitG, "NoiseGate")       <- noise.gate
   class(fitG)     <- c("MEDgating", class(fitG))
   if(isTRUE(verbose))            cat(paste0("\n\t\tBest Model", ifelse(length(CRITs) > 1, paste0(" (according to ", toupper(criterion), "): "), ": "), best.mod, ", with ",  paste0(G, " component", ifelse(G > 1, "s", "")),
                                      ifelse(bG | x.gcov, " (incl. gating network covariates)", ""), "\n\t\t",
@@ -875,12 +891,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
                           AIC     = AICs,
                           aic     = x.aic))
   if(do.dbs)       {
-    DBSs          <- DBSs[-1L,, drop=FALSE]
+    DBSs          <- if(any(rG  == 1)) DBSs[-1L,, drop=FALSE]            else DBSs
     class(DBSs)   <- "MEDcriterion"
     attr(DBSs, "Criterion")     <- "DBS"
-    attr(DBSs, "G")             <- rownames(BICs)[-1L]
+    attr(DBSs, "G")             <- if(any(rG  == 1)) rownames(BICs)[-1L] else rownames(BICs)
     attr(DBSs, "modelNames")    <- colnames(BICs)
-    SILS          <- stats::setNames(SILS, rG)[-1L]
+    SILS          <- if(any(rG  == 1)) stats::setNames(SILS, rG)[-1L]    else stats::setNames(SILS, rG)
     results       <- c(results, list(DBS = DBSs, SILS = SILS))
   }
   if(G > 1)        {
@@ -904,30 +920,31 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
                           ITERS   = IT.x,
                           iters   = IT.x[best.ind]))
   dist.mat        <- as.matrix(dist.mat)
-  unip            <- unique(MAP)
-  Nseq            <- seq_len(N)
-  meds            <- NULL
-  set.seed(100)
-  for(g in sort(unip[unip > 0]))  {
-    srows         <- Nseq[MAP  == g]
-    meds          <- c(meds, srows[which.min(matrixStats::rowSums2(dist.mat[srows,srows]))])
-  }
-  perm            <- seriation::get_order(seriation::seriate(as.dist(dist.mat[meds,meds]), method="TSP"))
-  attr(results, "Algo")        <- algo
-  attr(results, "Criterion")   <- criterion
-  attr(results, "CV")          <- cvsel
-  attr(results, "DBS")         <- do.dbs
-  attr(results, "DistMat")     <- dist.mat
-  attr(results, "EqualPro")    <- x.ctrl$equalPro
-  attr(results, "EqualNoise")  <- x.ctrl$equalNoise
-  attr(results, "Gating")      <- x.gcov | bG
-  attr(results, "N")           <- N
-  attr(results, "NEC")         <- do.nec
-  attr(results, "Noise")       <- noise
-  attr(results, "NoiseGate")   <- x.ctrl$noise.gate
-  attr(results, "P")           <- P
-  attr(results, "Seriate")     <- if(noise) c(perm, G) else perm
-  attr(results, "V")           <- V
+  if(!all((unip   <- unique(MAP)) == 0)) {
+    Nseq          <- seq_len(N)
+    meds          <- NULL
+    set.seed(100)
+    for(g in sort(unip[unip > 0]))  {
+      srows       <- Nseq[MAP2 == g]
+      meds        <- c(meds, srows[which.min(matrixStats::rowSums2(dist.mat[srows,srows]))])
+    }
+    perm          <- seriation::get_order(seriation::seriate(as.dist(dist.mat[meds,meds]), method="TSP"))
+  } else perm     <- NULL
+  attr(results, "Algo")         <- algo
+  attr(results, "Criterion")    <- criterion
+  attr(results, "CV")           <- cvsel
+  attr(results, "DBS")          <- do.dbs
+  attr(results, "DistMat")      <- dist.mat
+  attr(results, "EqualPro")     <- x.ctrl$equalPro
+  attr(results, "EqualNoise")   <- x.ctrl$equalNoise
+  attr(results, "Gating")       <- x.gcov | bG
+  attr(results, "N")            <- N
+  attr(results, "NEC")          <- do.nec
+  attr(results, "Noise")        <- noise
+  attr(results, "NoiseGate")    <- x.ctrl$noise.gate
+  attr(results, "P")            <- P
+  attr(results, "Seriate")      <- if(noise) c(perm, G) else perm
+  attr(results, "V")            <- V
   class(results)  <- "MEDseq"
     return(results)
 }
@@ -966,6 +983,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     class(theta)  <- NULL
   }
   dots            <- list(...)
+  dots            <- dots[unique(names(dots))]
   switch(EXPR=type, silhouette={
     has.dot       <- length(dots) > 0
   }, {
@@ -994,7 +1012,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
           G       <- length(unique(MAP))
           noise   <- any(MAP  == 0)
         } else     {
-          MAP     <- do.call(get_results, c(list(x=x, MAP=TRUE), dots))
+          MAP     <- do.call(get_results, c(list(x=x, what="MAP"), dots[!(names(dots) %in% c("x", "what"))]))
           G       <- attr(MAP, "G")
           noise   <- attr(MAP, "Noise")
         }
@@ -1126,7 +1144,6 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
   }, gating=       {
     suppressWarnings(par(pty="m"))
     Tau        <- .mat_byrow(x$params$tau, nrow=N, ncol=ncol(x$z))
-    dots       <- list(...)
     miss.x     <- length(dots) > 0 && any(names(dots) == "x.axis")
     x.axis     <- if(miss.x) dots$x.axis else seq_len(N)
     xlab       <- ifelse(miss.x, "", "Observation")
@@ -1155,12 +1172,14 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     if(all(type   == "cv",
        !attr(x, "CV")))          stop("Cross-validated log-likelihood values cannot be plotted as cross-validation didn't take place during model fit\n", call.=FALSE)
     dat           <- switch(EXPR=type, cv=x$CV, bic=x$BIC, icl=x$ICL, aic=x$AIC, nec=x$NEC, dbs=x$DBS, LOGLIK=x$LOGLIK)
-    if(!attr(x, "NEC")     || 
+    if(type ==  "nec"     &&
+      (!attr(x, "NEC")     || 
        all(type   == "nec",
-       is.null(dat)))            stop("NEC values cannot be plotted as only 1-component models were fitted", call.=FALSE)
-    if(!attr(x, "DBS")     ||
+       is.null(dat))))           stop("NEC values cannot be plotted as only 1-component models were fitted", call.=FALSE)
+    if(type ==  "dbs"      &&
+      (!attr(x, "DBS")     ||
        all(type   == "dbs",
-       is.null(dat)))            stop("DBS values cannot be plotted as only 1-component models were fitted", call.=FALSE)
+       is.null(dat))))           stop("DBS values cannot be plotted as only 1-component models were fitted", call.=FALSE)
     ms            <- which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% colnames(dat))
     symbols       <- symbols[ms]
     use.col       <- use.col[ms]
@@ -1168,13 +1187,13 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     if(type == "cv")     mtext(expression("\u2113"["cv"]), side=2, line=3, las=1, cex=1.5)
     if(type == "LOGLIK") mtext("Log-Likelihood", side=2, line=3, las=3)
     axis(1, at=seq_len(nrow(dat)), labels=rownames(dat))
-    legend("bottomright", ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col)
+    legend(switch(EXPR=type, nec=, dbs="topright", "bottomright"), ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col)
       invisible()
   }, silhouette=   {
     if(!attr(x, "DBS")     ||
        all(type   == "dbs",
        is.null(x$SILS)))         stop("DBS values cannot be plotted as only 1-component models were fitted", call.=FALSE)
-    object        <- if(has.dot) do.call(get_results, c(list(x=x, what="sils"), dots)) else x$silvals
+    object        <- if(has.dot) do.call(get_results, c(list(x=x, what="sils"), dots[!(names(dots) %in% c("x", "what"))])) else x$silvals
     rownames(object)       <- as.character(Nseq)
     cl            <- object[,"cluster"]
     x             <- object[order(cl, -object[,"dbs_width"]),, drop=FALSE]
@@ -1236,20 +1255,19 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
       invisible(list(ll = x, converge = x[length(x)]))
   },               {
     MAP           <- factor(replace(MAP, MAP == 0, "Noise"), levels=perm)
-    dots          <- dots[!(names(dots) %in% c("G", "modtype", "noise"))]
-    dots          <- c(dots, list(seqdata=dat, with.legend=FALSE, group=MAP, type=type, with.missing=FALSE))
-    dots          <- if(type == "i") dots else c(dots, list(border=NA))
+    dots          <- c(list(seqdata=dat, with.legend=FALSE, group=MAP, type=type, with.missing=FALSE), dots[!(names(dots) %in% c("G", "modtype", "noise"))])
+    dots          <- if(type == "i") dots else c(list(border=NA), dots)
     dots          <- dots[unique(names(dots))]
     if(type       != "Ht")     {
       l.ncol      <- ceiling(V/ifelse(V > 6 | G %% 2 != 0, 3, 2))
       if(G  %% 2  == 0)        {
         par(oma=c(7.5, 0, 0, 0),       xpd=TRUE)
-        try(suppressWarnings(do.call(seqplot, dots)), silent=TRUE)
+        suppressWarnings(do.call(seqplot, dots))
         par(fig=c(0, 1, 0, 1), oma=c(0.5, 0, 0, 0), mar=c(0.5, 0, 0, 0), new=TRUE)
         plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
         legend("bottom",      fill=attr(dat, "cpal"), legend=lab, ncol=l.ncol)
       } else       {
-        try(suppressWarnings(do.call(seqplot, dots)), silent=TRUE)
+        suppressWarnings(do.call(seqplot, dots))
         par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=TRUE)
         legend("bottomright", fill=attr(dat, "cpal"), legend=lab, ncol=l.ncol)
       }

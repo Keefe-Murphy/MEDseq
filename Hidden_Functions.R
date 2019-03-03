@@ -213,8 +213,9 @@
       z           <- Estep$z
       ERR         <- any(is.nan(z))
       if(isTRUE(ERR))            break
-      if(any(colz <- matrixStats::colSums2(z)  == 0)   &&
-         isTRUE(emptywarn))    { warning(paste0("\tThere were empty components: ", modtype, " (G=", g, ")\n"), call.=FALSE, immediate.=TRUE) # REORDER
+      if(isTRUE(emptywarn) &&
+         any(matrixStats::colSums2(z) == 0)    &&
+         ctrl$warn)            { warning(paste0("\tThere were empty components: ", modtype, " (G=", g, ")\n"), call.=FALSE, immediate.=TRUE) # REORDER
         emptywarn <- FALSE
       }
       ll          <- c(ll, Estep$loglike)
@@ -351,18 +352,22 @@
   opti            <- ctrl$opti
   ordering        <- ctrl$ordering
   P               <- attr(seqs, "P")
-  G               <- attr(seqs, "G")
+  nmeth           <- ctrl$nmeth
+  G               <- attr(seqs, "G") - nmeth
   Gseq            <- seq_len(G)
+  if(G == 0)       {
+      return(rep(NA, P))
+  }
   if(G     > 1L   && is.null(z))  stop("'z' must be supplied when 'G'>1", call.=FALSE)
   if(opti         == "mode" || ordering != "none")   {
     if(is.null(numseq)      && isFALSE(ctrl$numseq)) {
       numseq      <- sapply(seqs, .char_to_num)
-      attr(numseq, "G")     <- G
       attr(numseq, "P")     <- P
     }
+    attr(numseq, "G")       <- G
     if(opti       == "mode") {
-      if(G > 1L)   {
-        theta     <- .weighted_mode(numseq=numseq, z=z)
+      if(G > 1) {
+        theta     <- .weighted_mode(numseq=numseq, z=if(nmeth) z[,Gseq, drop=FALSE] else z)
         if(is.list(theta)   && any(nonu <- apply(theta,   2L, function(x) any(nchar(x) > 1)))) {
           theta[,nonu]      <- lapply(theta[,nonu], "[[", 1L)
         } else       nonu   <- rep(FALSE, G)
@@ -374,15 +379,16 @@
         }
         theta     <- .num_to_char(theta)
       }
+      theta       <- if(nmeth) c(theta, NA) else theta
       attr(theta, "NonUnique")   <- nonu
         return(theta)
     }
   }
   
   V               <- attr(seqs, "V")
-  theta.opt       <- .theta_data(seqs=seqs, z=z)
+  theta.opt       <- .theta_data(seqs=seqs, z=z, nmeth=nmeth)
   if(opti == "medoid")       {
-      return(theta.opt$theta)
+      return(if(nmeth) c(theta.opt$theta, NA) else theta.opt$theta)
   }
   N               <- attr(seqs, "N")
   pseq            <- seq_len(P)
@@ -445,6 +451,7 @@
                             if(G > 1)       {
                               do.call(base::c, lapply(Gseq, function(g) .num_to_char(theta[[g]][match(pseq, sorder[[g]])])))
                             } else .num_to_char(theta[[1L]][match(pseq, sorder[[1L]])]))
+    return(if(nmeth) c(theta, NA) else theta)
 } 
 
 .pick_MEDCrit     <- function(x, pick = 3L) {
@@ -469,26 +476,28 @@
     if(is.null(levels)) factor(seq) else factor(seq, levels=seq_along(levels) - any(seq == 0), labels=as.character(levels))
 }
 
-.tau_noise        <- function(tau, z0, row.ind = row(tau)) {
+.tau_noise        <- function(tau, z0, row.ind = row(tau))  {
   t0              <- mean(z0)
     cbind(tau/(matrixStats::rowSums2(tau)[row.ind]) * (1 - t0), unname(t0))
 }
 
-.theta_data       <- function(seqs, z = NULL) {
+.theta_data       <- function(seqs, z = NULL, nmeth = NULL) {
   if((G <- attr(seqs, "G"))   == 1L)  {
     sumdist       <- vapply(seq_len(attr(seqs, "N")), function(i) sum(.dseq(seqs, seqs[i])), numeric(1L))
     sumdist       <- sumdist[sumdist  > 0]
       return(list(theta = seqs[which.min(sumdist)], dsum = min(sumdist)))
   } else           {
-    if(is.null(z))               stop("'z' must be supplied if 'G'>1", call.=FALSE)
+    if(is.null(z))               stop("'z' must be supplied if 'G'>1",     call.=FALSE)
+    if(is.null(nmeth))           stop("'nmeth' must be supplied if 'G'>1", call.=FALSE)
     theta         <- dsum     <- list()
-    for(g in seq_len(G))       {
+    for(g in seq_len(G - nmeth))      {
       sumdist     <- vapply(seq_len(attr(seqs, "N")), function(i) sum(.dseq(seqs, seqs[i]) * z[,g]), numeric(1L))
       sumdist     <- sumdist[sumdist  > 0]
       theta[[g]]  <- seqs[which.min(sumdist)]
       dsum[[g]]   <- min(sumdist)
     }
-      return(list(theta = do.call(base::c, theta), dsum = do.call(base::c, dsum)))
+      return(list(theta = do.call(base::c, theta), 
+                  dsum  = do.call(base::c, dsum)))
   }
 }
 
