@@ -137,6 +137,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
   equalNoise      <- sapply(MEDs,   attr, "EqualNoise")
   equalPro        <- sapply(MEDs,   attr, "EqualPro")
   noise.gate      <- sapply(MEDs,   attr, "NoiseGate")
+  weights         <- sapply(MEDs,   attr, "Weighted")
   gating          <- lapply(gate.x, attr, "Formula")
   BICs            <- lapply(MEDs, "[[", "BIC")
   ICLs            <- lapply(MEDs, "[[", "ICL")
@@ -253,7 +254,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
   comp          <- list(title = title, data = dat.name, optimal = best.model, pick = pick, MEDNames = crit.names, modelNames = modelNames, G = as.integer(G), 
                         df = as.integer(unname(dfxs[max.names])), iters = as.integer(unname(itxs[max.names])), bic = unname(bics[max.names]), icl = unname(icls[max.names]), 
                         aic = unname(aics[max.names]), cv = unname(cvs[max.names]), nec = replace(unname(necs[max.names]), G == 1, NA), dbs = replace(unname(dbss[max.names]), G == 1, NA), 
-                        loglik = unname(llxs[max.names]), gating = gating, algo = unname(algo[crit.names]), equalPro = equalPro, noise = unname(noise), 
+                        loglik = unname(llxs[max.names]), gating = gating, algo = unname(algo[crit.names]), weights = unname(weights[crit.names]), equalPro = equalPro, noise = unname(noise), 
                         noise.gate = unname(replace(noise.gate, gating == "None" | G <= 2, NA)), equalNoise = unname(replace(equalNoise, !equalPro | is.na(equalPro), NA)))
   class(comp)   <- c("MEDseqCompare", "MEDseq")
   bic.tmp       <- sapply(BICs, as.vector)
@@ -340,14 +341,14 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 }
 
 MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
-                              gating = NULL, covars = NULL, ctrl = MEDseq_control(...), ...) {
+                              gating = NULL, covars = NULL, weights = NULL, ctrl = MEDseq_control(...), ...) {
   call            <- match.call()
   if(!inherits(seqs, "stslist")) stop("'seqs' must be of class 'stslist'",        call.=FALSE)
   if(any(seqs     ==
          attr(seqs, "nr")))      stop("Missing values in 'seqs' are not allowed", call.=FALSE)
   SEQ             <- apply(.fac_to_num(seqs), 1L, .num_to_char)
   levs            <- attr(seqs, "alphabet")
-  attr(SEQ, "N")  <- N   <- nrow(seqs)
+  attr(SEQ, "N")  <- N   <- attr(SEQ, "W") <- nrow(seqs)
   attr(SEQ, "P")  <- P   <- ncol(seqs)
   attr(SEQ, "V")  <- V   <- length(levs)
   attr(SEQ, "V1") <- V1  <- V - 1L
@@ -355,6 +356,18 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(SEQ, "logV1")     <- log(V1)
   if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the sequence vocabulary must all be > 1", call.=FALSE)
   if(!is.character(l.meth))      stop("'l.meth' must be a character vector of length 1",       call.=FALSE)
+  if(ctrl$do.wts  <- 
+     !missing(weights))   {
+    if(is.null(weights))         stop("Invalid 'weights' supplied", call.=FALSE)
+    if(!is.numeric(weights)   ||
+       length(weights)   != N)   stop(paste0("'weights' must be a numeric vector of length N=", N), call.=FALSE)
+    if(any(weights < 0)  || 
+       any(!is.finite(weights))) stop("'weights' must be positive and finite", call.=FALSE)
+    if(ctrl$do.wts       <- (length(unique(weights)) > 1)) {
+      attr(SEQ, "Weights")    <- weights
+      attr(SEQ, "W")          <- sum(weights)
+    }
+  }
   covmiss         <- missing(covars)
   if((gate.x      <- !missing(gating)) &&
      !inherits(gating, 
@@ -423,7 +436,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     all.mod       <- if(all(G1, G2, GG)) unique(c(mtg, mt2, mt1)) else if(all(G1, G2)) unique(c(mt2, mt1)) else if(all(G1, GG)) unique(c(mtg, mt1)) else if(all(G2, GG)) unique(c(mtg, mt2)) else if(G2) mt2 else mtg
     all.mod       <- l.meths[l.meths %in% all.mod]
     if(init.z     == "hc")     {
-      hcZ         <- cluster::agnes(dist.mat, diss=TRUE, method="ward")
+      hcZ         <- if(do.wts) hclust(dist.mat, method="ward.D2", members=weights) else cluster::agnes(dist.mat, diss=TRUE, method="ward")
     }
   } else all.mod  <- l.meths[l.meths %in% mt1]
   len.G           <- length(G)
@@ -463,6 +476,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     cv.SEQ        <- SEQ[cv.ind]
     if(ctrl$numseq)         {
       cv.numseq   <- numseq[,cv.ind, drop=FALSE]
+    }
+    if(ctrl$do.wts)         {
+      cv.wts      <- weights[cv.ind]
     }
     cv.folds      <- cut(seq_len(N), breaks=nfolds, labels=FALSE)
     fcount        <- tabulate(cv.folds, nfolds)
@@ -568,11 +584,21 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         }
       } else       {
         if(isTRUE(nonoise)) {
-          zg      <- mclust::unmap(switch(EXPR=init.z, kmedoids=cluster::pam(dist.mat, k=g,  cluster.only=TRUE), hc=cutree(hcZ, k=g)),  groups=seq_len(g))
+          zg      <- mclust::unmap(switch(EXPR=init.z, 
+                                          kmedoids=if(ctrl$do.wts) {
+                                            zg <- WeightedCluster::wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
+                                              as.numeric(factor(zg, labels=seq_along(unique(zg))))
+                                            } else cluster::pam(dist.mat, k=g,  cluster.only=TRUE), 
+                                          hc=cutree(hcZ, k=g)),  groups=seq_len(g))
         }
         if(isTRUE(noise))   {
           if(g0 > 1)        {
-            zg0   <- mclust::unmap(switch(EXPR=init.z, kmedoids=cluster::pam(dist.mat, k=g0, cluster.only=TRUE), hc=cutree(hcZ, k=g0)), groups=seq_len(g0))
+            zg0   <- mclust::unmap(switch(EXPR=init.z, 
+                                          kmedoids=if(ctrl$do.wts) {
+                                            zg <- WeightedCluster::wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
+                                              as.numeric(factor(zg, labels=seq_along(unique(zg))))
+                                            } else cluster::pam(dist.mat, k=g0, cluster.only=TRUE), 
+                                          hc=cutree(hcZ, k=g0)), groups=seq_len(g0))
             zg0   <- cbind(zg0 * (1 - tau0), tau0)
           } else   {
             zg0   <- matrix(tau0, nrow=N, ncol=2L)
@@ -592,9 +618,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         last.T    <- modtype  == T.last
       }
       ctrl$nmeth  <- is.element(modtype, n.meths)
-      ctrl$equalNoise    <- equal.n0[ctrl$nmeth   + 1L,h]
-      ctrl$equalPro      <- equal.tau[ctrl$nmeth  + 1L,h]
-      ctrl$gate.g        <- gate.G[(g > 1)        + 1L,h]
+      ctrl$equalNoise    <- equal.n0[ctrl$nmeth    + 1L,h]
+      ctrl$equalPro      <- equal.tau[ctrl$nmeth   + 1L,h]
+      ctrl$gate.g        <- gate.G[ctrl$nmeth      + 1L,h]
       ctrl$noise.gate    <- ifelse(ctrl$nmeth, noise.gate[2L,h], TRUE)
       zm          <- if(attr(SEQ, "Noise") <- gN0 <- ctrl$nmeth) zg0 else zg
       if(gN0   && !ctrl$noise.gate && ctrl$algo   != "EM")  {
@@ -667,6 +693,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
           attributes(SCV)  <- attributes(SEQ)
           attr(CVS, "N")   <- fcount[i]
           attr(SCV, "N")   <- Nfcount[i]
+          if(ctrl$do.wts)   {
+           attr(CVS, "Weights") <- cv.wts[testX]
+           attr(SCV, "Weights") <- cv.wts[-testX]
+           attr(CVS, "W")  <- sum(attr(CVS, "Weights"))
+           attr(SCV, "W")  <- sum(attr(SCV, "Weights"))
+          }
           if(any(modtype %in% c("CU", "UU", "CUN", "UUN"), ctrl$opti == "mode", ctrl$ordering != "none")) {
             nCV            <- cv.numseq[,-testX, drop=FALSE]
             CVn            <- cv.numseq[,testX,  drop=FALSE]
@@ -779,6 +811,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(DF.x, "Criterion")  <- "DF"
   attr(IT.x, "Criterion")  <- "ITERS"
   attr(LL.x, "Criterion")  <- "loglik"
+  attr(LL.x, "Weighted")   <- ctrl$do.wts
   CRITs           <- switch(EXPR=criterion, cv=CV.x, bic=BICs, icl=ICLs, aic=AICs, nec=NECs, dbs=DBSs)
   best.ind        <- which(CRITs == switch(EXPR=criterion, nec=-crit.gx, crit.gx), arr.ind=TRUE)
   if(nrow(best.ind) > 1)    {    warning(paste0("Ties for the optimal model exist according to the '", toupper(criterion), "' criterion: choosing the most parsimonious model\n"), call.=FALSE, immediate.=TRUE)
@@ -812,6 +845,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     attr(CV.x, "Criterion")     <- "CV"
     attr(CV.x, "G")             <- rownames(BICs)
     attr(CV.x, "modelNames")    <- colnames(BICs)
+    attr(CV.x, "Weighted")      <- 
+    attr(x.cv, "Weighted")      <- ctrl$do.wts
   }
   if(len.G > 1    && verbose)    {
     if(G          == min(rG))    message("Best model occurs at the min of the number of components considered\n")
@@ -863,7 +898,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(fitG, "NoiseGate")       <- noise.gate
   class(fitG)     <- c("MEDgating", class(fitG))
   if(isTRUE(verbose))            cat(paste0("\n\t\tBest Model", ifelse(length(CRITs) > 1, paste0(" (according to ", toupper(criterion), "): "), ": "), best.mod, ", with ",  paste0(G, " component", ifelse(G > 1, "s", "")),
-                                     ifelse(bG | x.gcov, " (incl. gating network covariates)", ""), "\n\t\t",
+                                     ifelse(bG | x.gcov, paste0(" (incl. ", ifelse(ctrl$do.wts, "weights and ", ""), "gating network covariates)"), ifelse(ctrl$do.wts, " (incl. weights)", "")), "\n\t\t",
                                      ifelse(cvsel, paste0("CV = ",  round(x.cv,  2L), " | "), ""),
                                      ifelse(G > 1 && do.nec, paste0("NEC = ", round(x.nec, 2L), " | "), ""),
                                      ifelse(G > 1, paste0("DBS = ", round(x.dbs, 2L), " | "), ""),
@@ -910,9 +945,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     }
     results       <- c(results, list(dbs = x.dbs, silvals = SILS[[as.character(G)]][[best.mod]]))
   }
+  x.ll            <- x.ll[if(G > 1) switch(EXPR=algo, cemEM=-1L, -seq_len(2L)) else 1L]
+  attr(x.ll, "Weighted")        <- ctrl$do.wts
   results         <- c(results, list(
                           LOGLIK  = LL.x,
-                          loglik  = x.ll[if(G > 1) switch(EXPR=algo, cemEM=-1L, -seq_len(2L)) else 1L],
+                          loglik  = x.ll,
                           uncert  = if(G > 1) 1 - matrixStats::rowMaxs(z) else vector("integer", N),
                           covars  = covars,
                           DF      = DF.x,
@@ -945,6 +982,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(results, "P")            <- P
   attr(results, "Seriate")      <- if(noise) c(perm, G) else perm
   attr(results, "V")            <- V
+  attr(results, "Weighted")     <- ctrl$do.wts
+  attr(results, "Weights")      <- if(ctrl$do.wts) weights else rep(1L, N)
   class(results)  <- "MEDseq"
     return(results)
 }
@@ -966,6 +1005,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
   V       <- mV   <- attr(x, "V")
   noise           <- attr(x, "Noise")
   dmat            <- attr(x, "DistMat")
+  weighted        <- attr(x, "Weighted")
   dat             <- x$data
   modName         <- x$modName
   Gseq    <- perm <- seq_len(G)
@@ -1183,9 +1223,10 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     ms            <- which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% colnames(dat))
     symbols       <- symbols[ms]
     use.col       <- use.col[ms]
-    matplot(dat, type="b", xlab="Number of Components", ylab=switch(EXPR=type, cv=, LOGLIK="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
-    if(type == "cv")     mtext(expression("\u2113"["cv"]), side=2, line=3, las=1, cex=1.5)
-    if(type == "LOGLIK") mtext("Log-Likelihood", side=2, line=3, las=3)
+    matplot(dat, type="b", xlab="Number of Components", ylab=switch(EXPR=type, cv=, LOGLIK=, dbs="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
+    if(type == "dbs")    mtext("Median DBS", side=2, line=3, las=3)
+    if(type == "cv")     mtext(ifelse(weighted, expression("\u2113"["cv"]^"w"), expression("\u2113"["cv"])), side=2, line=3, las=1, cex=1.5)
+    if(type == "LOGLIK") mtext(paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), side=2, line=3, las=3)
     axis(1, at=seq_len(nrow(dat)), labels=rownames(dat))
     legend(switch(EXPR=type, nec=, dbs="topright", "bottomright"), ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col)
       invisible()
@@ -1196,9 +1237,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     object        <- if(has.dot) do.call(get_results, c(list(x=x, what="sils"), dots[!(names(dots) %in% c("x", "what"))])) else x$silvals
     rownames(object)       <- as.character(Nseq)
     cl            <- object[,"cluster"]
-    x             <- object[order(cl, -object[,"dbs_width"]),, drop=FALSE]
-    dbs           <- x[,"dbs_width"]
-    space         <- c(0L, rev(diff(cli <- x[,"cluster"])))
+    X             <- object[order(cl, -object[,"dbs_width"]),, drop=FALSE]
+    dbs           <- X[,"dbs_width"]
+    space         <- c(0L, rev(diff(cli <- X[,"cluster"])))
     space[space   != 0]    <- 0.5
     ng            <- table(cl)
     G             <- attr(object, "G")
@@ -1208,7 +1249,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     modtype       <- attr(object, "ModelType")
     noise         <- modtype %in% c("CCN", "UCN", "CUN", "UUN")
     mtext(substitute(G~modtype~"clusters"~C[g], list(G=G, modtype=modtype)), adj=1)
-    mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2)
+    mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])),  adj=1.05, line=-1.2)
     medy          <- tapply(dat, cli, median)
     meds          <- tapply(dbs, cli, median)
     for(g in seq_len(G)) {
@@ -1249,7 +1290,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
   }, loglik=       {
     x             <- x$loglik
     if(all(x      != cummax(x))) warning("Log-likelihoods are not strictly increasing\n", call.=FALSE)
-    plot(x, type=ifelse(length(x) == 1, "p", "l"), xlab="Iterations", ylab="Log-Likelihood", xaxt="n")
+    plot(x, type=ifelse(length(x) == 1, "p", "l"), xlab="Iterations", ylab=paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), xaxt="n")
     seqll         <- seq_along(x)
     llseq         <- pretty(seqll)
     llseq         <- if(any(llseq != floor(llseq))) seqll else llseq
@@ -1291,19 +1332,20 @@ print.MEDcriterion       <- function(x, pick = 3L, ...) {
   pick            <- choice$pick
   dim1            <- attr(x, "dim")
   dim2            <- attr(x, "dimnames")
+  weighted        <- attr(x, "Weighted")
   attributes(x)   <- NULL
   attr(x, "dim")         <- dim1
   attr(x, "dimnames")    <- dim2
   cat(switch(EXPR=crit,
              NEC="Normalised Entropy Criterion (NEC):\n",
              DBS="Median Density-based Silhouette (DBS):\n",
-             CV="Cross-Validated Log-Likelihood (CV):\n",
+             CV=paste0("Cross-Validated ", ifelse(weighted, "(Weighted) ", ""), "Log-Likelihood (CV):\n"),
              BIC="Bayesian Information Criterion (BIC):\n",
              ICL="Integrated Completed Likelihood (ICL):\n",
              AIC="Akaike Information Criterion (AIC):\n",
               DF="Number of Estimated Parameters (Residual DF):\n",
            ITERS=paste0("Number of ", algo, " Iterations:\n"),
-          loglik="Maximal Log-Likelihood:\n"))
+          loglik=paste0("Maximal ", ifelse(weighted, "(Weighted) ", ""), "Log-Likelihood:\n")))
   print(unclass(x))
   cat(paste0("\nTop ", ifelse(pick > 1, paste0(pick, " models"), "model"), " based on the ", toupper(crit), " criterion:\n"))
     print(choice$crits)
