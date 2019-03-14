@@ -356,22 +356,6 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(SEQ, "logV1")     <- log(V1)
   if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the sequence vocabulary must all be > 1", call.=FALSE)
   if(!is.character(l.meth))      stop("'l.meth' must be a character vector of length 1",       call.=FALSE)
-  if(ctrl$do.wts  <- 
-     !missing(weights))   {
-    if(is.null(weights))         stop("Invalid 'weights' supplied", call.=FALSE)
-    if(!is.numeric(weights)   ||
-       length(weights)   != N)   stop(paste0("'weights' must be a numeric vector of length N=", N), call.=FALSE)
-    if(any(weights < 0)  || 
-       any(!is.finite(weights))) stop("'weights' must be positive and finite", call.=FALSE)
-    if(ctrl$do.wts       <- (length(unique(weights)) > 1)) {
-      attr(SEQ, "Weights")    <- weights
-      attr(SEQ, "W")          <- sum(weights)
-    }
-  }
-  covmiss         <- missing(covars)
-  if((gate.x      <- !missing(gating)) &&
-     !inherits(gating, 
-               "formula"))       stop("'gating' must be a formula", call.=FALSE)
   l.meth          <- match.arg(l.meth, several.ok=TRUE)
   algo            <- ctrl$algo
   criterion       <- ctrl$criterion
@@ -388,13 +372,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   x.ctrl          <- list(equalPro=equalPro, noise.gate=noise.gate, equalNoise=equalNoise)
   ctrl$ordering   <- ifelse(ctrl$opti == "first", ctrl$ordering, "none")
   miss.args       <- attr(ctrl, "missing")
-  if(any(G        != floor(G))    &&
-     any(G         < 1))         stop("'G' must be strictly positive", call.=FALSE)
-  if(any(G        >= N))       {
-    G             <- G[G <= N]
-    if(length(G)   > 1)        { warning("Removing G values >= the number of observations\n",  call.=FALSE, immediate.=TRUE)
-    } else                       stop("G values must be less than the number of observations", call.=FALSE)
-  }
+  covmiss         <- missing(covars)
   mt1             <- unique(vapply(l.meth, function(lx) switch(EXPR=lx, CC=, UC="CC", CU=, UU="CU", "CCN"), character(1L)))
   mt2             <- unique(vapply(l.meth, function(lx) switch(EXPR=lx, UCN="CCN", UUN="CUN", lx),          character(1L)))
   mtg             <- unique(l.meth)
@@ -406,19 +384,75 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     if(any(n.meth))              warning("'tau0' is zero: models with noise component will not be fitted\n", call.=FALSE, immediate.=TRUE)
     l.meths       <- c("CC", "UC", "CU", "UU")
   } else l.meths  <- c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN")
-  if(is.null(dist.mat))        {
+  if(is.null(dist.mat))        { 
     dist.mat      <- suppressMessages(seqdist(seqs, "HAM", full.matrix=FALSE))
   } else if((sqrt(length(dist.mat) * 2L + N) !=
              N))                 stop("Invalid 'dist.mat' dimensions", call.=FALSE)
   
+  if((gate.x      <- !missing(gating))) {
+    if(!inherits(gating, 
+                 "formula"))     stop("'gating' must be a formula", call.=FALSE)
+    if(!covmiss   &&
+       !is.data.frame(covars))   stop("'covars' must be a data.frame if supplied", call.=FALSE)
+    if(inherits(try(stats::terms(gating), silent=TRUE), "try-error")) {
+      if(covmiss)                stop("Can't use '.' in 'gating' formula without supplying 'covars' argument", call.=FALSE)
+      gating      <- stats::reformulate(attr(stats::terms(gating, data=covars), "term.labels"), response="z")
+    }
+    gating        <- tryCatch(stats::update.formula(stats::as.formula(gating), z ~ .), error=function(e) {
+                                 stop("Invalid 'gating' network formula supplied", call.=FALSE) })
+    if(gating[[3L]]      == 1) { 
+      if(verbose)                message("Not including gating network covariates with only intercept on gating formula RHS\n")
+      gate.x      <- FALSE
+    }
+    gate.names    <- labels(stats::terms(gating))
+  } 
+  gate.names      <- if(gate.x)  gate.names[!is.na(gate.names)]
+  if(!covmiss)     {
+    if(!all(gate.names  %in% 
+            colnames(covars)))   stop("Supplied gating covariates not found in supplied 'covars'", call.=FALSE)
+    covars        <- if(gate.x)  covars[,gate.names, drop=FALSE] else as.data.frame(matrix(0L, nrow=N, ncol=0L))
+  } else {
+    if(any(grepl("\\$", 
+                 gate.names)))   stop("Don't supply covariates to the gating network using the $ operator: use the 'covars' argument instead", call.=FALSE)
+    covars        <- if(gate.x)  stats::model.frame(gating[-2L]) else as.data.frame(matrix(0L, nrow=N, ncol=0L))
+  }
+  if(nrow(covars) != N)          stop("'gating' covariates must contain the same number of rows as 'seqs'", call.=FALSE)
+  glogi           <- vapply(covars, is.logical, logical(1L))
+  covars[,glogi]  <- sapply(covars[,glogi], as.factor)
+  if(covmiss)      {
+    covars        <- data.frame(if(ncol(covars) > 0) covars[,gate.names] else covars, stringsAsFactors=TRUE)
+  }
+  
+  if(ctrl$do.wts  <- 
+     !missing(weights))   {
+    if(is.null(weights))         stop("Invalid 'weights' supplied", call.=FALSE)
+    if(!is.numeric(weights)   ||
+       length(weights)   != N)   stop(paste0("'weights' must be a numeric vector of length N=", N), call.=FALSE)
+    if(any(weights < 0)  || 
+       any(!is.finite(weights))) stop("'weights' must be positive and finite", call.=FALSE)
+    if(ctrl$do.wts       <- (length(unique(weights)) > 1)) {
+      attr(SEQ, "Weights")    <- weights
+      attr(SEQ, "W")          <- sum(weights)
+    }
+  }
+  
+  if(any(G        != floor(G))    &&
+     any(G         < 1))         stop("'G' must be strictly positive", call.=FALSE)
+  if(any(G        >= N))       {
+    G             <- G[G <= N]
+    if(length(G)   > 1)        { warning("Removing G values >= the number of observations\n",  call.=FALSE, immediate.=TRUE)
+    } else                       stop("G values must be less than the number of observations", call.=FALSE)
+  }
   G               <- rG  <- unique(sort(as.integer(G)))
   do.nec          <- ctrl$do.nec
   if(!do.nec      &&
+     algo         != "CEM"    &&
      criterion    == "nec"    &&
      !all(G == 1))             { message("Forcing 'do.nec' to TRUE as criterion='nec'\n")
     do.nec        <- TRUE
   }
   if(do.nec &&
+     algo         != "CEM"    &&
      !any(G == 1))             { message("Forcing G=1 models to be fitted for NEC criterion computation\n")
     G             <- rG  <- unique(c(1L, G))  
   }
@@ -428,6 +462,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     if(do.nec     && 
        !(do.nec   <- FALSE))     message("Forcing 'do.nec' to FALSE as only single component models are being fit\n")
     if(criterion  == "nec")      stop("NEC criterion cannot be used to select among only single-component models", call.=FALSE)
+  } else if(algo  == "CEM")    { message("Density-based silhouettes not computed as the CEM algorithm is employed\n")
+    do.dbs        <- FALSE
+    if(criterion  == "dbs")      stop("DBS criterion cannot be used to select among models fitted via CEM", call.=FALSE)
+    if(do.nec     &&
+       !(do.nec   <- FALSE))     message("Forcing 'do.nec' to FALSE as models are being fit via CEM\n")
+    if(criterion  == "nec")      stop("NEC criterion cannot be used to select among models fitted via CEM", call.=FALSE)
   } else do.dbs   <- TRUE
   if(any(G > 1L))  {
     G1            <- any(G == 1L)
@@ -436,7 +476,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     all.mod       <- if(all(G1, G2, GG)) unique(c(mtg, mt2, mt1)) else if(all(G1, G2)) unique(c(mt2, mt1)) else if(all(G1, GG)) unique(c(mtg, mt1)) else if(all(G2, GG)) unique(c(mtg, mt2)) else if(G2) mt2 else mtg
     all.mod       <- l.meths[l.meths %in% all.mod]
     if(init.z     == "hc")     {
-      hcZ         <- if(do.wts) hclust(dist.mat, method="ward.D2", members=weights) else cluster::agnes(dist.mat, diss=TRUE, method="ward")
+      hcZ         <- if(ctrl$do.wts) hclust(dist.mat, method="ward.D2", members=weights) else cluster::agnes(dist.mat, diss=TRUE, method="ward")
     }
   } else all.mod  <- l.meths[l.meths %in% mt1]
   len.G           <- length(G)
@@ -491,68 +531,33 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   nonoise         <- any(!noise)
   noise           <- any(noise)
 
-  # Define the gating formula
-  if(!covmiss     &&
-     !is.data.frame(covars))     stop("'covars' must be a data.frame if supplied", call.=FALSE)
   gate.G          <- matrix(ifelse(rG > 1, gate.x, FALSE), nrow=2L, ncol=length(rG), byrow=TRUE)
   if(gate.x)       {
-    if(inherits(try(stats::terms(gating), silent=TRUE), "try-error")) {
-      if(covmiss)                stop("Can't use '.' in 'gating' formula without supplying 'covars' argument", call.=FALSE)
-      gating      <- stats::reformulate(attr(stats::terms(gating, data=covars), "term.labels"), response="z")
-    }
-    gating        <- tryCatch(stats::update.formula(stats::as.formula(gating), z ~ .), error=function(e) {
-                                 stop("Invalid 'gating' network formula supplied", call.=FALSE) })
-    if(gating[[3L]]   == 1) { 
-      if(verbose)                message("Not including gating network covariates with only intercept on gating formula RHS\n")
-      gate.x      <- 
-      gate.G[]    <- FALSE
-    }
     Gn            <- G - !noise.gate
     if((verbose   && gate.x)       &&
       ((any(Gn    <= 1)  && noise) ||
        any(G      <= 1))) {      message(paste0("Can't include gating network covariates ", ifelse(noise.gate, "in a single component mixture", "where G is less than 3 when 'noise.gate' is FALSE\n")))
      gate.G[2L,Gn <= 1]  <- FALSE
     }
-    gate.names    <- labels(stats::terms(gating))
-  } 
-  if(!gate.x)      {
-    gate.G[]      <- FALSE
+  } else           {
     Gn            <- G
     gating        <- stats::as.formula(z ~ 1)
     environment(gating)  <- environment()
   }
   noise.gate      <- ifelse(gate.G, noise.gate, TRUE)
   if(all(equalPro, gate.x)) { 
-    if(verbose)                   message("Can't constrain mixing proportions to be equal when gating covariates are supplied\n")
+    if(verbose)                  message("Can't constrain mixing proportions to be equal when gating covariates are supplied\n")
     equalPro      <- FALSE
   }
   equal.tau       <- rbind(ifelse(G == 1, TRUE, equalPro), ifelse(Gn < 1, TRUE, equalPro)) & !gate.G
   equal.n0        <- (rbind(G == 1, Gn == 1) | equalNoise) & equal.tau
-  
-  # Tell network formulas where to look for variables
-  gate.names      <- if(gate.x) gate.names[!is.na(gate.names)]
-  if(!covmiss)     {
-    if(!all(gate.names   %in% 
-            colnames(covars)))    stop("Supplied gating covariates not found in supplied 'covars'", call.=FALSE)
-    covars        <- if(gate.x)   covars[,gate.names, drop=FALSE]    else as.data.frame(matrix(0L, nrow=N, ncol=0L))
-  } else {
-    if(any(grepl("\\$", 
-                 gate.names)))    stop("Don't supply covariates to the gating network using the $ operator: use the 'covars' argument instead", call.=FALSE)
-    covars        <- if(gate.x)   stats::model.frame(gating[-2L])    else as.data.frame(matrix(0L, nrow=N, ncol=0L))
-  }
-  if(nrow(covars) != N)           stop("'gating' covariates must contain the same number of rows as 'seqs'", call.=FALSE)
-  glogi           <- vapply(covars, is.logical, logical(1L))
-  covars[,glogi]  <- sapply(covars[,glogi], as.factor)
-  if(covmiss)      {
-    covars        <- data.frame(if(ncol(covars) > 0) covars[,gate.names] else covars, stringsAsFactors=TRUE)
-  }
   attr(covars, "Gating") <- gate.names
   colnames(covars)       <- if(gate.x) gate.names
   if(!identical(gating, 
                 .drop_constants(covars, 
                 gating)))        stop("Constant columns exist in gating formula; remove offending gating covariate(s) and try again", call.=FALSE)
-  
   G.last          <- G[len.G]
+  
   for(g  in G)     {
     if(isTRUE(verbose))     {    cat(paste0("\n", g, " cluster model", ifelse(multi, "s", ""), " -\n"))
       last.G      <- g   == G.last
@@ -586,8 +591,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         if(isTRUE(nonoise)) {
           zg      <- mclust::unmap(switch(EXPR=init.z, 
                                           kmedoids=if(ctrl$do.wts) {
-                                            zg <- WeightedCluster::wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
-                                              as.numeric(factor(zg, labels=seq_along(unique(zg))))
+                                          random=sample(seq_len(g),  size=N, replace=TRUE),
+                                            zz <- WeightedCluster::wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
+                                              as.numeric(factor(zz, labels=seq_along(unique(zz))))
                                             } else cluster::pam(dist.mat, k=g,  cluster.only=TRUE), 
                                           hc=cutree(hcZ, k=g)),  groups=seq_len(g))
         }
@@ -595,8 +601,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
           if(g0 > 1)        {
             zg0   <- mclust::unmap(switch(EXPR=init.z, 
                                           kmedoids=if(ctrl$do.wts) {
-                                            zg <- WeightedCluster::wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
-                                              as.numeric(factor(zg, labels=seq_along(unique(zg))))
+                                          random=sample(seq_len(g0), size=N, replace=TRUE),
+                                            zz <- WeightedCluster::wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
+                                              as.numeric(factor(zz, labels=seq_along(unique(zz))))
                                             } else cluster::pam(dist.mat, k=g0, cluster.only=TRUE), 
                                           hc=cutree(hcZ, k=g0)), groups=seq_len(g0))
             zg0   <- cbind(zg0 * (1 - tau0), tau0)
@@ -623,8 +630,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       ctrl$gate.g        <- gate.G[ctrl$nmeth      + 1L,h]
       ctrl$noise.gate    <- ifelse(ctrl$nmeth, noise.gate[2L,h], TRUE)
       zm          <- if(attr(SEQ, "Noise") <- gN0 <- ctrl$nmeth) zg0 else zg
-      if(gN0   && !ctrl$noise.gate && ctrl$algo   != "EM")  {
-        zm[,-G]   <- replace(zm[,-G], zm[,-G] > 0, 1L)
+      if(gN0      &&   !ctrl$noise.gate    && algog  != "EM") {
+        if(init.z == "random" &&
+           nstarts > 1)   {
+          zm      <- lapply(zm, function(x) { x[,-G] <- replace(x[,-G], x[,-G] > 0, 1L); x })
+        } else zm[,-G]   <- replace(zm[,-G], zm[,-G] > 0, 1L)
       }
       m           <- which(modtype == modtypes)
       if(init.z   == "random" &&
@@ -673,7 +683,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       ll          <- EMX$ll
       z           <- EMX$z
       cvsel.X     <- cvsel && !ERR
-      j2          <- max(1L, j - switch(EXPR=algo, cemEM=1L, 2L))
+      j2          <- max(1L, j - switch(EXPR=algog, cemEM=1L, 2L))
       if(isTRUE(verbose))        cat(paste0("\t\t# Iterations: ", ifelse(ERR, "stopped at ", ""), j2, ifelse(last.G && last.T, "\n\n", "\n")))
 
       if(all((Mstep$lambda -> lambda) == 0) && cvsel.X) {
@@ -737,8 +747,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       iclx        <- choice$icl
       aicx        <- choice$aic
       dfx         <- choice$df
-      if(g > 1)    {
         DBS       <- dbs(z, ...)
+      if(do.dbs   && g > 1) {
         dbsx      <- DBS$msw
         SILS[[h]][[m]]     <- if(ERR)      NA else DBS$silvals
         attr(SILS[[h]][[m]], "G")         <- g
@@ -763,7 +773,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       ICLs[h,modtype]      <- ifelse(ERR, -Inf, iclx)
       AICs[h,modtype]      <- ifelse(ERR, -Inf, aicx)
       NECs[h,modtype]      <- ifelse(ERR,  Inf, -necx)
-      DBSs[h,modtype]      <- ifelse(ERR || !do.dbs, -Inf, dbsx)
+      DBSs[h,modtype]      <- ifelse(ERR, -Inf, dbsx)
       LL.x[h,modtype]      <- ifelse(ERR, -Inf, log.lik)
       DF.x[h,modtype]      <- ifelse(ERR, -Inf, dfx)
       IT.x[h,modtype]      <- ifelse(ERR,  Inf, j2)
@@ -788,7 +798,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       }
     }
     ZS[[h]]       <- stats::setNames(ZS[[h]],   modtypes)
-    if(g > 1)      {
+    if(do.dbs     && g > 1)    {
       SILS[[h]]   <- stats::setNames(SILS[[h]], modtypes)  
     }
   } # for (g)
@@ -868,9 +878,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(x.theta, "lambda")       <- switch(EXPR=best.mod, CCN=, CUN=rbind(matrix(x.lambda[1L,], nrow=G - 1L, ncol=P, byrow=best.mod == "CUN"), 0L), matrix(x.lambda, nrow=G, ncol=P, byrow=best.mod == "CU"))
   class(x.theta)                <- "MEDtheta"
   Gseq            <- seq_len(G)
-  z               <- x.z
-  colnames(z)     <- if(G == 1  && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq)
-  MAP             <- MAP2       <- max.col(z)
+  colnames(x.z)   <- if(G == 1  && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq)
+  MAP             <- MAP2       <- max.col(x.z)
   MAP             <- if(noise) replace(MAP, MAP == G, 0L) else MAP
   equalPro        <- equal.tau[1L   + noise,best.G] 
   equalNoise      <- equal.n0[1L    + noise,best.G] 
@@ -878,6 +887,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   noise.gate      <- ifelse(noise, noise.gate, TRUE)
   if(!(gate.G[1L   + noise,best.G] -> bG))  {
     if(G > 1)      {
+      z           <- if(ctrl$do.wts) x.z * weights + .Machine$double.eps else x.z
       fitG        <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol)
       if(equalPro && !equalNoise && !noise) {
         tau0      <- mean(z[,G])
@@ -901,7 +911,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
                                      ifelse(bG | x.gcov, paste0(" (incl. ", ifelse(ctrl$do.wts, "weights and ", ""), "gating network covariates)"), ifelse(ctrl$do.wts, " (incl. weights)", "")), "\n\t\t",
                                      ifelse(cvsel, paste0("CV = ",  round(x.cv,  2L), " | "), ""),
                                      ifelse(G > 1 && do.nec, paste0("NEC = ", round(x.nec, 2L), " | "), ""),
-                                     ifelse(G > 1, paste0("DBS = ", round(x.dbs, 2L), " | "), ""),
+                                     ifelse(G > 1 && do.dbs, paste0("DBS = ", round(x.dbs, 2L), " | "), ""),
                                      "BIC =", round(x.bic, 2L), " | ICL =", round(x.icl, 2L), " | AIC =", round(x.aic, 2L), "\n\n"))
   params          <- list(theta   = x.theta,
                           lambda  = x.lambda,
@@ -912,7 +922,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
                           G       = G,
                           params  = params,
                           gating  = fitG,
-                          z       = z,
+                          z       = x.z,
                           MAP     = MAP,
                           ZS      = stats::setNames(ZS, rG))
   if(cvsel)        {
@@ -933,24 +943,23 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     attr(DBSs, "modelNames")    <- colnames(BICs)
     SILS          <- if(any(rG  == 1)) stats::setNames(SILS, rG)[-1L]    else stats::setNames(SILS, rG)
     results       <- c(results, list(DBS = DBSs, SILS = SILS))
+    results       <- if(G > 1) c(results, list(dbs = x.dbs, silvals = SILS[[as.character(G)]][[best.mod]])) else results
   }
-  if(G > 1)        {
-    if(do.nec)     {
-      NECs        <- NECs[-1L,, drop=FALSE]
-      class(NECs) <- "MEDcriterion"
-      attr(NECs, "Criterion")   <- "NEC"
-      attr(NECs, "G")           <- rownames(BICs)[-1L]
-      attr(NECs, "modelNames")  <- colnames(BICs)
-      results     <- c(results, list(NEC = NECs, nec = x.nec))
-    }
-    results       <- c(results, list(dbs = x.dbs, silvals = SILS[[as.character(G)]][[best.mod]]))
+  if(do.nec)       {
+    NECs          <- NECs[-1L,, drop=FALSE]
+    class(NECs)   <- "MEDcriterion"
+    attr(NECs, "Criterion")     <- "NEC"
+    attr(NECs, "G")             <- rownames(BICs)[-1L]
+    attr(NECs, "modelNames")    <- colnames(BICs)
+    results       <- c(results, list(NEC = NECs))
+    results       <- if(G > 1) c(results, list(nec = x.nec)) else results
   }
   x.ll            <- x.ll[if(G > 1) switch(EXPR=algo, cemEM=-1L, -seq_len(2L)) else 1L]
   attr(x.ll, "Weighted")        <- ctrl$do.wts
   results         <- c(results, list(
                           LOGLIK  = LL.x,
                           loglik  = x.ll,
-                          uncert  = if(G > 1) 1 - matrixStats::rowMaxs(z) else vector("integer", N),
+                          uncert  = if(G > 1) 1 - matrixStats::rowMaxs(x.z) else vector("integer", N),
                           covars  = covars,
                           DF      = DF.x,
                           df      = DF.x[best.ind],
@@ -1504,7 +1513,7 @@ tabcluster.MEDseq <- function(x, norm = FALSE) {
   MAP             <- if(noise) replace(x$MAP, x$MAP == 0, G) else x$MAP
   temp            <- do.call(rbind, by(x$data, MAP, function(x) tabulate(do.call(base::c, x), V)))
   tabMAP          <- tabulate(MAP)
-  temp            <- sweep(temp, 1L, tabMAP, FUN="/", check.margin=FALSE)/P * ifelse(isTRUE(norm), 100L, 1L)
+  temp            <- temp/(tabMAP * P) * ifelse(isTRUE(norm), 100L, 1L)
   temp            <- cbind(tabMAP, temp)
   rownames(temp)  <- gnames
   colnames(temp)  <- c("Size", alph)

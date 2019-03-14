@@ -105,12 +105,12 @@
              switch(EXPR=l.meth, 
                     CC  = -ifelse(lambda == 0, attr(seqs, "W") * P * log1p(V1), lambda * sum(attr(seqs, "Weights") * .dseq(seqs, theta), na.rm=TRUE) + attr(seqs, "W") * P * log1p(V1 * exp(-lambda))),
                     CCN = -attr(seqs, "W") * P * log1p(V1),
-                    CU  = -sum(sweep(sweep(numseq != .char_to_num(theta), 1L, lambda, FUN="*", check.margin=FALSE), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W") * sum(log1p(V1 * exp(-lambda))))
+                    CU  = -sum(sweep((numseq != .char_to_num(theta)) * as.vector(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W") * sum(log1p(V1 * exp(-lambda))))
            } else  {
              switch(EXPR=l.meth,
                     CC  = -ifelse(lambda == 0, N * P * log1p(V1), sum(lambda * N * .dbar(seqs, theta), N * P * log1p(V1 * exp(-lambda)), na.rm=TRUE)),
                     CCN = -N * P * log1p(V1),
-                    CU  = -sum(sweep(numseq != .char_to_num(theta), 1L, lambda, FUN="*", check.margin=FALSE), na.rm=TRUE) - N * sum(log1p(V1 * exp(-lambda))))
+                    CU  = -sum((numseq != .char_to_num(theta)) * as.vector(lambda), na.rm=TRUE) - N * sum(log1p(V1 * exp(-lambda))))
            })
   } else {
     dG  <- if(dG.X)  switch(EXPR=l.meth, 
@@ -126,28 +126,28 @@
                             CC  =-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE) + log.tau - P * log1p(V1 * exp(-lambda)),
                             UC  = sweep(-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE), 
                                         2L, P * log1p(V1 * exp(-lambda)),  FUN="-", check.margin=FALSE) + log.tau,
-                            CU  = sweep(-vapply(lapply(dG, sweep, 1L, lambda, "*",  check.margin=FALSE), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)), 
+                            CU  = sweep(-vapply(lapply(dG, "*", as.vector(lambda)), FUN=matrixStats::colSums2, na.rm=TRUE,   numeric(N)), 
                                         2L, sum(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) + log.tau,
-                            UU  = sweep(-vapply(Gseq, function(g) matrixStats::colSums2(sweep(dG[[g]], 1L, lambda[g,], FUN="*", check.margin=FALSE), na.rm=TRUE), numeric(N)), 
-                                        2L, matrixStats::rowSums2(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) + log.tau,
+                            UU  = sweep(-vapply(Gseq, function(g) matrixStats::colSums2(dG[[g]] * lambda[g,],  na.rm=TRUE),  numeric(N)), 
+                                        2L, matrixStats::rowSums2(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) +  log.tau,
                             CCN = cbind(sweep(-sweep(dG, 2L, lambda[1L],  FUN="*",  check.margin=FALSE), 
                                               2L, P * log1p(V1 * exp(-lambda[1L])),   FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)),
                             UCN = cbind(sweep(-sweep(dG, 2L, lambda[-G,], FUN="*",  check.margin=FALSE), 
                                               2L, P * log1p(V1 * exp(-lambda[-G,])),  FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)),
-                            CUN = cbind(sweep(-vapply(lapply(dG, sweep, 1L, lambda[1L,], "*",  check.margin=FALSE), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)), 
+                            CUN = cbind(sweep(-vapply(lapply(dG, "*", lambda[1L,]),   FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)), 
                                               2L, sum(log1p(V1 * exp(-lambda[1L,]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)),
-                            UUN = cbind(sweep(-vapply(Gseq, function(g) matrixStats::colSums2(sweep(dG[[g]], 1L, lambda[g,],  FUN="*", check.margin=FALSE), na.rm=TRUE), numeric(N)),
+                            UUN = cbind(sweep(-vapply(Gseq, function(g) matrixStats::colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)),
                                               2L, matrixStats::rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)))
     } else         {
       numer       <- switch(EXPR=l.meth,
                             CC  = -dG * lambda - P * log1p(V1 * exp(-lambda)),
                             UC  = sweep(-dG * lambda, 2L, P * log1p(V1 * exp(-lambda)), FUN="-", check.margin=FALSE),
-                            CU  = -vapply(lapply(dG, sweep, 1L, lambda, "*", check.margin=FALSE), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)) - sum(log1p(V1 * exp(-lambda))),
-                            UU  = -vapply(Gseq, function(g) matrixStats::colSums2(sweep(dG[[g]], 1L, lambda[g,], FUN="*", check.margin=FALSE), na.rm=TRUE), numeric(N)) - matrixStats::rowSums2(log1p(V1 * exp(-lambda))),
+                            CU  = -vapply(lapply(dG, "*", as.vector(lambda)), FUN=matrixStats::colSums2,  na.rm=TRUE,  numeric(N)) - sum(log1p(V1 * exp(-lambda))),
+                            UU  = -vapply(Gseq, function(g) matrixStats::colSums2(dG[[g]] * lambda[g,],   na.rm=TRUE), numeric(N)) - matrixStats::rowSums2(log1p(V1 * exp(-lambda))),
                             CCN = c(-dG * lambda[1L] - P * log1p(V1 * exp(-lambda[1L])), - P * log1p(V1)),
                             UCN = c(sweep(-dG * lambda[-G,, drop=FALSE], 2L, P * log1p(V1 * exp(-lambda[-G])), FUN="-", check.margin=FALSE), -P * log1p(V1)),
-                            CUN = c(-vapply(lapply(dG, sweep, 1L, lambda[1L,], "*", check.margin=FALSE), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)) - sum(log1p(V1 * exp(-lambda[1L,]))), - P * log1p(V1)),
-                            UUN = c(-vapply(Gseq, function(g) matrixStats::colSums2(sweep(dG[[g]], 1L, lambda[g,], FUN="*", check.margin=FALSE), na.rm=TRUE), numeric(N)) - matrixStats::rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), - P * log1p(V1)))
+                            CUN = c(-vapply(lapply(dG, "*", lambda[1L,]), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)) - sum(log1p(V1 * exp(-lambda[1L,]))), - P * log1p(V1)),
+                            UUN = c(-vapply(Gseq, function(g) matrixStats::colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)) - matrixStats::rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), - P * log1p(V1)))
       numer       <- matrix(numer, nrow=1L) + switch(EXPR=l.meth, CC=, UC=, CU=, UU=log.tau, c(log.tau, tau0))
     }
     
@@ -175,7 +175,7 @@
         if(ctrl$do.cv)       {
             return(loglike)
         } else     {
-            return(list(loglike = loglike, z = exp(sweep(numer, 1L, denom, FUN="-", check.margin=FALSE))))
+            return(list(loglike = loglike, z = exp(numer - denom)))
         }
       }   else     {
             return(matrixStats::logSumExp(numer) * if(ctrl$do.wts) attr(seqs, "Weights") else 1L)
@@ -183,7 +183,7 @@
     },    CEM=     {
       if(N1)       {
         z         <- mclust::unmap(max.col(numer), groups=seq_len(G))
-        loglike   <- sum(if(ctrl$do.weights) sweep(z * numer, 1L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE) else z * numer, na.rm=TRUE)
+        loglike   <- sum(if(ctrl$do.wts) z * numer * attr(seqs, "Weights") else z * numer, na.rm=TRUE)
         if(ctrl$do.cv)       {
             return(loglike)
         } else     {
@@ -320,7 +320,7 @@
   if(G > 1L)       {
     if(is.null(z))               stop("'z' must be supplied when 'G'>1", call.=FALSE)
     if(ctrl$do.wts)       {
-      z           <- sweep(z, 1L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE)
+      z           <- z * attr(seqs, "Weights")
     }
     if((gate.g    <- ctrl$gate.g))    {
       prop        <- if(is.element(l.meth, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) matrixStats::colSums2(z)/attr(seqs, "W") else colMeans(z) }
@@ -414,7 +414,7 @@
     z             <- matrix(if(ctrl$do.wts) attr(seqs, "Weights") else 1L, nrow=attr(seqs, "N"))
     theta         <- list(.char_to_num(theta.opt$theta))
   }
-  if(ordering     != "none") {
+  if(ordering     != "none")    {
     stab          <- if(G == 1 && !ctrl$do.wts) list(apply(numseq, 1L, tabulate, V)) else lapply(Gseq, function(g) apply(sweep(numseq, 2L, z[,g], FUN="*", check.margin=FALSE), 1L, tabulate, V))
     sorder        <- lapply(Gseq, function(g)   order(apply(stab[[g]], 2L, .entropy), decreasing=ordering == "decreasing"))
     theta         <- lapply(Gseq, function(g)   theta[[g]][sorder[[g]]])
