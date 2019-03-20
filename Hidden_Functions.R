@@ -353,6 +353,15 @@
     matrix(x, nrow=nrow, ncol=ncol, byrow=any(dim(as.matrix(x)) == 1))
 }
 
+.MEDseq_stepGate  <- function(x, ...) {
+  covars          <- x$covars
+  object          <- x$gating
+  ctrl            <- list(maxit=attr(object, "Maxit"), reltol=attr(object, "Reltol"))
+  res             <- stats::step(object, ...)
+  res$lab         <- object$lab
+    return(res)
+}
+
 .modal            <- function(x) {
   ux              <- unique(x[x != 0])
   tab             <- tabulate(match(x, ux))
