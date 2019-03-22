@@ -232,6 +232,8 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
     old.call    <- best.model$call
     old.call    <- c(as.list(old.call)[1L], list(criterion=criterion), as.list(old.call)[-1L])
     old.call    <- as.call(old.call[!duplicated(names(old.call))])
+    if(old.call$init.z  == 
+       "random")                 warning("Optimal model may differ slightly due to criterion mismatch and random starts used in the initialisation:\nPrinted output intended only as a guide", call.=FALSE, immediate.=TRUE)
     best.call   <- c(list(data=best.model$data, l.meth=modelNames[1L], G=G[1L], criterion="bic", verbose=FALSE, do.cv=FALSE, do.nec=FALSE), as.list(old.call[-1L]))
     best.mod    <- try(do.call(MEDseq_fit, best.call[!duplicated(names(best.call))]), silent=TRUE)
     if(!inherits(best.model, "try-error")) {
@@ -310,9 +312,9 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
     (length(stopping)  > 1 ||
      !is.character(stopping)))   stop("'stopping' must be a character vector of length 1",  call.=FALSE)
   if(!miss.args$tau0       &&
-    (length(tau0)      > 1 ||
-     !is.numeric(tau0)     ||
-     tau0 < 0 || tau0 >= 1))     stop("'tau0' must be a scalar in the interval [0, 1)",     call.=FALSE)
+    (!is.numeric(tau0)     ||
+     any(tau0  < 0)        || 
+     any(tau0 >= 1)))            stop("'tau0' must lie in the interval [0, 1)",             call.=FALSE)
   if(!missing(opti)        &&
     (length(opti)      > 1 ||
      !is.character(opti)))       stop("'opti' must be a character vector of length 1",      call.=FALSE)
@@ -391,8 +393,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   n.meths         <- c("CCN", "UCN", "CUN", "UUN")
   n.meth          <- l.meth %in% n.meths
   if(!(tmiss      <- miss.args$tau0) && 
-     ctrl$tau0    == 0)        {
-    if(all(n.meth))              stop("'tau0' is zero: models with noise component will not be fitted",      call.=FALSE)
+    all(ctrl$tau0 == 0))       {
+    if(all(n.meth))              stop("'tau0' is zero: models with noise component cannot be fitted",        call.=FALSE)
     if(any(n.meth))              warning("'tau0' is zero: models with noise component will not be fitted\n", call.=FALSE, immediate.=TRUE)
     l.meths       <- c("CC", "UC", "CU", "UU")
   } else l.meths  <- c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN")
@@ -452,35 +454,36 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   DF              <- seqs        
   DF              <- if(gate.x)  cbind(DF, covars)  else DF
   DF              <- if(do.wts)  cbind(DF, weights) else DF
-  dup.ind         <- !duplicated(DF)
-  sum.dup         <- sum(dup.ind)
-  if(sum.dup < N  && !do.uni)   message(paste0("Number of unique observations (", sum.dup, ") is less than N (", N, "): Consider setting 'unique'=TRUE\n"))
+  uni.ind         <- !duplicated(DF)
+  sum.uni         <- sum(uni.ind)
+  if(sum.uni < N  && !do.uni  &&
+     verbose)                   message(paste0("Number of unique observations (", sum.uni, ") is less than N (", N, "): Consider setting 'unique'=TRUE\n"))
   if(do.uni       <- do.uni   &&
-     sum.dup < N)  {            message(paste0("Proceeding with ", sum.dup, " unique observations, out of N=", N, "\n"))
+     sum.uni < N)  {            
+    if(verbose)                 message(paste0("Proceeding with ", sum.uni, " unique observations, out of N=", N, "\n"))
     agg.DF        <- merge(data.frame(cbind(id=seq_len(N)), DF), data.frame(aggregate(cbind(DF[0L], count=1L), DF, length)), by=colnames(DF), sort=FALSE)
     agg.id        <- order(agg.DF$id)
     c2            <- agg.DF$count[agg.id]
-    agg.DF        <- agg.DF[agg.id[dup.ind],, drop=FALSE]
-    counts        <- agg.DF$count
-    weights       <- if(do.wts) counts * agg.DF$weights else counts
+    counts        <- c2[uni.ind]
+    weights       <- if(do.wts) counts * agg.DF$weights[agg.id][uni.ind] else counts
     if(ctrl$do.wts       <- (length(unique(weights)) > 1)) {
       dist.mat2   <- dist.mat
       w2          <- rep(0L, N)
-      w2[dup.ind]        <- weights
-      dist.mat    <- as.dist(as.matrix(dist.mat)[dup.ind,dup.ind])
-      seqs        <- seqs[dup.ind,,   drop=FALSE]
+      w2[uni.ind]        <- weights
+      dist.mat    <- as.dist(as.matrix(dist.mat)[uni.ind,uni.ind])
+      seqs        <- seqs[uni.ind,,   drop=FALSE]
       atts        <- attributes(SEQ)
       SEQ         <- apply(.fac_to_num(seqs), 1L, .num_to_char)
       attributes(SEQ)         <- atts
       attr(SEQ, "N")     <- N <- nrow(seqs)
       attr(SEQ, "Weights")    <- weights
       attr(SEQ, "W")          <- sum(weights)
-      covars      <- covars[dup.ind,, drop=FALSE]
+      covars      <- covars[uni.ind,, drop=FALSE]
       dis.agg     <- rep(seq_len(N), counts)[agg.id]
     }
-  }
-  else           {
-    dup.ind       <- rep(FALSE, N)
+  } 
+  if(!do.uni || !ctrl$do.wts)  {
+    uni.ind       <- rep(TRUE, N)
     w2            <- weights
     dist.mat2     <- dist.mat
   }
@@ -497,25 +500,32 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   if(!do.nec      &&
      algo         != "CEM"    &&
      criterion    == "nec"    &&
-     !all(G == 1))             { message("Forcing 'do.nec' to TRUE as criterion='nec'\n")
+     !all(G == 1))             { 
+    if(verbose)                  message("Forcing 'do.nec' to TRUE as criterion='nec'\n")
     do.nec        <- TRUE
   }
   if(do.nec &&
      algo         != "CEM"    &&
-     !any(G == 1))             { message("Forcing G=1 models to be fitted for NEC criterion computation\n")
+     !any(G == 1))             { 
+    if(verbose)                  message("Forcing G=1 models to be fitted for NEC criterion computation\n")
     G             <- rG  <- unique(c(1L, G))  
   }
-  if(all(G  == 1)) {             message("Density-based silhouettes not computed as only single component models are being fit\n")
+  if(all(G  == 1)) { if(verbose) message("Density-based silhouettes not computed as only single component models are being fit\n")
     do.dbs        <- FALSE
     if(criterion  == "dbs")      stop("DBS criterion cannot be used to select among only single-component models", call.=FALSE)
     if(do.nec     && 
-       !(do.nec   <- FALSE))     message("Forcing 'do.nec' to FALSE as only single component models are being fit\n")
+       !(do.nec   <- FALSE))   {
+      if(verbose)                message("Forcing 'do.nec' to FALSE as only single component models are being fit\n")
+    }   
     if(criterion  == "nec")      stop("NEC criterion cannot be used to select among only single-component models", call.=FALSE)
-  } else if(algo  == "CEM")    { message("Density-based silhouettes not computed as the CEM algorithm is employed\n")
+  } else if(algo  == "CEM")    { 
+    if(verbose)                  message("Density-based silhouettes not computed as the CEM algorithm is employed\n")
     do.dbs        <- FALSE
     if(criterion  == "dbs")      stop("DBS criterion cannot be used to select among models fitted via CEM", call.=FALSE)
     if(do.nec     &&
-       !(do.nec   <- FALSE))     message("Forcing 'do.nec' to FALSE as models are being fit via CEM\n")
+       !(do.nec   <- FALSE))   {
+      if(verbose)                message("Forcing 'do.nec' to FALSE as models are being fit via CEM\n")
+    }  
     if(criterion  == "nec")      stop("NEC criterion cannot be used to select among models fitted via CEM", call.=FALSE)
   } else do.dbs   <- TRUE
   if(any(G > 1L))  {
@@ -533,7 +543,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   cvsel           <- ctrl$do.cv
   ctrl$do.cv      <- FALSE
   if(!cvsel       && 
-     criterion    == "cv")     { message("Forcing 'do.cv' to TRUE as criterion='cv'\n")
+     criterion    == "cv")     { 
+    if(verbose)                  message("Forcing 'do.cv' to TRUE as criterion='cv'\n")
     cvsel         <- TRUE
   }
   if(ctrl$numseq  <- any(c("CU", "UU", "CUN", "UUN") %in% all.mod, ctrl$opti == "mode", ctrl$ordering != "none")) {
@@ -583,9 +594,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   gate.G          <- matrix(ifelse(rG > 1, gate.x, FALSE), nrow=2L, ncol=length(rG), byrow=TRUE)
   if(gate.x)       {
     Gn            <- G - !noise.gate
-    if((verbose   && gate.x)       &&
+    if(gate.x     &&
       ((any(Gn    <= 1)  && noise) ||
-       any(G      <= 1))) {      message(paste0("Can't include gating network covariates ", ifelse(noise.gate, "in a single component mixture", "where G is less than 3 when 'noise.gate' is FALSE\n")))
+       any(G      <= 1))) {      
+      if(verbose)                message(paste0("Can't include gating network covariates ", ifelse(noise.gate, "in a single component mixture", "where G is less than 3 when 'noise.gate' is FALSE\n")))
      gate.G[2L,Gn <= 1]  <- FALSE
     }
   } else           {
@@ -618,12 +630,18 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     h             <- which(G   == g)
     g0 <- attr(SEQ, "G0")  <- g - noise
     if(isTRUE(noise))   {
-      tau0        <- ifelse(tmiss, 1/g, ctrl$tau0)
+      tau0        <- if(tmiss) 1/g else ctrl$tau0[uni.ind]
+      if(length(tau0)   > 1)   {
+        if(all(gate.G[2L,h]   && 
+           noise.gate[2L,h]))  {
+          if(N != length(tau0))  stop(paste0("'tau0' must be a scalar or a vector of length N=", N), call.=FALSE)
+        } else                   stop("'tau0' must be a scalar in the interval (0, 1)", call.=FALSE)
+      }
     }
 
     if(g  > 1)     {
       algog       <- algo
-      if(init.z   == "random"  &&
+      if(init.z   == "random" &&
          nstarts   > 1)     {
         if(isTRUE(nonoise)) {
           zg      <- replicate(nstarts, list(mclust::unmap(sample(seq_len(g),  size=N, replace=TRUE), groups=seq_len(g))))
@@ -643,8 +661,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
                                           kmedoids= if(do.wts) {
                                             zz <- WeightedCluster::wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
                                               as.numeric(factor(zz, labels=seq_along(unique(zz))))
-                                            } else cluster::pam(dist.mat2, k=g,  cluster.only=TRUE)[dup.ind], 
-                                          hc=cutree(hcZ, k=g)[dup.ind]),  groups=seq_len(g))
+                                            } else cluster::pam(dist.mat2, k=g,  cluster.only=TRUE)[uni.ind], 
+                                          hc=cutree(hcZ, k=g)[uni.ind]),  groups=seq_len(g))
         }
         if(isTRUE(noise))   {
           if(g0 > 1)        {
@@ -653,8 +671,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
                                           kmedoids= if(do.wts) {
                                             zz <- WeightedCluster::wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
                                               as.numeric(factor(zz, labels=seq_along(unique(zz))))
-                                            } else cluster::pam(dist.mat2, k=g0, cluster.only=TRUE)[dup.ind],  
-                                          hc=cutree(hcZ, k=g0)[dup.ind]), groups=seq_len(g0))
+                                            } else cluster::pam(dist.mat2, k=g0, cluster.only=TRUE)[uni.ind],  
+                                          hc=cutree(hcZ, k=g0)[uni.ind]), groups=seq_len(g0))
             zg0   <- cbind(zg0 * (1 - tau0), tau0)
           } else   {
             zg0   <- matrix(tau0, nrow=N, ncol=2L)
@@ -785,7 +803,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         ctrl$warn <- TRUE
       }
       
-      z           <- if(do.uni) z[dis.agg,] else z
+      z           <- if(do.uni) z[dis.agg,, drop=FALSE] else z
       log.lik     <- ll[j]
       nzero       <- sum(lambda == 0)
       ninfty      <- sum(is.infinite(lambda))
@@ -936,7 +954,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   equalNoise      <- equal.n0[1L    + noise,best.G] 
   noise.gate      <- noise.gate[1L  + noise,best.G]
   noise.gate      <- ifelse(noise, noise.gate, TRUE)
-  covars          <- if(do.uni) covars[dis.agg,] else covars
+  covars          <- if(do.uni) covars[dis.agg,, drop=FALSE] else covars
   rownames(covars)                 <- seq_along(MAP)
   if(!(gate.G[1L   + noise,best.G] -> bG))  {
     if(G > 1)      {
@@ -945,7 +963,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         z[apply(z == 0, 1L, all),] <- .Machine$double.eps
       } else z    <- x.z
       fitG        <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol)
-      if(equalPro && !equalNoise   && !noise) {
+      if(equalPro && !equalNoise   && noise) {
         tau0      <- mean(z[,G])
         x.tau     <- c(rep((1 - tau0)/(G - 1L), G  - 1L), tau0)
       } else       {
@@ -1038,7 +1056,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     set.seed(100)
     for(g in sort(unip[unip > 0]))  {
       srows       <- Nseq[MAP2 == g]
-      meds        <- c(meds, srows[which.min(matrixStats::rowSums2(dist.mat[srows,srows]))])
+      meds        <- c(meds, srows[which.min(matrixStats::rowSums2(dist.mat[srows,srows, drop=FALSE]))])
     }
     perm          <- seriation::get_order(seriation::seriate(as.dist(dist.mat[meds,meds]), method="TSP"))
   } else perm     <- NULL
@@ -1141,7 +1159,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
           set.seed(100)
           for(g in sort(unip[unip > 0])) {
             srows <- Nseq[MAP == g]
-            meds  <- c(meds, srows[which.min(matrixStats::rowSums2(dmat[srows,srows]))])
+            meds  <- c(meds, srows[which.min(matrixStats::rowSums2(dmat[srows,srows, drop=FALSE]))])
           }
           perm    <- seriation::get_order(seriation::seriate(as.dist(dmat[meds,meds]), method="TSP"))
         }
@@ -1486,8 +1504,8 @@ print.MEDseq      <- function(x, digits = 2L, ...) {
              ifelse(no.dbs,        paste0(
              "NEC = ",             crit[4L],
              " | BIC = ",          crit[1L]),
-             paste0("DBS = ",      crit[5L],
-             " | NEC = ",          crit[4L],
+             paste0("DBS = ",      crit[4L],
+             " | NEC = ",          crit[5L],
              " | BIC = ",          crit[1L])))),
              " | ICL = ",          crit[2L],
              " | AIC = ",          crit[3L],

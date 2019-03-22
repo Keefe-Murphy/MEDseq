@@ -159,7 +159,7 @@
              UCN   =         {
              i.x  <- which(dG == 0, arr.ind=TRUE)
              i.x  <- i.x[i.x[,2L] %in% which(switch(EXPR=l.meth, UC=iLAM, UCN=iLAM[-G])),, drop=FALSE]
-             numer[i.x]     <- log.tau[,i.x[,2L]]    - P * log1p(V1)
+             numer[i.x]     <- log.tau[i.x]          - P * log1p(V1)
       })
     }
     if(ctrl$do.cv && !noise &&
@@ -266,8 +266,8 @@
     numer         <- switch(EXPR=l.meth, CC=P,                  CU=1L)
     if(ctrl$do.wts)                    {
       ws          <- attr(seqs, "Weights")
-      denom       <- switch(EXPR=l.meth, CC=sum(.dseq(seqs, theta) * ws)/W, CU=rowSums(sweep(numseq != .char_to_num(theta), 2L, ws, FUN="*", check.margin=FALSE))/W)
-    } else denom  <- switch(EXPR=l.meth, CC=.dbar(seqs, theta),             CU=rowMeans(numseq      != .char_to_num(theta)))  
+      denom       <- switch(EXPR=l.meth, CC=sum(.dseq(seqs, theta) * ws)/W, CU=matrixStats::rowSums2(sweep(numseq != .char_to_num(theta), 2L, ws, FUN="*", check.margin=FALSE))/W)
+    } else denom  <- switch(EXPR=l.meth, CC=.dbar(seqs, theta),             CU=matrixStats::rowMeans2(numseq      != .char_to_num(theta)))  
   } else           {
     N             <- attr(seqs, "N")
     G0            <- ifelse(noise, attr(seqs, "G0"), G)
@@ -323,7 +323,7 @@
       z           <- z * attr(seqs, "Weights")
     }
     if((gate.g    <- ctrl$gate.g))    {
-      prop        <- if(is.element(l.meth, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) matrixStats::colSums2(z)/attr(seqs, "W") else colMeans(z) }
+      prop        <- if(is.element(l.meth, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) matrixStats::colSums2(z)/attr(seqs, "W") else matrixStats::colMeans2(z) }
       if(!noise   || ctrl$noise.gate) {
         fitG      <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol)
         tau       <- fitG$fitted.values
@@ -338,7 +338,7 @@
         z         <- zN
       }
     } else         {
-      prop        <- if(isFALSE(ctrl$equalPro) || (noise && !ctrl$equalNoise)) { if(ctrl$do.wts) matrixStats::colSums2(z)/attr(seqs, "W") else colMeans(z) }
+      prop        <- if(ctrl$do.wts) matrixStats::colSums2(z)/attr(seqs, "W") else matrixStats::colMeans2(z)
       tau         <- if(isFALSE(ctrl$equalPro)) prop else if(noise && !ctrl$equalNoise) c(rep((1 - prop[G])/attr(seqs, "G0"), attr(seqs, "G0")), prop[G]) else rep(1/G, G)
     }
   }   else prop   <- tau <- 1L
@@ -351,15 +351,6 @@
 
 .mat_byrow        <- function(x, nrow, ncol) {
     matrix(x, nrow=nrow, ncol=ncol, byrow=any(dim(as.matrix(x)) == 1))
-}
-
-.MEDseq_stepGate  <- function(x, ...) {
-  covars          <- x$covars
-  object          <- x$gating
-  ctrl            <- list(maxit=attr(object, "Maxit"), reltol=attr(object, "Reltol"))
-  res             <- stats::step(object, ...)
-  res$lab         <- object$lab
-    return(res)
 }
 
 .modal            <- function(x) {
