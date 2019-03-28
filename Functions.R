@@ -1,4 +1,34 @@
-dbs               <- function(z, tol = log(1E-100), weights = NULL, ...) {
+asw               <- function(x, weights = NULL, measure = "ASW") {
+    UseMethod("asw")
+}
+
+asw.MEDseq        <- function(x, weights = NULL, measure = "ASW") {
+  SILS            <- list()
+  dist.mat        <- attr(x, "DistMat")
+  ZS              <- x$ZS
+  Gseq            <- as.numeric(names(ZS))
+  if(all(Gseq == 1))   {         message("No solutions with G > 1 clusters\n")
+      break
+  }
+  measure         <- ifelse(missing(measure) && !is.null(weights), "ASWw", measure)
+  G1              <- length(Gseq) > 1 && any(Gseq == 1)
+  znames          <- names(ZS[[which.max(lengths(ZS))]])
+  for(g in (if(G1) seq_along(Gseq)[-1L] else seq_along(Gseq))) {
+    sil           <- provideDimnames(matrix(NA, nrow=1L, ncol=length(znames)), base=list(as.character(g), znames))
+    tmp           <- vapply(ZS[[g]], function(x, MAP=max.col(x)) mean(WeightedCluster::wcSilhouetteObs(dist.mat, MAP, measure=measure)), numeric(1L))
+    sil[,names(tmp)]       <- tmp
+    SILS[[g]]     <- sil
+  }
+  SILS            <- do.call(rbind, SILS)
+  class(SILS)     <- "MEDcriterion"
+  attr(SILS, "Criterion")  <- "ASW"
+  attr(SILS, "G")          <- rownames(SILS)
+  attr(SILS, "modelNames") <- colnames(SILS)
+  attr(SILS, "Weighted")   <- measure == "ASWw"
+    SILS
+}
+
+dbs               <- function(z, tol = log(1E-100), weights = NULL, summ = c("mean", "median"), ...) {
   if(any(!is.matrix(z), !is.numeric(z)) ||
      ncol(z)      <= 1     ||
      nrow(z)      <= 1)          stop("'z' must be a numeric matrix with 2 or more columns & 2 or more rows", call.=FALSE)
@@ -9,6 +39,10 @@ dbs               <- function(z, tol = log(1E-100), weights = NULL, ...) {
    if(any(weights < 0)     || 
       any(!is.finite(weights)))  stop("'weights' must be positive and finite", call.=FALSE)
   }
+  if(!missing(summ)        && 
+    (length(summ)  > 1     ||
+     !is.character(summ)))       stop("'summ' must be a single character string", call.=FALSE)
+  summ            <- match.arg(summ)
   MAP             <- max.col(z)
   z               <- matrix(z[order(row(z), -z)], nrow(z), byrow=TRUE)
   l2              <- log(z[,2L])
@@ -19,8 +53,11 @@ dbs               <- function(z, tol = log(1E-100), weights = NULL, ...) {
   ds[is.nan(ds)]  <- 0L
   DS              <- cbind(cluster=MAP, dbs_width=ds)
   class(DS)       <- "MEDsil"
-  msw             <- median(ds)
-    return(list(silvals = DS, msw = msw, wmsw = ifelse(is.null(weights), msw, matrixStats::weightedMedian(ds, weights))))
+  msw             <- switch(EXPR=summ, median=median(ds), mean=mean(ds))
+  dbs_res         <- list(silvals = DS, msw = msw, wmsw = ifelse(is.null(weights), msw, 
+                          switch(EXPR=summ, median=matrixStats::weightedMedian(ds, weights), mean=matrixStats::weightedMean(ds, weights))))
+  attr(dbs_res, "summ")    <- summ
+    return(dbs_res)
 }
 
 get_results                   <- function(x, what = c("z", "MAP", "sils"), rank = 1L, criterion = c("bic", "icl", "aic", "cv", "nec", "dbs", "loglik"), G = NULL, modtype = NULL, noise = TRUE, ...) {
@@ -29,6 +66,9 @@ get_results                   <- function(x, what = c("z", "MAP", "sils"), rank 
 
 get_results.MEDseq            <- function(x, what = c("z", "MAP", "sils"), rank = 1L, criterion = c("bic", "icl", "aic", "cv", "nec", "dbs", "loglik"), G = NULL, modtype = NULL, noise = TRUE, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
+  if(!missing(what)           && 
+     (length(what) > 1        ||
+     !is.character(what)))       stop("'what' must be a single character string", call.=FALSE)
   what            <- match.arg(what)
   minG            <- 1L  + (what == "sils")
   if(!(missing(G) -> m.G)     &&
@@ -47,6 +87,9 @@ get_results.MEDseq            <- function(x, what = c("z", "MAP", "sils"), rank 
   if(!missing(criterion)      ||
      !missing(rank)           ||
      any(m.G, m.M))            {
+    if(!missing(criterion)    && 
+      (length(criterion)  > 1 ||
+      !is.character(criterion))) stop("'criterion' must be a single character string", call.=FALSE)
     criterion     <- match.arg(criterion)
     if((criterion == "nec"    ||
        criterion  == "dbs")   &&
@@ -78,8 +121,9 @@ get_results.MEDseq            <- function(x, what = c("z", "MAP", "sils"), rank 
     modtype       <- best[1L]
     G             <- as.numeric(best[2L])
   }
-  switch(EXPR=what, sils=    {
+  switch(EXPR=what, sils=   {
     SILS          <- x$SILS
+    summ          <- attr(SILS, "Summ")
     if(!(G  %in%
        as.numeric(names(SILS)))) stop("Invalid 'G' value", call.=FALSE)
     S             <- SILS[[as.character(G)]]
@@ -87,6 +131,7 @@ get_results.MEDseq            <- function(x, what = c("z", "MAP", "sils"), rank 
     if(!(modtype %in% s.ind))    stop("Invalid 'modtype'", call.=FALSE)
     res           <- S[[modtype]]
     if(anyNA(res))               message("Selected model didn't converge: no silhouettes available\n")
+    attr(res, "Summ")      <- summ
   }, {
     ZS            <- x$ZS
     if(!(G  %in%
@@ -278,7 +323,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
 
 MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "hc", "random"), dist.mat = NULL, unique = FALSE, nstarts = 1L,
                               criterion = c("bic", "icl", "aic", "cv", "nec", "dbs"), do.cv = FALSE, do.nec = FALSE, nfolds = 10L, stopping = c("aitken", "relative"),
-                              tau0 = NULL, opti = c("mode", "first", "GA", "medoid"), ordering = c("none", "decreasing", "increasing"), noise.gate = TRUE,
+                              tau0 = NULL, opti = c("mode", "first", "GA", "medoid"), ordering = c("none", "decreasing", "increasing"), noise.gate = TRUE, MaxNWts = 1000L,
                               equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 100L), nonzero = TRUE, verbose = TRUE, ...) {
   miss.args                <- list(tau0=missing(tau0), unique=missing(unique))
   if(!missing(algo)        &&
@@ -323,6 +368,9 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
      !is.character(ordering)))   stop("'ordering' must be a character vector of length 1",  call.=FALSE)
   if(length(noise.gate)     > 1 ||
      !is.logical(noise.gate))    stop("'noise.gate' must be a single logical indicator",    call.=FALSE)
+  if(length(MaxNWts)   > 1 ||
+     !is.numeric(MaxNWts)  ||
+     MaxNWts      <= 0)          stop("'MaxNWts' must a strictly positive scalar",          call.=FALSE)
   if(length(equalPro)  > 1 ||
      !is.logical(equalPro))      stop("'equalPro' must be a single logical indicator",      call.=FALSE)
   if(length(equalNoise)     > 1 ||
@@ -346,8 +394,8 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
      !is.logical(nonzero))       stop("'nonzero' must be a single logical indicator",       call.=FALSE)
   if(length(verbose)   > 1 ||
      !is.logical(verbose))       stop("'verbose' must be a single logical indicator",       call.=FALSE)
-  control                  <- list(algo = match.arg(algo), init.z = init.z, dist.mat = dist.mat, nstarts = nstarts, criterion = match.arg(criterion), nfolds = nfolds, do.cv = do.cv, 
-                                   do.nec = do.nec, stopping = match.arg(stopping), tau0 = tau0, opti = match.arg(opti), ordering = match.arg(ordering), noise.gate = noise.gate, unique = unique,
+  control                  <- list(algo = match.arg(algo), init.z = init.z, dist.mat = dist.mat, nstarts = nstarts, criterion = match.arg(criterion), nfolds = nfolds, do.cv = do.cv, do.nec = do.nec, 
+                                   MaxNWts = MaxNWts, stopping = match.arg(stopping), tau0 = tau0, opti = match.arg(opti), ordering = match.arg(ordering), noise.gate = noise.gate, unique = unique,
                                    equalPro = equalPro, equalNoise = equalNoise, tol = tol[1L], g.tol = tol[2L], itmax = itmax[1L], g.itmax = itmax[2L], nonzero = nonzero, verbose = verbose)
   attr(control, "missing") <- miss.args
     return(control)
@@ -369,7 +417,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(SEQ, "V1V")       <- V1/V
   attr(SEQ, "logV1")     <- log(V1)
   if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the sequence vocabulary must all be > 1", call.=FALSE)
-  if(!is.character(l.meth))      stop("'l.meth' must be a character vector of length 1",       call.=FALSE)
+  if(!is.character(l.meth))      stop("'l.meth' must be a character vector", call.=FALSE)
   l.meth          <- match.arg(l.meth, several.ok=TRUE)
   algo            <- ctrl$algo
   criterion       <- ctrl$criterion
@@ -410,7 +458,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
        !is.data.frame(covars))   stop("'covars' must be a data.frame if supplied", call.=FALSE)
     if(inherits(try(stats::terms(gating), silent=TRUE), "try-error")) {
       if(covmiss)                stop("Can't use '.' in 'gating' formula without supplying 'covars' argument", call.=FALSE)
-      gating      <- stats::reformulate(attr(stats::terms(gating, data=covars), "term.labels"), response="z")
+      gating      <- attr(stats::terms(gating, data=covars), "term.labels")
+      gating      <- stats::reformulate(if(length(gating) == 0) "1" else gating, response="z")
     }
     gating        <- tryCatch(stats::update.formula(stats::as.formula(gating), z ~ .), error=function(e) {
                                  stop("Invalid 'gating' network formula supplied", call.=FALSE) })
@@ -451,13 +500,14 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       do.uni      <- ifelse(miss.args$unique, TRUE, ctrl$unique)
     }
   } else do.uni   <- ctrl$unique
-  DF              <- seqs        
+  DF              <- seqs   
+  uni.sum         <- sum(!duplicated(DF))
   DF              <- if(gate.x)  cbind(DF, covars)  else DF
   DF              <- if(do.wts)  cbind(DF, weights) else DF
   uni.ind         <- !duplicated(DF)
   sum.uni         <- sum(uni.ind)
   if(sum.uni < N  && !do.uni  &&
-     verbose)                   message(paste0("Number of unique observations (", sum.uni, ") is less than N (", N, "): Consider setting 'unique'=TRUE\n"))
+     verbose)                   message(paste0("Number of unique observations (", sum.uni, ") is less than N (", N, ")", ifelse(uni.sum < sum.uni, paste0(" - \nNumber of unique sequences only, ignoring covariates, is ", uni.sum, ":\n"), ": "), "Consider setting 'unique'=TRUE\n"))
   if(do.uni       <- do.uni   &&
      sum.uni < N)  {            
     if(verbose)                 message(paste0("Proceeding with ", sum.uni, " unique observations, out of N=", N, "\n"))
@@ -962,7 +1012,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         z         <- x.z * w2
         z[apply(z == 0, 1L, all),] <- .Machine$double.eps
       } else z    <- x.z
-      fitG        <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol)
+      fitG        <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
       if(equalPro && !equalNoise   && noise) {
         tau0      <- mean(z[,G])
         x.tau     <- c(rep((1 - tau0)/(G - 1L), G  - 1L), tau0)
@@ -974,11 +1024,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       fitG        <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial()))
     }
   }
-  fitG$lab        <- if(noise.gate && G  > 1) replace(Gseq, G, 0L) else Gseq
+  fitG$lab        <- if(noise   && noise.gate && G > 1) replace(Gseq, G, 0L) else if(noise && G > 1) seq_len(G - 1L) else Gseq
   attr(fitG, "EqualNoise")      <- equalNoise
   attr(fitG, "EqualPro")        <- equalPro
   attr(fitG, "Formula")         <- Reduce(paste, deparse(gating[-2L]))
   attr(fitG, "Maxit")           <- ctrl$g.itmax
+  attr(fitG, "MaxNWts")         <- ctrl$MaxNWts
   attr(fitG, "Noise")           <- noise
   attr(fitG, "NoiseGate")       <- noise.gate
   attr(fitG, "Reltol")          <- ctrl$g.tol
@@ -1020,11 +1071,15 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     SILS          <- if(any(rG  == 1)) stats::setNames(SILS, rG)[-1L]    else stats::setNames(SILS, rG)
     attr(DBSs, "Weighted")      <- 
     attr(SILS, "Weighted")      <- do.wts
+    attr(DBSs, "Summ")          <-
+    attr(SILS, "Summ")          <- ifelse(any(names(list(...)) == "summ"), list(...)$summ, "mean")
     results       <- c(results, list(DBS = DBSs, SILS = SILS))
     if(G > 1)      {
       x.sils      <- SILS[[as.character(G)]][[best.mod]]
       attr(x.dbs,  "Weighted")  <-
       attr(x.sils, "Weighted")  <- do.wts
+      attr(x.dbs,  "Summ")      <-
+      attr(x.sils, "Summ")      <- ifelse(any(names(list(...)) == "summ"), list(...)$summ, "mean")
       results     <- c(results, list(dbs = x.dbs, silvals = x.sils))
     }
   }
@@ -1078,12 +1133,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(results, "Unique")       <- do.uni
   attr(results, "V")            <- V
   attr(results, "Weighted")     <- do.wts
-  attr(results, "Weights")      <- if(do.wts) weights    else rep(1L, N)
+  attr(results, "Weights")      <- if(do.wts) w2         else rep(1L, N)
   class(results)  <- "MEDseq"
     return(results)
 }
 
-plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating", "cv", "bic", "icl", "aic", "nec", "dbs", "LOGLIK", "silhouette", "uncert.bar", 
+plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating", "cv", "bic", "icl", "aic", "nec", "dbs", "asw", "LOGLIK", "silhouette", "uncert.bar", 
                               "uncert.profile", "loglik", "d", "f", "Ht", "i", "I"), seriate = TRUE, preczero = TRUE, log.scale = NULL, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(type)           &&
@@ -1303,25 +1358,28 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
      aic=,
      nec=,
      dbs=,
+     asw=,
      LOGLIK=       {
     if(all(type   == "cv",
        !attr(x, "CV")))          stop("Cross-validated log-likelihood values cannot be plotted as cross-validation didn't take place during model fitting\n", call.=FALSE)
-    dat           <- switch(EXPR=type, cv=x$CV, bic=x$BIC, icl=x$ICL, aic=x$AIC, nec=x$NEC, dbs=x$DBS, LOGLIK=x$LOGLIK)
+    dat           <- switch(EXPR=type, cv=x$CV, bic=x$BIC, icl=x$ICL, aic=x$AIC, nec=x$NEC, dbs=x$DBS, LOGLIK=x$LOGLIK, asw=asw(x, ...))
     if(type ==  "nec"     &&
       (!attr(x, "NEC")     || 
-       all(type   == "nec",
-       is.null(dat))))           stop("NEC values cannot be plotted", call.=FALSE)
+       is.null(dat)))            stop("NEC values cannot be plotted", call.=FALSE)
     if(type ==  "dbs"      &&
       (!attr(x, "DBS")     ||
-       all(type   == "dbs",
-       is.null(dat))))           stop("DBS values cannot be plotted", call.=FALSE)
+       is.null(dat)))            stop("DBS values cannot be plotted", call.=FALSE)
+    if(type ==  "asw"      &&
+       (G   == 1  ||
+       is.null(dat)))            stop("ASW values cannot be plotted", call.=FALSE)
     ms            <- which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% colnames(dat))
     symbols       <- symbols[ms]
     use.col       <- use.col[ms]
-    matplot(dat, type="b", xlab="Number of Components", ylab=switch(EXPR=type, cv=, LOGLIK=, dbs="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
+    matplot(dat, type="b", xlab="Number of Components", ylab=switch(EXPR=type, cv=, LOGLIK=, asw=, dbs="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
     if(type == "cv")     mtext(ifelse(weighted, expression("\u2113"["cv"]^"w"), expression("\u2113"["cv"])), side=2, line=3, las=1, cex=1.5)
     if(type == "LOGLIK") mtext(paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), side=2, line=3, las=3)
-    if(type == "dbs")    mtext(paste0(ifelse(weighted, "Weighted ", ""), "Median DBS"), side=2, line=3, las=3)
+    if(type == "dbs")    mtext(paste0(ifelse(weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " DBS"), side=2, line=3, las=3)
+    if(type == "asw")    mtext(paste0(ifelse(attr(dat, "Weighted"), "Weighted ", ""), "ASW"), side=2, line=3, las=3)
     axis(1, at=seq_len(nrow(dat)), labels=rownames(dat))
     legend(switch(EXPR=type, nec=, dbs="topright", "bottomright"), ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col)
       invisible()
@@ -1339,21 +1397,29 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     ng            <- table(cl)
     G             <- attr(object, "G")
     dat           <- rev(barplot(rev(dbs), space=space, xlim=c(min(0, min(dbs)), 1), horiz=TRUE, las=1, mgp=c(2.5, 1, 0), col="gray", border=0, cex.names=par("cex.axis"), axisnames=FALSE))
+    summ          <- attr(object, "Summ")
     if(weighted)   {
-      weights     <- attr(x, "Weights")
-      title(main="(Weighted) Density-based Silhouette Plot", sub=paste0("(Weighted) Median DBS Width : ", round(matrixStats::weightedMedian(dbs, weights), digits=3)), adj=0)
-    } else title(main="Density-based Silhouette Plot", sub=paste0("Median DBS Width : ", round(median(dbs), digits=3)), adj=0)
+      weights     <- attr(x, "Weights")[order(cl, -object[,"dbs_width"])]
+      switch(EXPR=summ, median=title(main="(Weighted) Density-based Silhouette Plot", sub=paste0("(Weighted) Median DBS Width : ", round(matrixStats::weightedMedian(dbs, weights), digits=3)), adj=0),
+                          mean=title(main="(Weighted) Density-based Silhouette Plot", sub=paste0("(Weighted) Mean DBS Width : ",   round(matrixStats::weightedMean(dbs,   weights), digits=3)), adj=0))
+    } else         {
+      switch(EXPR=summ, median=title(main="Density-based Silhouette Plot", sub=paste0("Median DBS Width : ", round(median(dbs), digits=3)), adj=0),
+                          mean=title(main="Density-based Silhouette Plot", sub=paste0("Mean DBS Width : ",   round(mean(dbs),   digits=3)), adj=0))
+    }
     mtext(paste0("n = ", N),  adj=0)
     modtype       <- attr(object, "ModelType")
     noise         <- modtype %in% c("CCN", "UCN", "CUN", "UUN")
     mtext(substitute(G~modtype~"clusters"~C[g], list(G=G, modtype=modtype)), adj=1)
     if(weighted)   {
-      mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2)
+      switch(EXPR=summ, median=mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2),
+                          mean=mtext(expression(paste(g, " : ", n[g], " | ", ave[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2))
       dbcl        <- split(dbs,  cli)
-      meds        <- sapply(seq_along(dbcl), function(i) matrixStats::weightedMedian(dbcl[[i]], weights[cli == i]))
+      meds        <- switch(EXPR=summ, median=sapply(seq_along(dbcl), function(i) matrixStats::weightedMedian(dbcl[[i]], weights[cli == i])),
+                                         mean=sapply(seq_along(dbcl), function(i) matrixStats::weightedMean(dbcl[[i]],   weights[cli == i])))
     } else         {
-      mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2)
-      meds        <- tapply(dbs, cli, median)
+      switch(EXPR=summ, median=mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2),
+                          mean=mtext(expression(paste(g, " : ", n[g], " | ", ave[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2))
+      meds        <- tapply(dbs, cli, switch(EXPR=summ, median=median, mean=mean))
     }
     medy          <- tapply(dat, cli, median)
     for(g in seq_len(G)) {
@@ -1436,13 +1502,15 @@ print.MEDcriterion       <- function(x, pick = 3L, ...) {
   pick            <- choice$pick
   dim1            <- attr(x, "dim")
   dim2            <- attr(x, "dimnames")
+  summ            <- attr(x, "Summ")
   weighted        <- attr(x, "Weighted")
   attributes(x)   <- NULL
   attr(x, "dim")         <- dim1
   attr(x, "dimnames")    <- dim2
   cat(switch(EXPR=crit,
              NEC="Normalised Entropy Criterion (NEC):\n",
-             DBS=paste0(ifelse(weighted, "(Weighted) ", ""), "Median Density-based Silhouette (DBS):\n"),
+             DBS=paste0(ifelse(weighted, "(Weighted) ", ""), switch(EXPR=summ, median="Median", mean="Mean"), " Density-based Silhouette (DBS):\n"),
+             ASW=paste0(ifelse(weighted, "(Weighted) ", ""), "Average Silhouette Width (DBS):\n"),
              CV=paste0("Cross-Validated ", ifelse(weighted, "(Weighted) ", ""), "Log-Likelihood (CV):\n"),
              BIC="Bayesian Information Criterion (BIC):\n",
              ICL="Integrated Completed Likelihood (ICL):\n",

@@ -325,7 +325,7 @@
     if((gate.g    <- ctrl$gate.g))    {
       prop        <- if(is.element(l.meth, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) matrixStats::colSums2(z)/attr(seqs, "W") else matrixStats::colMeans2(z) }
       if(!noise   || ctrl$noise.gate) {
-        fitG      <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol)
+        fitG      <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
         tau       <- fitG$fitted.values
       } else       {
         zN        <- z
@@ -333,7 +333,7 @@
         rz        <- row(z)
         z         <- z/matrixStats::rowSums2(z)[rz]
         z[is.nan(z)]     <- .Machine$double.eps
-        fitG      <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol)
+        fitG      <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
         tau       <- .tau_noise(fitG$fitted.values, zN[,G], rz)
         z         <- zN
       }
