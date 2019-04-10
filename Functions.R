@@ -154,29 +154,37 @@ get_results.MEDseq            <- function(x, what = c("z", "MAP", "sils"), rank 
 
 MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec", "dbs"), pick = 10L, optimal.only = FALSE) {
   crit.miss       <- missing(criterion)
-  if(!missing(criterion)  && (length(criterion) > 1 ||
+  if(!missing(criterion)   && (length(criterion) > 1 ||
      !is.character(criterion)))  stop("'criterion' must be a single character string", call.=FALSE)
   criterion       <- match.arg(criterion)
   num.miss        <- missing(pick)
   opt.miss        <- missing(optimal.only)
-  if(length(pick) != 1    ||
+  if(length(pick) != 1     ||
      !is.numeric(pick))          stop("'pick' must be a single number", call.=FALSE)
-  if(floor(pick)  != pick ||
+  if(floor(pick)  != pick  ||
      pick          < 1)          stop("'pick' must be a strictly positive integer", call.=FALSE)
-  if(length(optimal.only)  > 1 ||
+  if(length(optimal.only)   > 1 ||
      !is.logical(optimal.only))  stop("'optimal.only' must be a single logical indicator", call.=FALSE)
   call            <- match.call(expand.dots=TRUE)[-1L]
   call            <- if(crit.miss) call else call[-which(names(call) == "criterion")]
   call            <- if(num.miss)  call else call[-which(names(call) == "pick")]
   call            <- if(opt.miss)  call else call[-which(names(call) == "optimal.only")]
   len.call        <- length(as.list(call))
-  if(len.call     == 1    && inherits(..., "list") && !inherits(..., "MEDseq")) {
-    mod.names     <- unique(names(...))
-    MEDs          <- as.list(...)[mod.names]
+  if(len.call     == 1     && inherits(..., "list") && !inherits(..., "MEDseq")) {
+    dots          <- as.list(...)
+    mod.names     <- unique(names(dots))
+    comparison    <- sapply(dots, inherits, "MoECompare", logical(1L))
+    dat.name      <- if(any(comparison)) dots[[1L]]$data
+    dots[comparison]       <- sapply(dots[comparison], "[", "optimal")
+    MEDs          <- dots[mod.names]
     if(is.null(mod.names))       stop("When supplying models as a list, every element of the list must be named", call.=FALSE)
   } else           {
+    dots          <- list(...)
     mod.names     <- vapply(call, deparse, character(1L))
-    MEDs          <- stats::setNames(list(...), mod.names)
+    comparison    <- sapply(dots, inherits, "MEDseqCompare", logical(1L))
+    dat.name      <- if(any(comparison)) dots[[1L]]$data
+    dots[comparison]       <- sapply(dots[comparison], "[", "optimal")
+    MEDs          <- stats::setNames(dots, mod.names)
     mod.names     <- unique(mod.names)
     MEDs          <- MEDs[mod.names]
   }
@@ -185,8 +193,8 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
   if(length(unique(lapply(MEDs, "[[", 
      "seqs")))    != 1)          stop("All models being compared must have been fit to the same data set!", call.=FALSE)
   title           <- "Mixtures of Exponential-Distance Models with Covariates"
-  dat.name        <- deparse(MEDs[[1L]]$call$seqs)
-  gate.x          <- lapply(MEDs, "[[", "gating")
+  dat.name        <- if(is.null(dat.name)) deparse(MEDs[[1L]]$call$seqs) else dat.name
+  gate.x          <- lapply(MEDs,   "[[", "gating")
   algo            <- sapply(MEDs,   attr, "Algo")
   equalNoise      <- sapply(MEDs,   attr, "EqualNoise")
   equalPro        <- sapply(MEDs,   attr, "EqualPro")
@@ -258,11 +266,11 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
   max.crits       <- sort(crits, decreasing=criterion != "nec")[seq_len(pick)]
   if(length(unique(max.crits))  < pick) {
     ties          <- max.crits == max.crits[1L]
-    if(any(ties[-1L]))     {     warning(paste0("Ties for the optimal model exist according to the '", criterion, "' criterion: choosing the most parsimonious model\n"), call.=FALSE, immediate.=TRUE)
+    if(any(ties[-1L]))      {     warning(paste0("Ties for the optimal model exist according to the '", criterion, "' criterion: choosing the most parsimonious model\n"), call.=FALSE, immediate.=TRUE)
       df.ties     <- dfxs[names(max.crits)][which(ties)]
-      max.crits[ties]     <- max.crits[order(df.ties)]
-      if(any((df.ties     == df.ties[1L])[-1L])) {
-        max.crits[ties]   <- max.crits[order(as.numeric(gsub(".*,", "", names(max.crits[ties]))))]
+      max.crits[ties]      <- max.crits[order(df.ties)]
+      if(any((df.ties      == df.ties[1L])[-1L])) {
+        max.crits[ties]    <- max.crits[order(as.numeric(gsub(".*,", "", names(max.crits[ties]))))]
       }
     } else                       warning(paste0("Ties exist according to the '", criterion, "' criterion\n"), call.=FALSE, immediate.=TRUE)
   }
@@ -277,7 +285,8 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
     old.call    <- best.model$call
     old.call    <- c(as.list(old.call)[1L], list(criterion=criterion), as.list(old.call)[-1L])
     old.call    <- as.call(old.call[!duplicated(names(old.call))])
-    if(old.call$init.z  == 
+    if(!is.null(old.call$init.z)    &&
+       old.call$init.z  == 
        "random")                 warning("Optimal model may differ slightly due to criterion mismatch and random starts used in the initialisation:\nPrinted output intended only as a guide", call.=FALSE, immediate.=TRUE)
     best.call   <- c(list(data=best.model$data, l.meth=modelNames[1L], G=G[1L], criterion="bic", verbose=FALSE, do.cv=FALSE, do.nec=FALSE), as.list(old.call[-1L]))
     best.mod    <- try(do.call(MEDseq_fit, best.call[!duplicated(names(best.call))]), silent=TRUE)
@@ -417,7 +426,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(SEQ, "V1V")       <- V1/V
   attr(SEQ, "logV1")     <- log(V1)
   if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the sequence vocabulary must all be > 1", call.=FALSE)
-  if(!is.character(l.meth))      stop("'l.meth' must be a character vector", call.=FALSE)
+  if(!is.null(l.meth)    &&
+     !is.character(l.meth))      stop("'l.meth' must be a character vector", call.=FALSE)
+  l.meth          <- if(is.null(l.meth)) c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") else l.meth
   l.meth          <- match.arg(l.meth, several.ok=TRUE)
   algo            <- ctrl$algo
   criterion       <- ctrl$criterion
@@ -467,23 +478,30 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       if(verbose)                message("Not including gating network covariates with only intercept on gating formula RHS\n")
       gate.x      <- FALSE
     }
-    gate.names    <- labels(stats::terms(gating))
+    gate.names    <- stats::terms(gating)
+    gate.names    <- labels(gate.names)[attr(gate.names, "order") <= 1]
   } 
+  if(gate.x)       {
+    covars        <- eval(bquote(stats::model.frame(.(stats::update.formula(gating, NULL ~ .)), data=.(call$covars), drop.unused.levels=TRUE)), envir=parent.frame(), enclos=environment())
+    gate.names    <- colnames(covars)
+    covars        <- cbind(covars, eval(bquote(stats::model.frame(.(as.formula(paste("~", paste(eval(bquote(all.vars(.(gating))), envir=parent.frame())[-1L], collapse="+")))), data=.(call$covars), drop.unused.levels=TRUE)), envir=parent.frame(), enclos=environment()))
+    covars        <- covars[,unique(colnames(covars)), drop=FALSE]
+  }
   gate.names      <- if(gate.x)  gate.names[!is.na(gate.names)]
   if(!covmiss)     {
     if(!all(gate.names  %in% 
             colnames(covars)))   stop("Supplied gating covariates not found in supplied 'covars'", call.=FALSE)
-    covars        <- if(gate.x)  covars[,gate.names, drop=FALSE] else as.data.frame(matrix(0L, nrow=N, ncol=0L))
+    covars        <- if(gate.x)  covars                                                   else as.data.frame(matrix(0L, nrow=N, ncol=0L))
   } else {
     if(any(grepl("\\$", 
                  gate.names)))   stop("Don't supply covariates to the gating network using the $ operator: use the 'covars' argument instead", call.=FALSE)
-    covars        <- if(gate.x)  stats::model.frame(gating[-2L]) else as.data.frame(matrix(0L, nrow=N, ncol=0L))
+    covars        <- if(gate.x)  stats::model.frame(gating[-2L], drop.unused.levels=TRUE) else as.data.frame(matrix(0L, nrow=N, ncol=0L))
   }
   if(nrow(covars) != N)          stop("'gating' covariates must contain the same number of rows as 'seqs'", call.=FALSE)
   glogi           <- vapply(covars, is.logical, logical(1L))
   covars[,glogi]  <- sapply(covars[,glogi], as.factor)
   if(covmiss)      {
-    covars        <- data.frame(if(ncol(covars) > 0) covars[,gate.names] else covars, stringsAsFactors=TRUE)
+    covars        <- data.frame(covars, stringsAsFactors=TRUE)
   }
   
   if(ctrl$do.wts  <- do.wts   <- 
@@ -663,7 +681,6 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   equal.tau       <- rbind(ifelse(G == 1, TRUE, equalPro), ifelse(Gn < 1, TRUE, equalPro)) & !gate.G
   equal.n0        <- (rbind(G == 1, Gn == 1) | equalNoise) & equal.tau
   attr(covars, "Gating") <- gate.names
-  colnames(covars)       <- if(gate.x) gate.names
   if(!identical(gating, 
                 .drop_constants(covars, 
                 gating)))        stop("Constant columns exist in gating formula; remove offending gating covariate(s) and try again", call.=FALSE)
@@ -680,8 +697,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     h             <- which(G   == g)
     g0 <- attr(SEQ, "G0")  <- g - noise
     if(isTRUE(noise))   {
-      tau0        <- if(tmiss) 1/g else ctrl$tau0[uni.ind]
+      tau0        <- if(tmiss) 1/g else ctrl$tau0
       if(length(tau0)   > 1)   {
+        tau0      <- tau0[uni.ind]
+        if(anyNA(tau0))          stop("Invalid 'tau0' supplied", call.=FALSE)
         if(all(gate.G[2L,h]   && 
            noise.gate[2L,h]))  {
           if(N != length(tau0))  stop(paste0("'tau0' must be a scalar or a vector of length N=", N), call.=FALSE)
@@ -1035,7 +1054,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   attr(fitG, "Reltol")          <- ctrl$g.tol
   class(fitG)     <- c("MEDgating", class(fitG))
   if(isTRUE(verbose))            cat(paste0("\n\t\tBest Model", ifelse(length(CRITs) > 1, paste0(" (according to ", toupper(criterion), "): "), ": "), best.mod, ", with ",  paste0(G, " component", ifelse(G > 1, "s", "")),
-                                     ifelse(bG | x.gcov, paste0(" (incl. ", ifelse(do.wts, "weights and ", ""), "gating network covariates)"), ifelse(do.wts, " (incl. weights)", "")), "\n\t\t",
+                                     ifelse(bG | x.gcov, paste0(" (incl. ", ifelse(do.wts, "weights and ", ""), "gating network covariates)"), ifelse(do.wts, ifelse(x.ctrl$equalPro && G > 1, " (incl. weights and equal mixing proportions)", " (incl. weights)"), ifelse(x.ctrl$equalPro && G > 1, " (and equal mixing proportions)", ""))), "\n\t\t",
                                      ifelse(cvsel, paste0("CV = ",  round(x.cv,  2L), " | "), ""),
                                      ifelse(G > 1 && do.nec, paste0("NEC = ", round(x.nec, 2L), " | "), ""),
                                      ifelse(G > 1 && do.dbs, paste0("DBS = ", round(x.dbs, 2L), " | "), ""),
@@ -1317,10 +1336,10 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     xx            <- rep(box.cx, each=2L)
     par(xpd = TRUE)
     for(i in seq_along(cols)) {
-      yy          <- c(box.cy[1L] + (box.sy * (i - 1)),
+      yy          <- c(box.cy[1L] + (box.sy * (i - 1L)),
                        box.cy[1L] + (box.sy * (i)),
                        box.cy[1L] + (box.sy * (i)),
-                       box.cy[1L] + (box.sy * (i - 1)))
+                       box.cy[1L] + (box.sy * (i - 1L)))
       polygon(xx, yy, col = cols[i], border = cols[i])
     }
     par(new=TRUE)
@@ -1627,7 +1646,8 @@ print.MEDseqCompare    <- function(x, index=seq_len(x$pick), digits = 3L, ...) {
   cat(paste0("------------------------------------------------------------------------------\n", 
              x$title, "\nData: ", x$data, "\nRanking Criterion: ", toupper(crit), "\nOptimal Only: ", opt,
              "\n------------------------------------------------------------------------------\n\n"))
-  compX           <- data.frame(do.call(cbind, x[-seq_len(4L)]))[index,]
+  compX           <- data.frame(do.call(cbind, x[-seq_len(4L)]))[index,, drop=FALSE]
+  compX           <- compX[,!vapply(compX, function(x) all(x == ""), logical(1L)), drop=FALSE]
   compX           <- cbind(rank = rownames(compX), compX)
   rownames(compX) <- NULL
   print(compX, row.names = FALSE)

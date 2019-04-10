@@ -71,11 +71,11 @@
   if(!inherits(formula, 
                "formula"))       stop("'formula' must actually be a formula!", call.=FALSE)
   intercept       <- attr(stats::terms(formula), "intercept")
-  dat             <- dat[sub,colnames(dat) %in% all.vars(stats::update.formula(formula, 0 ~ .)), drop=FALSE]
+  dat             <- dat[sub,colnames(dat) %in% attr(terms(stats::update.formula(formula, NULL ~ .)), "term.labels"), drop=FALSE]
   ind             <- names(which(!apply(dat, 2L, function(x) all(x == x[1L], na.rm=TRUE))))
   fterms          <- attr(stats::terms(formula), "term.labels")
-  ind             <- c(ind[ind %in% fterms], fterms[grepl(":", fterms) | grepl("I\\(", fterms)])
-  response        <- all.vars(stats::update.formula(formula, . ~ 0))
+  ind             <- unique(c(ind[ind %in% fterms], fterms[grepl(":", fterms) | grepl("I\\(", fterms)]))
+  response        <- all.vars(stats::update.formula(formula, . ~ NULL))
   form            <- if(length(ind) > 0) stats::reformulate(ind, response=response) else stats::as.formula(paste0(response, " ~ 1"))
   form            <- if(intercept  == 0) stats::update.formula(form, ~ . -1)        else form
   environment(form)        <- environment(formula)
@@ -330,11 +330,10 @@
       } else       {
         zN        <- z
         z         <- z[,-G, drop=FALSE]
-        rz        <- row(z)
-        z         <- z/matrixStats::rowSums2(z)[rz]
+        z         <- z/matrixStats::rowSums2(z)
         z[is.nan(z)]     <- .Machine$double.eps
         fitG      <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
-        tau       <- .tau_noise(fitG$fitted.values, zN[,G], rz)
+        tau       <- .tau_noise(fitG$fitted.values, zN[,G])
         z         <- zN
       }
     } else         {
@@ -490,9 +489,9 @@
     if(is.null(levels)) factor(seq) else factor(seq, levels=seq_along(levels) - any(seq == 0), labels=as.character(levels))
 }
 
-.tau_noise        <- function(tau, z0, row.ind = row(tau)) {
+.tau_noise        <- function(tau, z0) {
   t0              <- mean(z0)
-    cbind(tau/(matrixStats::rowSums2(tau)[row.ind]) * (1 - t0), unname(t0))
+    cbind(tau * (1 - t0), unname(t0))
 }
 
 .theta_data       <- function(seqs, z = NULL, ctrl = NULL) {
