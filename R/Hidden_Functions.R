@@ -19,6 +19,7 @@
     as.numeric(strsplit(x, "")[[1L]])
 }
 
+#' @importFrom matrixStats "rowMaxs"
 .choice_crit      <- function(ll, seqs, z, gate.pen, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), nonzero = NULL) {
   G               <- attr(seqs, ifelse(noise <- is.element(l.meth, c("CCN", "UCN", "CUN", "UUN")), "G0", "G"))
   P               <- attr(seqs, "P")
@@ -43,19 +44,21 @@
                                    UUN = nonzero + G  * P)) + gate.pen
   ll2             <- ll  * 2
   bic             <- ll2 - kpar * log(attr(seqs, "W"))
-    return(list(bic = bic, icl = bic + 2L * sum(log(matrixStats::rowMaxs(z)), na.rm=TRUE), aic = ll2 - kpar * 2, df = kpar))
+    return(list(bic = bic, icl = bic + 2L * sum(log(rowMaxs(z)), na.rm=TRUE), aic = ll2 - kpar * 2, df = kpar))
 }
 
 .crits_names      <- function(x) {
     unlist(lapply(seq_along(x), function(i) stats::setNames(x[[i]], paste0(names(x[i]), "|", names(x[[i]])))))
 }
 
+#' @importFrom stringdist "stringdistmatrix"
 .dbar             <- function(seqs, theta) {
-    mean(stringdist::stringdistmatrix(seqs, theta, method="hamming"))
+    mean(stringdistmatrix(seqs, theta, method="hamming"))
 }
 
+#' @importFrom stringdist "stringdistmatrix"
 .dseq             <- function(seqs, theta) {
-    stringdist::stringdistmatrix(seqs, theta, method="hamming")
+    stringdistmatrix(seqs, theta, method="hamming")
 }
 
 .drop_constants   <- function(dat, formula, sub = NULL) {
@@ -71,7 +74,7 @@
   if(!inherits(formula, 
                "formula"))       stop("'formula' must actually be a formula!", call.=FALSE)
   intercept       <- attr(stats::terms(formula), "intercept")
-  dat             <- dat[sub,colnames(dat) %in% attr(terms(stats::update.formula(formula, NULL ~ .)), "term.labels"), drop=FALSE]
+  dat             <- dat[sub,colnames(dat) %in% attr(stats::terms(stats::update.formula(formula, NULL ~ .)), "term.labels"), drop=FALSE]
   ind             <- names(which(!apply(dat, 2L, function(x) all(x == x[1L], na.rm=TRUE))))
   fterms          <- attr(stats::terms(formula), "term.labels")
   ind             <- unique(c(ind[ind %in% fterms], fterms[grepl(":", fterms) | grepl("I\\(", fterms)]))
@@ -82,6 +85,8 @@
     form
 }
 
+#' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowSums2"
+#' @importFrom stringdist "stringdistmatrix"
 .E_step           <- function(seqs, params, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
   G               <- attr(seqs, "G")
   N               <- attr(seqs, "N")
@@ -126,28 +131,28 @@
                             CC  =-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE) + log.tau - P * log1p(V1 * exp(-lambda)),
                             UC  = sweep(-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE), 
                                         2L, P * log1p(V1 * exp(-lambda)),  FUN="-", check.margin=FALSE) + log.tau,
-                            CU  = sweep(-vapply(lapply(dG, "*", as.vector(lambda)), FUN=matrixStats::colSums2, na.rm=TRUE,   numeric(N)), 
+                            CU  = sweep(-vapply(lapply(dG, "*", as.vector(lambda)), FUN=colSums2, na.rm=TRUE,   numeric(N)), 
                                         2L, sum(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) + log.tau,
-                            UU  = sweep(-vapply(Gseq, function(g) matrixStats::colSums2(dG[[g]] * lambda[g,],  na.rm=TRUE),  numeric(N)), 
-                                        2L, matrixStats::rowSums2(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) +  log.tau,
+                            UU  = sweep(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,],  na.rm=TRUE),  numeric(N)), 
+                                        2L, rowSums2(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) +  log.tau,
                             CCN = cbind(sweep(-sweep(dG, 2L, lambda[1L],  FUN="*",  check.margin=FALSE), 
                                               2L, P * log1p(V1 * exp(-lambda[1L])),   FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)),
                             UCN = cbind(sweep(-sweep(dG, 2L, lambda[-G,], FUN="*",  check.margin=FALSE), 
                                               2L, P * log1p(V1 * exp(-lambda[-G,])),  FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)),
-                            CUN = cbind(sweep(-vapply(lapply(dG, "*", lambda[1L,]),   FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)), 
+                            CUN = cbind(sweep(-vapply(lapply(dG, "*", lambda[1L,]),   FUN=colSums2, na.rm=TRUE, numeric(N)), 
                                               2L, sum(log1p(V1 * exp(-lambda[1L,]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)),
-                            UUN = cbind(sweep(-vapply(Gseq, function(g) matrixStats::colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)),
-                                              2L, matrixStats::rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)))
+                            UUN = cbind(sweep(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)),
+                                              2L, rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)))
     } else         {
       numer       <- switch(EXPR=l.meth,
                             CC  = -dG * lambda - P * log1p(V1 * exp(-lambda)),
                             UC  = sweep(-dG * lambda, 2L, P * log1p(V1 * exp(-lambda)), FUN="-", check.margin=FALSE),
-                            CU  = -vapply(lapply(dG, "*", as.vector(lambda)), FUN=matrixStats::colSums2,  na.rm=TRUE,  numeric(N)) - sum(log1p(V1 * exp(-lambda))),
-                            UU  = -vapply(Gseq, function(g) matrixStats::colSums2(dG[[g]] * lambda[g,],   na.rm=TRUE), numeric(N)) - matrixStats::rowSums2(log1p(V1 * exp(-lambda))),
+                            CU  = -vapply(lapply(dG, "*", as.vector(lambda)), FUN=colSums2,  na.rm=TRUE,  numeric(N)) - sum(log1p(V1 * exp(-lambda))),
+                            UU  = -vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,],   na.rm=TRUE), numeric(N)) - rowSums2(log1p(V1 * exp(-lambda))),
                             CCN = c(-dG * lambda[1L] - P * log1p(V1 * exp(-lambda[1L])), - P * log1p(V1)),
                             UCN = c(sweep(-dG * lambda[-G,, drop=FALSE], 2L, P * log1p(V1 * exp(-lambda[-G])), FUN="-", check.margin=FALSE), -P * log1p(V1)),
-                            CUN = c(-vapply(lapply(dG, "*", lambda[1L,]), FUN=matrixStats::colSums2, na.rm=TRUE, numeric(N)) - sum(log1p(V1 * exp(-lambda[1L,]))), - P * log1p(V1)),
-                            UUN = c(-vapply(Gseq, function(g) matrixStats::colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)) - matrixStats::rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), - P * log1p(V1)))
+                            CUN = c(-vapply(lapply(dG, "*", lambda[1L,]), FUN=colSums2, na.rm=TRUE, numeric(N)) - sum(log1p(V1 * exp(-lambda[1L,]))), - P * log1p(V1)),
+                            UUN = c(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)) - rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), - P * log1p(V1)))
       numer       <- matrix(numer, nrow=1L) + switch(EXPR=l.meth, CC=, UC=, CU=, UU=log.tau, c(log.tau, tau0))
     }
     
@@ -170,7 +175,7 @@
     switch(EXPR=ctrl$algo,
            EM=     {
       if(N1)       {
-        denom     <- matrixStats::rowLogSumExps(numer)
+        denom     <- rowLogSumExps(numer)
         loglike   <- sum(if(ctrl$do.wts) denom * attr(seqs, "Weights") else denom)
         if(ctrl$do.cv)       {
             return(loglike)
@@ -178,11 +183,11 @@
             return(list(loglike = loglike, z = exp(numer - denom)))
         }
       }   else     {
-            return(matrixStats::logSumExp(numer) * if(ctrl$do.wts) attr(seqs, "Weights") else 1L)
+            return(logSumExp(numer) * if(ctrl$do.wts) attr(seqs, "Weights") else 1L)
       }
     },    CEM=     {
       if(N1)       {
-        z         <- mclust::unmap(max.col(numer), groups=seq_len(G))
+        z         <- .unMAP(max.col(numer), groups=seq_len(G))
         loglike   <- sum(if(ctrl$do.wts) z * numer * attr(seqs, "Weights") else z * numer, na.rm=TRUE)
         if(ctrl$do.cv)       {
             return(loglike)
@@ -196,6 +201,7 @@
   }
 }
 
+#' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowMeans2" "rowSums2"
 .EM_algorithm     <- function(SEQ, numseq, g, modtype, z, ctrl, gating = NULL, covars = NULL, ll = NULL) {
   algo            <- ctrl$algo
   itmax           <- ctrl$itmax
@@ -218,7 +224,7 @@
       ERR         <- any(is.nan(z))
       if(isTRUE(ERR))            break
       if(isTRUE(emptywarn) && ctrl$warn        &&
-         any(matrixStats::colSums2(z)
+         any(colSums2(z)
                   == 0))    {    warning(paste0("\tThere were empty components: ", modtype, " (G=", g, ")\n"), call.=FALSE, immediate.=TRUE)
         emptywarn <- FALSE
       }
@@ -246,6 +252,8 @@
     as.data.frame(lapply(x, function(y) { levels(y) <- Vseq; y} ))
 }
 
+#' @importFrom matrixStats "colSums2" "rowMeans2" "rowSums2"
+#' @importFrom stringdist "stringdistmatrix"
 .lambda_mle       <- function(seqs, params, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
   theta           <- params$theta
   P               <- attr(seqs, "P")
@@ -266,8 +274,8 @@
     numer         <- switch(EXPR=l.meth, CC=P,                  CU=1L)
     if(ctrl$do.wts)                    {
       ws          <- attr(seqs, "Weights")
-      denom       <- switch(EXPR=l.meth, CC=sum(.dseq(seqs, theta) * ws)/W, CU=matrixStats::rowSums2(sweep(numseq != .char_to_num(theta), 2L, ws, FUN="*", check.margin=FALSE))/W)
-    } else denom  <- switch(EXPR=l.meth, CC=.dbar(seqs, theta),             CU=matrixStats::rowMeans2(numseq      != .char_to_num(theta)))  
+      denom       <- switch(EXPR=l.meth, CC=sum(.dseq(seqs, theta) * ws)/W, CU=rowSums2(sweep(numseq != .char_to_num(theta), 2L, ws, FUN="*", check.margin=FALSE))/W)
+    } else denom  <- switch(EXPR=l.meth, CC=.dbar(seqs, theta),             CU=rowMeans2(numseq      != .char_to_num(theta)))  
   } else           {
     N             <- attr(seqs, "N")
     G0            <- ifelse(noise, attr(seqs, "G0"), G)
@@ -282,8 +290,8 @@
       })
     }
     switch(EXPR=l.meth, CU=, UU=, CUN=, UUN= {
-      dG          <- lapply(seq_len(G0), function(g) unname(apply(numseq,                 2L, "!=",  .char_to_num(theta[g]))))
-      dGp         <- vapply(seq_len(G0), function(g) matrixStats::rowSums2(sweep(dG[[g]], 2L, z[,g], FUN="*", check.margin=FALSE)), numeric(P))
+      dG          <- lapply(seq_len(G0), function(g) unname(apply(numseq,    2L, "!=",  .char_to_num(theta[g]))))
+      dGp         <- vapply(seq_len(G0), function(g) rowSums2(sweep(dG[[g]], 2L, z[,g], FUN="*", check.margin=FALSE)), numeric(P))
     },             {
       pN          <- P * switch(EXPR=l.meth, CCN=sum(z), W)
       dG          <- vapply(seq_len(G0), function(g) .dseq(seqs, theta[g]), numeric(N))
@@ -292,8 +300,8 @@
                                          UC=,  UCN=pN * prop,  
                                         CUN=sum(z), W)
     denom         <- switch(EXPR=l.meth, CC=,  CCN=sum(z * dG),
-                                         UC=,  UCN=matrixStats::colSums2(z * dG),
-                                         CU=,  CUN=matrixStats::rowSums2(dGp),
+                                         UC=,  UCN=colSums2(z * dG),
+                                         CU=,  CUN=rowSums2(dGp),
                                          UU=,  UUN=sweep(dGp, 2L, prop, FUN="/", check.margin=FALSE))
   }
   lambda          <- ifelse(denom < numer * V1V, lV1 + log(numer - denom) - log(denom), 0L)
@@ -305,6 +313,8 @@
     return(list(lambda = if(noise) rbind(lambda, 0L) else lambda, dG = if(G > 1) dG))
 }
 
+#' @importFrom matrixStats "colMeans2" "colSums2" "rowSums2"
+#' @importFrom nnet "multinom"
 .M_step           <- function(seqs, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
                               ctrl, gating = NULL, covars = NULL, z = NULL, numseq = NULL) {
   if(!is.null(gating))    {
@@ -323,21 +333,21 @@
       z           <- z * attr(seqs, "Weights")
     }
     if((gate.g    <- ctrl$gate.g))    {
-      prop        <- if(is.element(l.meth, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) matrixStats::colSums2(z)/attr(seqs, "W") else matrixStats::colMeans2(z) }
+      prop        <- if(is.element(l.meth, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) colSums2(z)/attr(seqs, "W") else colMeans2(z) }
       if(!noise   || ctrl$noise.gate) {
-        fitG      <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
+        fitG      <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
         tau       <- fitG$fitted.values
       } else       {
         zN        <- z
         z         <- z[,-G, drop=FALSE]
-        z         <- z/matrixStats::rowSums2(z)
+        z         <- z/rowSums2(z)
         z[is.nan(z)]     <- .Machine$double.eps
-        fitG      <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
+        fitG      <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
         tau       <- .tau_noise(fitG$fitted.values, zN[,G])
         z         <- zN
       }
     } else         {
-      prop        <- if(ctrl$do.wts) matrixStats::colSums2(z)/attr(seqs, "W") else matrixStats::colMeans2(z)
+      prop        <- if(ctrl$do.wts) colSums2(z)/attr(seqs, "W") else colMeans2(z)
       tau         <- if(isFALSE(ctrl$equalPro)) prop else if(noise && !ctrl$equalNoise) c(rep((1 - prop[G])/attr(seqs, "G0"), attr(seqs, "G0")), prop[G]) else rep(1/G, G)
     }
   }   else prop   <- tau <- 1L
@@ -362,6 +372,7 @@
     paste(x, sep="", collapse="")
 }
 
+#' @importFrom stringdist "stringdistmatrix"
 .optimise_theta   <- function(seqs, ctrl, z = NULL, numseq = NULL) {
   opti            <- ctrl$opti
   ordering        <- ctrl$ordering
@@ -494,6 +505,7 @@
     cbind(tau * (1 - t0), unname(t0))
 }
 
+#' @importFrom stringdist "stringdistmatrix"
 .theta_data       <- function(seqs, z = NULL, ctrl = NULL) {
   if((G <- attr(seqs, "G"))   == 1L)  {
     sumdist       <- if(ctrl$do.wts)  {
@@ -512,6 +524,39 @@
       return(list(theta = do.call(base::c, theta), 
                   dsum  = do.call(base::c, dsum)))
   }
+}
+
+.unMAP            <- function(classification, groups = NULL, noise = NULL, ...) {
+  n               <- length(classification)
+  u               <- sort(unique(classification))
+  if(is.null(groups))  {
+    groups        <- u
+  } else           {
+    if(any(match(u, groups, 
+    nomatch = 0)  == 0))         stop("'groups' incompatible with classification", call.=FALSE)
+    miss          <- match(groups, u, nomatch = 0) == 0
+  }
+  cgroups         <- as.character(groups)
+  if(!is.null(noise))  {
+    noiz          <- match(noise, groups, nomatch = 0)
+    if(any(noiz   == 0))         stop("noise incompatible with classification",    call.=FALSE)
+    groups        <- c(groups[groups != noise], groups[groups == noise])
+    noise         <- as.numeric(factor(as.character(noise), levels = unique(groups)))
+  }
+  groups          <- as.numeric(factor(cgroups, levels = unique(cgroups)))
+  classification  <- as.numeric(factor(as.character(classification), levels = unique(cgroups)))
+  k               <- length(groups) - length(noise)
+  nam             <- levels(groups)
+  if(!is.null(noise))  {
+    k             <- k + 1L
+    nam           <- nam[seq_len(k)]
+    nam[k]        <- "noise"
+  }
+  z               <- matrix(0L, n, k, dimnames = c(names(classification), nam))
+  for(j in seq_len(k)) {
+    z[classification  == groups[j], j] <- 1
+  }
+    return(z)
 }
 
 .weighted_mode    <- function(numseq, z) {

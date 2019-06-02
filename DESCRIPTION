@@ -1,0 +1,21 @@
+Package: MEDseq
+Type: Package
+Version: 1.0.0
+Depends: R (>= 3.3.0)
+License: GPL (>=2)
+Encoding: UTF-8
+URL: https://cran.r-project.org/package=MEDseq
+BugReports: https://github.com/Keefe-Murphy/MEDseq
+LazyData: true
+Imports:
+  cluster,
+  matrixStats,
+  nnet,
+  seriation,
+  stringdist,
+  TraMineR,
+  WeightedCluster
+Suggests:
+  knitr
+RoxygenNote: 6.1.1
+VignetteBuilder: knitr

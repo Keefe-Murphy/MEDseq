@@ -1,3 +1,4 @@
+#' @importFrom matrixStats "weightedMedian" "weightedMean"
 dbs               <- function(z, tol = log(1E-100), weights = NULL, summ = c("mean", "median"), ...) {
   if(any(!is.matrix(z), !is.numeric(z)) ||
      ncol(z)      <= 1     ||
@@ -23,9 +24,9 @@ dbs               <- function(z, tol = log(1E-100), weights = NULL, summ = c("me
   ds[is.nan(ds)]  <- 0L
   DS              <- cbind(cluster=MAP, dbs_width=ds)
   class(DS)       <- "MEDsil"
-  msw             <- switch(EXPR=summ, median=median(ds), mean=mean(ds))
+  msw             <- switch(EXPR=summ, median=stats::median(ds), mean=mean(ds))
   dbs_res         <- list(silvals = DS, msw = msw, wmsw = ifelse(is.null(weights), msw, 
-                          switch(EXPR=summ, median=matrixStats::weightedMedian(ds, weights), mean=matrixStats::weightedMean(ds, weights))))
+                          switch(EXPR=summ, median=weightedMedian(ds, weights), mean=weightedMean(ds, weights))))
   attr(dbs_res, "summ")    <- summ
     return(dbs_res)
 }
@@ -163,8 +164,9 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
   }
   Mclass          <- vapply(MEDs, class,          character(1L))
   if(any(Mclass   != "MEDseq"))  stop("All models must be of class 'MEDseq'!", call.=FALSE)
-  if(length(unique(lapply(MEDs, "[[", 
-     "seqs")))    != 1)          stop("All models being compared must have been fit to the same data set!", call.=FALSE)
+  data          <- lapply(MEDs, "[[", "data")
+  data          <- lapply(data, unname)
+  if(length(unique(data))  != 1) stop("All models being compared must have been fit to the same data set!", call.=FALSE)
   title           <- "Mixtures of Exponential-Distance Models with Covariates"
   dat.name        <- if(is.null(dat.name)) deparse(MEDs[[1L]]$call$seqs) else dat.name
   gate.x          <- lapply(MEDs,   "[[", "gating")
@@ -314,11 +316,11 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "cv", "nec
     comp
 }
 
-MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "hc", "random"), dist.mat = NULL, unique = FALSE, nstarts = 1L,
-                              criterion = c("bic", "icl", "aic", "cv", "nec", "dbs", "asw"), do.cv = FALSE, do.nec = FALSE, nfolds = 10L, stopping = c("aitken", "relative"),
+MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "hc", "random"), dist.mat = NULL, unique = TRUE, nstarts = 1L,
+                              criterion = c("dbs", "asw", "bic", "icl", "aic", "cv", "nec"), do.cv = FALSE, do.nec = FALSE, nfolds = 10L, stopping = c("aitken", "relative"),
                               tau0 = NULL, opti = c("mode", "first", "GA", "medoid"), ordering = c("none", "decreasing", "increasing"), noise.gate = TRUE, MaxNWts = 1000L,
                               equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 100L), nonzero = TRUE, verbose = TRUE, ...) {
-  miss.args                <- list(tau0=missing(tau0), unique=missing(unique))
+  miss.args                <- list(tau0=missing(tau0))
   if(!missing(algo)        &&
     (length(algo)      > 1 ||
      !is.character(algo)))       stop("'algo' must be a character vector of length 1",      call.=FALSE)
@@ -327,7 +329,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
      !is.character(init.z)))     stop("'init.z' must be a character vector of length 1",    call.=FALSE)
   init.z                   <- match.arg(init.z)
   if(!missing(dist.mat))    {
-    dist.mat               <- tryCatch(suppressWarnings(as.dist(dist.mat)), error=function(e)   {
+    dist.mat               <- tryCatch(suppressWarnings(stats::as.dist(dist.mat)), error=function(e)     {
                                  stop("'dist.mat' must be coercible to the class 'dist'",   call.=FALSE) })
   }
   if(length(unique)    > 1 ||
@@ -394,6 +396,12 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
     return(control)
 }
 
+#' @importFrom cluster "agnes" "pam"
+#' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowMaxs" "rowMeans2" "rowSums2" "weightedMedian" "weightedMean"
+#' @importFrom nnet "multinom"
+#' @importFrom seriation "get_order" "seriate"
+#' @importFrom stringdist "stringdistmatrix"
+#' @importFrom WeightedCluster "wcKMedoids" "wcSilhouetteObs"
 MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
                               gating = NULL, covars = NULL, weights = NULL, ctrl = MEDseq_control(...), ...) {
   call            <- match.call()
@@ -499,9 +507,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
        do.wts     <- (length(unique(weights)) > 1)) {
       attr(SEQ, "Weights")    <- weights
       attr(SEQ, "W")          <- sum(weights)
-      do.uni      <- ifelse(miss.args$unique, TRUE, ctrl$unique)
     }
-  } else do.uni   <- ctrl$unique
+  } 
+  do.uni          <- ctrl$unique
   DF              <- seqs   
   uni.sum         <- sum(!duplicated(DF))
   DF              <- if(gate.x)  cbind(DF, covars)  else DF
@@ -513,7 +521,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   if(do.uni       <- do.uni   &&
      sum.uni < N)  {            
     if(verbose)                 message(paste0("Proceeding with ", sum.uni, " unique observations, out of N=", N, "\n"))
-    agg.DF        <- merge(data.frame(cbind(id=seq_len(N)), DF), data.frame(aggregate(cbind(DF[0L], count=1L), DF, length)), by=colnames(DF), sort=FALSE)
+    agg.DF        <- merge(data.frame(cbind(id=seq_len(N)), DF), data.frame(stats::aggregate(cbind(DF[0L], count=1L), DF, length)), by=colnames(DF), sort=FALSE)
     agg.id        <- order(agg.DF$id)
     c2            <- agg.DF$count[agg.id]
     counts        <- c2[uni.ind]
@@ -522,7 +530,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       dist.mat2   <- dist.mat
       w2          <- rep(0L, N)
       w2[uni.ind]        <- weights
-      dist.mat    <- as.dist(as.matrix(dist.mat)[uni.ind,uni.ind])
+      dist.mat    <- stats::as.dist(as.matrix(dist.mat)[uni.ind,uni.ind])
       seqs        <- seqs[uni.ind,,   drop=FALSE]
       atts        <- attributes(SEQ)
       SEQ         <- apply(.fac_to_num(seqs), 1L, .num_to_char)
@@ -565,8 +573,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
   if(all(G  == 1)) { if(verbose) message("Silhouettes not computed as only single component models are being fitted\n")
     do.dbs        <- 
     do.asw        <- FALSE
-    if(criterion  == "dbs")      stop("DBS criterion cannot be used to select among only single-component models", call.=FALSE)
-    if(criterion  == "asw")      stop("ASW criterion cannot be used to select among only single-component models", call.=FALSE)
+    if(criterion  == "dbs")    { message("DBS criterion cannot be used to select among only single-component models: defaulting to 'criterion'=\"bic\"\n")
+      criterion   <- "bic"
+    }
+    if(criterion  == "asw")    { message("ASW criterion cannot be used to select among only single-component models: defaulting to 'criterion'=\"bic\"\n")
+      criterion   <- "bic"
+    }
     if(do.nec     && 
        !(do.nec   <- FALSE))   {
       if(verbose)                message("Forcing 'do.nec' to FALSE as only single component models are being fit\n")
@@ -589,7 +601,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     all.mod       <- if(all(G1, G2, GG)) unique(c(mtg, mt2, mt1)) else if(all(G1, G2)) unique(c(mt2, mt1)) else if(all(G1, GG)) unique(c(mtg, mt1)) else if(all(G2, GG)) unique(c(mtg, mt2)) else if(G2) mt2 else mtg
     all.mod       <- l.meths[l.meths %in% all.mod]
     if(init.z     == "hc")     {
-      hcZ         <- if(do.wts) hclust(dist.mat2, method="ward.D2", members=w2) else cluster::agnes(dist.mat2, diss=TRUE, method="ward")
+      hcZ         <- if(do.wts) stats::hclust(dist.mat2, method="ward.D2", members=w2) else agnes(dist.mat2, diss=TRUE, method="ward")
     }
   } else all.mod  <- l.meths[l.meths %in% mt1]
   len.G           <- length(G)
@@ -701,11 +713,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
       if(init.z   == "random" &&
          nstarts   > 1)     {
         if(isTRUE(nonoise)) {
-          zg      <- replicate(nstarts, list(mclust::unmap(sample(seq_len(g),  size=N, replace=TRUE), groups=seq_len(g))))
+          zg      <- replicate(nstarts, list(.unMAP(sample(seq_len(g),  size=N, replace=TRUE), groups=seq_len(g))))
         }
         if(isTRUE(noise))   {
           if(g0    > 1)     {
-            zg0   <- replicate(nstarts, list(mclust::unmap(sample(seq_len(g0), size=N, replace=TRUE), groups=seq_len(g0))))
+            zg0   <- replicate(nstarts, list(.unMAP(sample(seq_len(g0), size=N, replace=TRUE), groups=seq_len(g0))))
             zg0   <- lapply(zg0, function(x) cbind(x * (1 - tau0), tau0))
           } else   {
             zg0   <- matrix(tau0, nrow=N, ncol=2L)
@@ -713,23 +725,23 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         }
       } else       {
         if(isTRUE(nonoise)) {
-          zg      <- mclust::unmap(switch(EXPR=init.z, 
-                                          random=sample(seq_len(g),  size=N, replace=TRUE),
-                                          kmedoids= if(do.wts) {
-                                            zz <- WeightedCluster::wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
-                                              as.numeric(factor(zz, labels=seq_along(unique(zz))))
-                                            } else cluster::pam(dist.mat2, k=g,  cluster.only=TRUE)[uni.ind], 
-                                          hc=cutree(hcZ, k=g)[uni.ind]),  groups=seq_len(g))
+          zg      <- .unMAP(switch(EXPR=init.z, 
+                                   random=sample(seq_len(g),  size=N, replace=TRUE),
+                                   kmedoids= if(do.wts) {
+                                     zz <- wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
+                                       as.numeric(factor(zz, labels=seq_along(unique(zz))))
+                                     } else pam(dist.mat2, k=g, cluster.only=TRUE)[uni.ind], 
+                                   hc=stats::cutree(hcZ, k=g)[uni.ind]), groups=seq_len(g))
         }
         if(isTRUE(noise))   {
           if(g0 > 1)        {
-            zg0   <- mclust::unmap(switch(EXPR=init.z, 
-                                          random=sample(seq_len(g0), size=N, replace=TRUE),
-                                          kmedoids= if(do.wts) {
-                                            zz <- WeightedCluster::wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
-                                              as.numeric(factor(zz, labels=seq_along(unique(zz))))
-                                            } else cluster::pam(dist.mat2, k=g0, cluster.only=TRUE)[uni.ind],  
-                                          hc=cutree(hcZ, k=g0)[uni.ind]), groups=seq_len(g0))
+            zg0   <- .unMAP(switch(EXPR=init.z, 
+                                   random=sample(seq_len(g0), size=N, replace=TRUE),
+                                   kmedoids= if(do.wts) {
+                                     zz <- wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
+                                       as.numeric(factor(zz, labels=seq_along(unique(zz))))
+                                     } else pam(dist.mat2, k=g0, cluster.only=TRUE)[uni.ind],  
+                                   hc=stats::cutree(hcZ, k=g0)[uni.ind]), groups=seq_len(g0))
             zg0   <- cbind(zg0 * (1 - tau0), tau0)
           } else   {
             zg0   <- matrix(tau0, nrow=N, ncol=2L)
@@ -881,17 +893,17 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         attr(DBSvals[[h]][[m]], "ModelType") <- modtype
       } else dbsx <- NA
       if(do.asw   && g > 1) {
-        ASWvals[[h]][[m]]  <- ASW <- if(ERR) NA else cbind(tmp.MAP, WeightedCluster::wcSilhouetteObs(dist.mat2, tmp.MAP, weights=if(ctrl$do.wts) w2, measure=ifelse(ctrl$do.wts, "ASWw", "ASW")))
+        ASWvals[[h]][[m]]  <- ASW <- if(ERR) NA else cbind(tmp.MAP, wcSilhouetteObs(dist.mat2, tmp.MAP, weights=if(ctrl$do.wts) w2, measure=ifelse(ctrl$do.wts, "ASWw", "ASW")))
         colnames(ASWvals[[h]][[m]])          <- 
         colnames(ASW)      <- c("cluster", "asw_width")
         summ      <- ifelse(any(names(list(...)) == "summ") && list(...)$summ == "median", "median", "mean")
         aswx      <- ifelse(ERR, NA, ifelse(ctrl$do.wts, 
-                                            switch(EXPR=summ, median=matrixStats::weightedMedian(ASW[,2L], w=w2),
-                                                                mean=matrixStats::weightedMean(ASW[,2L],   w=w2)), 
-                                            switch(EXPR=summ, median=median(ASW[,2L]), mean=mean(ASW[,2L]))))
+                                            switch(EXPR=summ, median=weightedMedian(ASW[,2L], w=w2),
+                                                                mean=weightedMean(ASW[,2L],   w=w2)), 
+                                            switch(EXPR=summ, medians=stats::median(ASW[,2L]), mean=mean(ASW[,2L]))))
         attr(ASWvals[[h]][[m]], "G")         <- g
         attr(ASWvals[[h]][[m]], "ModelType") <- modtype
-      }
+      } else aswx <- NA
       necx        <- ifelse(g > 1 && do.nec, -sum(apply(z, 1L, .entropy))/(log.lik - LL.x[1L,switch(EXPR=modtype, CC=, UC="CC", CU=, UU="CU", "CCN")]), NA)
       crit.t      <- switch(EXPR=criterion, cv=CVll, bic=bicx, icl=iclx, aic=aicx, nec=necx, dbs=dbsx, asw=aswx)
       crit.t      <- ifelse(is.na(crit.t) || ERR, -Inf, crit.t)
@@ -951,7 +963,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
        length(x.ll))             warning("Log-likelihoods are not strictly increasing\n", call.=FALSE)
   }
   if(any(IT.x[!is.na(IT.x)]
-         == ctrl$itmax))         warning(paste0("One or more models failed to converge in the maximum number of allowed iterations (", itmax, ")\n"), call.=FALSE)
+         == ctrl$itmax))         warning(paste0("One or more models failed to converge in the maximum number of allowed iterations (", ctrl$itmax, ")\n"), call.=FALSE)
   class(BICs)     <-
   class(ICLs)     <-
   class(AICs)     <-
@@ -1037,7 +1049,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         z         <- x.z * w2
         z[apply(z == 0, 1L, all),] <- .Machine$double.eps
       } else z    <- x.z
-      fitG        <- nnet::multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
+      fitG        <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
       if(equalPro && !equalNoise   && noise) {
         tau0      <- mean(z[,G])
         x.tau     <- c(rep((1 - tau0)/(G - 1L), G  - 1L), tau0)
@@ -1045,6 +1057,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
         x.tau     <- if(equalPro   || equalNoise) rep(1/G, G) else fitG$fitted.values[1L,]
       }
       x.tau       <- stats::setNames(x.tau, paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq))
+      if(equalPro) {
+        fitG$wts[]              <- 0L
+        fitG$fitted.values      <- matrix(x.tau, nrow=N, ncol=G, byrow=TRUE)
+        fitG$residuals          <- z - fitG$fitted.values
+      }
     }   else       {
       fitG        <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial()))
     }
@@ -1137,14 +1154,14 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     attr(NECs, "G")             <- rownames(BICs)[-1L]
     attr(NECs, "modelNames")    <- colnames(BICs)
     results       <- c(results, list(NEC = NECs))
-    results       <- if(G > 1) c(results, list(nec = x.nec)) else results
+    results       <- if(G > 1) c(results, list(nec = x.nec))   else results
   }
   x.ll            <- x.ll[if(G > 1) switch(EXPR=algo, cemEM=-1L, -seq_len(2L)) else 1L]
   attr(x.ll, "Weighted")        <- do.wts
   results         <- c(results, list(
                           LOGLIK  = LL.x,
                           loglik  = x.ll,
-                          uncert  = if(G > 1) 1 - matrixStats::rowMaxs(x.z) else vector("integer", N),
+                          uncert  = if(G > 1) 1 - rowMaxs(x.z) else vector("integer", N),
                           covars  = covars,
                           DF      = DF.x,
                           df      = DF.x[best.ind],
@@ -1158,9 +1175,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     set.seed(100)
     for(g in sort(unip[unip > 0]))  {
       srows       <- Nseq[MAP2 == g]
-      meds        <- c(meds, srows[which.min(matrixStats::rowSums2(dist.mat[srows,srows, drop=FALSE]))])
+      meds        <- c(meds, srows[which.min(rowSums2(dist.mat[srows,srows, drop=FALSE]))])
     }
-    perm          <- seriation::get_order(seriation::seriate(as.dist(dist.mat[meds,meds]), method="TSP"))
+    perm          <- get_order(seriate(stats::as.dist(dist.mat[meds,meds]), method="TSP"))
   } else perm     <- NULL
   attr(results, "Algo")         <- algo
   attr(results, "ASW")          <- do.asw
@@ -1186,6 +1203,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, l.meth = c("CC", "UC", "CU", "UU"
     return(results)
 }
 
+#' @importFrom matrixStats "rowSums2" "weightedMedian" "weightedMean"
+#' @importFrom seriation "get_order" "seriate"
+#' @importFrom TraMineR "seqdef" "seqdist" "seqIplot" "seqplot"
 plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating", "cv", "bic", "icl", "aic", "nec", "dbs", "asw", "LOGLIK", "dbsvals", "aswvals", "uncert.bar", 
                               "uncert.profile", "loglik", "d", "f", "Ht", "i", "I"), seriate = TRUE, preczero = TRUE, log.scale = NULL, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
@@ -1195,8 +1215,8 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
   if(length(seriate)     > 1  ||
      !is.logical(seriate))       stop("'seriate' must be a single logical indicator",  call.=FALSE)
   type            <- match.arg(type)
-  savepar         <- par(no.readonly=TRUE)
-  on.exit(par(savepar))
+  savepar         <- graphics::par(no.readonly=TRUE)
+  on.exit(graphics::par(savepar))
   G               <- x$G
   N               <- attr(x, "N")
   P               <- attr(x, "P")
@@ -1262,9 +1282,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
           set.seed(100)
           for(g in sort(unip[unip > 0])) {
             srows <- Nseq[MAP == g]
-            meds  <- c(meds, srows[which.min(matrixStats::rowSums2(dmat[srows,srows, drop=FALSE]))])
+            meds  <- c(meds, srows[which.min(rowSums2(dmat[srows,srows, drop=FALSE]))])
           }
-          perm    <- seriation::get_order(seriation::seriate(as.dist(dmat[meds,meds]), method="TSP"))
+          perm    <- get_order(seriate(stats::as.dist(dmat[meds,meds]), method="TSP"))
         }
       } else       {
         MAP       <- x$MAP
@@ -1283,25 +1303,25 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     for(g in Gseq) {
       srows       <- Nseq[MAP == perm[g]]
       num.cl      <- c(num.cl, length(srows))
-      glo.order   <- c(glo.order, srows[seriation::get_order(seriation::seriate(as.dist(dmat[srows,srows]), method="TSP"))])
+      glo.order   <- c(glo.order, srows[get_order(seriate(stats::as.dist(dmat[srows,srows]), method="TSP"))])
     }
     cum.cl        <- cumsum(num.cl)
 
-    layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
+    graphics::layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
     OrderedStates <- data.matrix(.fac_to_num(dat))[glo.order,]
-    image(x=Pseq, z=t(OrderedStates), y=Nseq, zlim=c(1, length(cpal.x)), xlim=c(1, P), ylim=c(1, N),
-          axes=FALSE, xlab="", ylab="Clusters", col=cpal.x, main=ifelse(seriate, "Observations Ordered by Cluster", "Clusters"))
-    box(lwd=2)
-    axis(side=1, at=Pseq, labels=attr(x$data, "names"), cex.axis=0.75)
+    graphics::image(x=Pseq, z=t(OrderedStates), y=Nseq, zlim=c(1, length(cpal.x)), xlim=c(1, P), ylim=c(1, N),
+                    axes=FALSE, xlab="", ylab="Clusters", col=cpal.x, main=ifelse(seriate, "Observations Ordered by Cluster", "Clusters"))
+    graphics::box(lwd=2)
+    graphics::axis(side=1, at=Pseq, labels=attr(x$data, "names"), cex.axis=0.75)
     gcl           <- c(0, cum.cl)
-    axis(side=2, at=gcl[-length(gcl)] + diff(gcl)/2, labels=if(noise) replace(perm, G, "Noise") else perm, lwd=1, line=-0.5, las=2, tick=FALSE, cex.axis=0.75)
+    graphics::axis(side=2, at=gcl[-length(gcl)] + diff(gcl)/2, labels=if(noise) replace(perm, G, "Noise") else perm, lwd=1, line=-0.5, las=2, tick=FALSE, cex.axis=0.75)
     for(g in Gseq) {
-      segments(0, cum.cl[g], P + 0.5, cum.cl[g], lwd=2)
+      graphics::segments(0, cum.cl[g], P + 0.5, cum.cl[g], lwd=2)
     }
 
-    par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=FALSE)
-    plot.new()
-    legend("bottom", fill=cpal.x, legend=label.x, ncol=ceiling(V/ifelse(V > 6, 3, 2)), cex=0.75)
+    graphics::par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=FALSE)
+    graphics::plot.new()
+    graphics::legend("bottom", fill=cpal.x, legend=label.x, ncol=ceiling(V/ifelse(V > 6, 3, 2)), cex=0.75)
     graphics::layout(1)
       invisible(if(isTRUE(noise)) replace(perm, G, G) else perm)
   }, mean=         {
@@ -1327,60 +1347,60 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
        any(missind))             message(paste0("One or more sequence categories (", paste(shQuote(label.x[missind]), collapse=" & "), ") are entirely missing\n"))
     dat           <- suppressMessages(seqdef(as.data.frame(theta), states=alpha.x, labels=label.x, cpal=if(vmiss) c(cpal.x[-missind], rep(NA, length(missind))) else cpal.x))
     attr(dat, "names")  <- attr(x$data, "names")
-    layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
-    seqIplot(dat, with.legend=FALSE, main="Central Sequences Plot", border=NA, missing.color=par()$bg, ylab=paste0(G, " seq. (N=", N, ")"), yaxis=FALSE, cex.axis=0.75)
+    graphics::layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
+    seqIplot(dat, with.legend=FALSE, main="Central Sequences Plot", border=NA, missing.color=graphics::par()$bg, ylab=paste0(G, " seq. (N=", N, ")"), yaxis=FALSE, cex.axis=0.75)
     if(G > 1) graphics::axis(2, at=seq_len(G) - 0.5, labels=as.character(perm), tick=FALSE, las=2, line=-0.5, cex.axis=0.75)
-    par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=FALSE)
-    plot.new()
-    legend("bottom",          fill=if(indmiss) c(cpal.x, par()$bg) else cpal.x, legend=lab, ncol=l.ncol, cex=0.75)
+    graphics::par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=FALSE)
+    graphics::plot.new()
+    graphics::legend("bottom", fill=if(indmiss) c(cpal.x, graphics::par()$bg) else cpal.x, legend=lab, ncol=l.ncol, cex=0.75)
     graphics::layout(1)
       invisible(theta)
   }, lambda=       {
     log.scale     <- ifelse(missing(log.scale), is.element(modName, c("UU", "UUN")), log.scale)
     if(length(log.scale) > 1  ||
        !is.logical(log.scale))   stop("'log.scale' must be a single logical indicator", call.=FALSE)
-    layout(rbind(1, 2), heights=c(0.85, 0.15))
-    par(mar=c(4.1, 4.1, 4.1, 3.1))
+    graphics::layout(rbind(1, 2), heights=c(0.85, 0.15))
+    graphics::par(mar=c(4.1, 4.1, 4.1, 3.1))
     i.ind         <- is.infinite(lambda)
     num.ind       <- !i.ind  &  lambda >  0
     dat           <- if(log.scale) log(lambda[num.ind]) else lambda[num.ind]
     facs          <- if(length(dat) > 1) cut(dat, 30L, include.lowest=TRUE) else 1L
     cmat          <- matrix("", nrow=G, ncol=P)
-    cols          <- rev(heat.colors(30L))
-    cmat[i.ind]            <- "grey50"
-    cmat[lambda   == 0]    <- "green3"
+    cols          <- rev(grDevices::heat.colors(30L))
+    cmat[i.ind]            <- "black"
+    cmat[lambda   == 0]    <- "grey65"
     cmat[num.ind]          <- cols[as.numeric(facs)]
     levels        <- sort(unique(as.vector(cmat)))
     z             <- matrix(unclass(factor(cmat, levels=levels, labels=seq_along(levels))), nrow=P, ncol=G, byrow=TRUE)
     Gseq          <- seq_len(G)
-    image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Positions", ylab="Clusters", main=paste0("Precision Parameters Plot", ifelse(log.scale, " (Log Scale)",  "")))
-    axis(1, at=Pseq, tick=FALSE, las=1, cex.axis=0.75, labels=Pseq)
-    axis(2, at=Gseq, tick=FALSE, las=1, cex.axis=0.75, labels=as.character(perm))
-    box(lwd=2)
-    bx            <- par("usr")
-    xpd           <- par()$xpd
+    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Positions", ylab="Clusters", main=paste0("Precision Parameters Plot", ifelse(log.scale, " (Log Scale)",  "")))
+    graphics::axis(1, at=Pseq, tick=FALSE, las=1, cex.axis=0.75, labels=Pseq)
+    graphics::axis(2, at=Gseq, tick=FALSE, las=1, cex.axis=0.75, labels=as.character(perm))
+    graphics::box(lwd=2)
+    bx            <- graphics::par("usr")
+    xpd           <- graphics::par()$xpd
     box.cx        <- c(bx[2L] + (bx[2L]  - bx[1L])/1000, bx[2L] + (bx[2L] - bx[1L])/1000 + (bx[2L] - bx[1L])/50)
     box.cy        <- c(bx[3L],   bx[3L])
     box.sy        <- (bx[4L]  -  bx[3L]) / length(cols)
     xx            <- rep(box.cx, each=2L)
-    par(xpd = TRUE)
+    graphics::par(xpd = TRUE)
     for(i in seq_along(cols)) {
       yy          <- c(box.cy[1L] + (box.sy * (i - 1L)),
                        box.cy[1L] + (box.sy * (i)),
                        box.cy[1L] + (box.sy * (i)),
                        box.cy[1L] + (box.sy * (i - 1L)))
-      polygon(xx, yy, col = cols[i], border = cols[i])
+      graphics::polygon(xx, yy, col = cols[i], border = cols[i])
     }
-    par(new=TRUE)
-    plot(0, 0, type="n", ylim=if(length(dat) > 1) range(dat, na.rm=TRUE) else c(0, 1), yaxt="n", ylab="", xaxt="n", xlab="", frame.plot=FALSE)
-    axis(side=4, las=2, tick=FALSE, line=0.5)
-    par(mar=c(0, 0, 0, 0))
-    plot.new()
-    legend("center", c(expression(paste(lambda, " = 0")), expression(paste(lambda %->% infinity))), fill=c("green3", "grey50"), ncol=2, text.width=0.1, cex=1.25)
+    graphics::par(new=TRUE)
+    graphics::plot(0, 0, type="n", ylim=if(length(dat) > 1) range(dat, na.rm=TRUE) else c(0, 1), yaxt="n", ylab="", xaxt="n", xlab="", frame.plot=FALSE)
+    graphics::axis(side=4, las=2, tick=FALSE, line=0.5)
+    graphics::par(mar=c(0, 0, 0, 0))
+    graphics::plot.new()
+    graphics::legend("center", c(expression(paste(lambda, " = 0")), expression(paste(lambda %->% infinity))), fill=c("grey65", "black"), ncol=2, text.width=0.1, cex=1.25)
     graphics::layout(1)
       invisible()
   }, gating=       {
-    suppressWarnings(par(pty="m"))
+    suppressWarnings(graphics::par(pty="m"))
     Tau        <- .mat_byrow(x$params$tau, nrow=N, ncol=ncol(x$z))
     miss.x     <- length(dots) > 0 && any(names(dots) == "x.axis")
     x.axis     <- if(miss.x) dots$x.axis else seq_len(N)
@@ -1396,7 +1416,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
       xaxt     <- "s"
     }
     graphics::matplot(x=x.axis, y=Tau, type=type, main="Gating Network", xaxt=xaxt, xlab=xlab, ylab="", col=col, pch=1)
-    mtext(expression(widehat(tau)[g]), side=2, las=2, line=3)
+    graphics::mtext(expression(widehat(tau)[g]), side=2, las=2, line=3)
     if(x.fac)   {
       graphics::axis(1, at=unique(x.axis), labels=xlev)
     }
@@ -1423,13 +1443,13 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     ms            <- which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% colnames(dat))
     symbols       <- symbols[ms]
     use.col       <- use.col[ms]
-    matplot(dat, type="b", xlab="Number of Components", ylab=switch(EXPR=type, cv=, LOGLIK=, asw=, dbs="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
-    if(type == "cv")     mtext(ifelse(weighted, expression("\u2113"["cv"]^"w"), expression("\u2113"["cv"])), side=2, line=3, las=1, cex=1.5)
-    if(type == "LOGLIK") mtext(paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), side=2, line=3, las=3)
-    if(type == "dbs")    mtext(paste0(ifelse(weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " DBS"), side=2, line=3, las=3)
-    if(type == "asw")    mtext(paste0(ifelse(weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " ASW"), side=2, line=3, las=3)
-    axis(1, at=seq_len(nrow(dat)), labels=rownames(dat))
-    legend(switch(EXPR=type, nec=, dbs="topright", "bottomright"), ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col)
+    graphics::matplot(dat, type="b", xlab="Number of Components (g)", ylab=switch(EXPR=type, cv=, LOGLIK=, asw=, dbs="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
+    if(type == "cv")     graphics::mtext(ifelse(weighted, expression("\u2113"["cv"]^"w"), expression("\u2113"["cv"])), side=2, line=3, las=1, cex=1.5)
+    if(type == "LOGLIK") graphics::mtext(paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), side=2, line=3, las=3)
+    if(type == "dbs")    graphics::mtext(paste0(ifelse(weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " DBS"), side=2, line=3, las=3)
+    if(type == "asw")    graphics::mtext(paste0(ifelse(weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " ASW"), side=2, line=3, las=3)
+    graphics::axis(1, at=seq_len(nrow(dat)), labels=rownames(dat))
+    graphics::legend(switch(EXPR=type, nec=, dbs="topright", "bottomright"), ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col)
       invisible()
   }, dbsvals=,
      aswvals=      {
@@ -1453,39 +1473,39 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     space[space   != 0]    <- 0.5
     ng            <- table(cl)
     G             <- attr(object, "G")
-    dat           <- rev(barplot(rev(sil), space=space, xlim=c(min(0, min(sil)), 1), horiz=TRUE, las=1, mgp=c(2.5, 1, 0), col="gray", border=0, cex.names=par("cex.axis"), axisnames=FALSE))
+    dat           <- rev(graphics::barplot(rev(sil), space=space, xlim=c(min(0, min(sil)), 1), horiz=TRUE, las=1, mgp=c(2.5, 1, 0), col="gray", border=0, cex.names=graphics::par("cex.axis"), axisnames=FALSE))
     summ          <- attr(object, "Summ")
     if(weighted)   {
       weights     <- attr(x, "Weights")[order(cl, -object[,2L])]
-      switch(EXPR=summ, median=title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("(Weighted) Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(matrixStats::weightedMedian(sil, weights), digits=3)), adj=0),
-                          mean=title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("(Weighted) Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(matrixStats::weightedMean(sil,   weights), digits=3)), adj=0))
+      switch(EXPR=summ, median=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("(Weighted) Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(weightedMedian(sil, weights), digits=3)), adj=0),
+                          mean=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("(Weighted) Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(weightedMean(sil,   weights), digits=3)), adj=0))
     } else         {
-      switch(EXPR=summ, median=title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(median(sil), digits=3)), adj=0),
-                          mean=title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(mean(sil),   digits=3)), adj=0))
+      switch(EXPR=summ, median=graphics::title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(stats::median(sil), digits=3)), adj=0),
+                          mean=graphics::title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(mean(sil),          digits=3)), adj=0))
     }
-    mtext(paste0("n = ", N),  adj=0)
+    graphics::mtext(paste0("n = ", N),  adj=0)
     modtype       <- attr(object, "ModelType")
     noise         <- modtype %in% c("CCN", "UCN", "CUN", "UUN")
-    mtext(substitute(G~modtype~"clusters"~C[g], list(G=G, modtype=modtype)), adj=1)
+    graphics::mtext(substitute(G~modtype~"clusters"~C[g], list(G=G, modtype=modtype)), adj=1)
     if(weighted)   {
-      switch(EXPR=summ, median=mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2),
-                          mean=mtext(expression(paste(g, " : ", n[g], " | ", ave[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2))
+      switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2),
+                          mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", ave[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2))
       silcl       <- split(sil,  cli)
-      meds        <- switch(EXPR=summ, median=sapply(seq_along(silcl), function(i) matrixStats::weightedMedian(silcl[[i]], weights[cli == i])),
-                                         mean=sapply(seq_along(silcl), function(i) matrixStats::weightedMean(silcl[[i]],   weights[cli == i])))
+      meds        <- switch(EXPR=summ, median=sapply(seq_along(silcl), function(i) weightedMedian(silcl[[i]], weights[cli == i])),
+                                         mean=sapply(seq_along(silcl), function(i) weightedMean(silcl[[i]],   weights[cli == i])))
     } else         {
-      switch(EXPR=summ, median=mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2),
-                          mean=mtext(expression(paste(g, " : ", n[g], " | ", ave[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2))
-      meds        <- tapply(sil, cli, switch(EXPR=summ, median=median, mean=mean))
+      switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2),
+                          mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", ave[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2))
+      meds        <- tapply(sil, cli, switch(EXPR=summ, median=stats::median, mean=mean))
     }
-    medy          <- tapply(dat, cli, median)
+    medy          <- tapply(dat, cli, stats::median)
     for(g in seq_len(G)) {
-      text(1, medy[g], paste(ifelse(g == G && noise, 0L, g), ":  ", ng[g], " | ", format(meds[g], digits=1, nsmall=2)), xpd=NA, adj=0.8)
+      graphics::text(1, medy[g], paste(ifelse(g == G && noise, 0L, g), ":  ", ng[g], " | ", format(meds[g], digits=1, nsmall=2)), xpd=NA, adj=0.8)
     }
       invisible()
   }, uncert.profile=,
      uncert.bar=   {
-    par(pty="m", mar=c(5.1, 4.1, 4.1, 3.1))
+    graphics::par(pty="m", mar=c(5.1, 4.1, 4.1, 3.1))
     uncX          <- x$uncert
     oneG          <- 1/G
     min1G         <- 1 - oneG
@@ -1496,32 +1516,32 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
            uncert.bar=         {
              cu   <- cm[seq_len(2L)][(uncX >= oneG) + 1L]
              cu[uncX == 0] <- NA
-             plot(uncX, type="h", ylim=range(yx), col=cu, yaxt="n", ylab="", xlab="Observations", lend=1)
-             lines(x=c(0, N), y=c(oneG, oneG), lty=2, col=cm[3L])
-             axis(2, at=yx, labels=replace(yx, length(yx), "1 - 1/G"), las=2, xpd=TRUE)
-             axis(2, at=oneG, labels="1/G", las=2, xpd=TRUE, side=4, xpd=TRUE)
+             graphics::plot(uncX, type="h", ylim=range(yx), col=cu, yaxt="n", ylab="", xlab="Observations", lend=1)
+             graphics::lines(x=c(0, N), y=c(oneG, oneG), lty=2, col=cm[3L])
+             graphics::axis(2, at=yx, labels=replace(yx, length(yx), "1 - 1/G"), las=2, xpd=TRUE)
+             graphics::axis(2, at=oneG, labels="1/G", las=2, xpd=TRUE, side=4, xpd=TRUE)
            }, uncert.profile=  {
              ord  <- order(uncX, decreasing=FALSE)
              ucO  <- uncX[ord]
-             plot(ucO, type="n", ylim=c(-max(uncX)/32, max(yx)), ylab="", xaxt="n", yaxt="n", xlab=paste0("Observations in order of increasing uncertainty"))
-             lines(x=c(0, N), y=c(0, 0), lty=3)
-             lines(ucO)
-             points(ucO, pch=15, cex=0.5, col=1)
-             lines(x=c(0, N), y=c(oneG, oneG), lty=2, col=cm[3L])
-             axis(2, at=yx,   las=2, xpd=TRUE, labels=replace(yx, length(yx), "1 - 1/G"))
-             axis(2, at=oneG, las=2, xpd=TRUE, labels="1/G", side=4)
+             graphics::plot(ucO, type="n", ylim=c(-max(uncX)/32, max(yx)), ylab="", xaxt="n", yaxt="n", xlab=paste0("Observations in order of increasing uncertainty"))
+             graphics::lines(x=c(0, N), y=c(0, 0), lty=3)
+             graphics::lines(ucO)
+             graphics::points(ucO, pch=15, cex=0.5, col=1)
+             graphics::lines(x=c(0, N), y=c(oneG, oneG), lty=2, col=cm[3L])
+             graphics::axis(2, at=yx,   las=2, xpd=TRUE, labels=replace(yx, length(yx), "1 - 1/G"))
+             graphics::axis(2, at=oneG, las=2, xpd=TRUE, labels="1/G", side=4)
            })
-    mtext("Uncertainty", side=2, line=3)
-    title(main=list(paste0("Clustering Uncertainty ", switch(EXPR=type, uncert.bar="Barplot", "Profile Plot"))))
+    graphics::mtext("Uncertainty", side=2, line=3)
+    graphics::title(main=list(paste0("Clustering Uncertainty ", switch(EXPR=type, uncert.bar="Barplot", "Profile Plot"))))
       invisible(uncX)
   }, loglik=       {
     x             <- x$loglik
     if(all(x      != cummax(x))) warning("Log-likelihoods are not strictly increasing\n", call.=FALSE)
-    plot(x, type=ifelse(length(x) == 1, "p", "l"), xlab="Iterations", ylab=paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), xaxt="n")
+    graphics::plot(x, type=ifelse(length(x) == 1, "p", "l"), xlab="Iterations", ylab=paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), xaxt="n")
     seqll         <- seq_along(x)
     llseq         <- pretty(seqll)
     llseq         <- if(any(llseq != floor(llseq))) seqll else llseq
-    axis(1, at=llseq, labels=llseq)
+    graphics::axis(1, at=llseq, labels=llseq)
       invisible(list(ll = x, converge = x[length(x)]))
   },               {
     MAP           <- factor(replace(MAP, MAP == 0, "Noise"), levels=perm)
@@ -1531,15 +1551,15 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "lambda", "gating"
     if(type       != "Ht")     {
       l.ncol      <- ceiling(V/ifelse(V > 6 | G %% 2 != 0, 3, 2))
       if(G  %% 2  == 0)        {
-        par(oma=c(7.5, 0, 0, 0),       xpd=TRUE)
+        graphics::par(oma=c(7.5, 0, 0, 0), xpd=TRUE)
         suppressWarnings(do.call(seqplot, dots))
-        par(fig=c(0, 1, 0, 1), oma=c(0.5, 0, 0, 0), mar=c(0.5, 0, 0, 0), new=TRUE)
-        plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
-        legend("bottom",      fill=attr(dat, "cpal"), legend=lab, ncol=l.ncol)
+        graphics::par(fig=c(0, 1, 0, 1), oma=c(0.5, 0, 0, 0), mar=c(0.5, 0, 0, 0), new=TRUE)
+        graphics::plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
+        graphics::legend("bottom", fill=attr(dat, "cpal"), legend=lab, ncol=l.ncol)
       } else       {
         suppressWarnings(do.call(seqplot, dots))
-        par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=TRUE)
-        legend("bottomright", fill=attr(dat, "cpal"), legend=lab, ncol=l.ncol)
+        graphics::par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=TRUE)
+        graphics::legend("bottomright", fill=attr(dat, "cpal"), legend=lab, ncol=l.ncol)
       }
     } else         {
       try(suppressWarnings(do.call(seqplot, dots)),   silent=TRUE)
@@ -1593,6 +1613,7 @@ print.MEDgating    <- function(x, ...) {
   if(gateNoise)                  cat(paste("Noise Component Gating:", attr(x, "NoiseGate"), "\n"))
   cat(paste("EqualPro:", equalpro, ifelse(equalNoise, "\n", "")))
   if(equalNoise)                 cat(paste("Noise Proportion Estimated:", attr(x, "EqualNoise")))
+  if(equalpro)                   message("\n\nCoefficients set to zero as this is an equal mixing proportion model")
   message("\n\nUsers are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network\n")
     invisible(x)
 }
@@ -1706,23 +1727,33 @@ print.MEDtheta    <- function(x, preczero = TRUE, ...) {
     print(theta, ...)
 }
 
-tabcluster        <- function(x, norm = FALSE) {
+#' @importFrom matrixStats "colSums2"
+tabcluster        <- function(x, MAP = TRUE, norm = FALSE) {
     UseMethod("tabcluster")
 }
 
-tabcluster.MEDseq <- function(x, norm = FALSE) {
+tabcluster.MEDseq <- function(x, MAP = TRUE, norm = FALSE) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
+  if(length(norm)  > 1 ||
+     !is.logical(norm))          stop("'norm' must be a single logical indicator", call.=FALSE)
+  if(length(MAP)   > 1 ||
+     !is.logical(MAP))           stop("'MAP' must be a single logical indicator",  call.=FALSE)
   alph            <- attr(x$params$theta, "alphabet")
   V               <- attr(x, "V")
-  P               <- ifelse(isTRUE(norm), attr(x, "P"), 1L)
+  P               <- attr(x, "P")
   G               <- x$G
   noise           <- attr(x, "Noise")
   gnames          <- paste0("Cluster", seq_len(G))
-  gnames          <- if(noise) replace(gnames, G, "Noise")   else gnames
-  MAP             <- if(noise) replace(x$MAP, x$MAP == 0, G) else x$MAP
-  temp            <- do.call(rbind, by(x$data, MAP, function(x) tabulate(do.call(base::c, x), V)))
-  tabMAP          <- tabulate(MAP)
-  temp            <- temp/(tabMAP * P) * ifelse(isTRUE(norm), 100L, 1L)
+  gnames          <- if(isTRUE(noise)) replace(gnames, G, "Noise")   else gnames
+  class           <- if(isTRUE(noise)) replace(x$MAP, x$MAP == 0, G) else x$MAP 
+  tabMAP          <- if(isTRUE(MAP))   tabulate(class)               else colSums2(x$z)
+  if(isTRUE(MAP))  {
+    temp          <- do.call(rbind, by(x$data, class,  function(x) tabulate(do.call(base::c, x), V)))
+  } else           {
+    x$data        <- .fac_to_num(x$data)
+    temp          <- do.call(rbind, lapply(seq_len(G), function(g) tapply(rep(x$z[,g], P), do.call(base::c, x$data), sum)))
+  }
+  temp            <- if(isTRUE(norm))  temp/tabMAP                   else temp
   temp            <- cbind(tabMAP, temp)
   rownames(temp)  <- gnames
   colnames(temp)  <- c("Size", alph)
