@@ -20,11 +20,11 @@
 }
 
 #' @importFrom matrixStats "rowMaxs"
-.choice_crit      <- function(ll, seqs, z, gate.pen, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), nonzero = NULL) {
-  G               <- attr(seqs, ifelse(noise <- is.element(l.meth, c("CCN", "UCN", "CUN", "UUN")), "G0", "G"))
+.choice_crit      <- function(ll, seqs, z, gate.pen, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), nonzero = NULL) {
+  G               <- attr(seqs, ifelse(noise <- is.element(modtype, c("CCN", "UCN", "CUN", "UUN")), "G0", "G"))
   P               <- attr(seqs, "P")
-  kpar            <- ifelse(is.null(nonzero),
-                            switch(EXPR= l.meth,
+  kpar            <- ifelse(is.na(nonzero),
+                            switch(EXPR= modtype,
                                    CC  = G * P   + 1L,
                                    CCN = G * P   + (G > 0),
                                    UC  =,
@@ -33,7 +33,7 @@
                                    CUN = P * (G  + 1L),
                                    UU  =,
                                    UUN = P * G   * 2L),
-                            switch(EXPR= l.meth,
+                            switch(EXPR= modtype,
                                    CC  = nonzero * G  * P   + 1L,
                                    CCN = nonzero * G  * P   + (G > 0),
                                    UC  =,
@@ -87,7 +87,7 @@
 
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowSums2"
 #' @importFrom stringdist "stringdistmatrix"
-.E_step           <- function(seqs, params, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
+.E_step           <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
   G               <- attr(seqs, "G")
   N               <- attr(seqs, "N")
   P               <- attr(seqs, "P")
@@ -96,7 +96,7 @@
   Gseq            <- seq_len(G0)
   N1              <- N > 1
   theta           <- params$theta
-  lambda          <- switch(EXPR=l.meth, CC=, CCN=as.vector(params$lambda), params$lambda)
+  lambda          <- switch(EXPR=modtype, CC=, CCN=as.vector(params$lambda), params$lambda)
   dG.X            <- is.null(params$dG)
   if(is.null(numseq)       &&
      isFALSE(ctrl$numseq)  &&
@@ -107,18 +107,18 @@
   
   if(G  == 1L)     { 
     return(if(ctrl$do.wts)  {
-             switch(EXPR=l.meth, 
+             switch(EXPR=modtype, 
                     CC  = -ifelse(lambda == 0, attr(seqs, "W") * P * log1p(V1), lambda * sum(attr(seqs, "Weights") * .dseq(seqs, theta), na.rm=TRUE) + attr(seqs, "W") * P * log1p(V1 * exp(-lambda))),
                     CCN = -attr(seqs, "W") * P * log1p(V1),
                     CU  = -sum(sweep((numseq != .char_to_num(theta)) * as.vector(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W") * sum(log1p(V1 * exp(-lambda))))
            } else  {
-             switch(EXPR=l.meth,
+             switch(EXPR=modtype,
                     CC  = -ifelse(lambda == 0, N * P * log1p(V1), sum(lambda * N * .dbar(seqs, theta), N * P * log1p(V1 * exp(-lambda)), na.rm=TRUE)),
                     CCN = -N * P * log1p(V1),
                     CU  = -sum((numseq != .char_to_num(theta)) * as.vector(lambda), na.rm=TRUE) - N * sum(log1p(V1 * exp(-lambda))))
            })
   } else {
-    dG  <- if(dG.X)  switch(EXPR=l.meth, 
+    dG  <- if(dG.X)  switch(EXPR=modtype, 
                             CC=, UC=, CCN=, UCN=vapply(Gseq, function(g) .dseq(seqs, theta[g]), numeric(N)),
                             CU=, UU=, CUN=, UUN=lapply(Gseq, function(g) unname(apply(numseq, 2L, "!=", .char_to_num(theta[g]))))) else params$dG
     log.tau       <- .mat_byrow(log(params$tau), nrow=N, ncol=G)
@@ -127,7 +127,7 @@
       log.tau     <- log.tau[,-G, drop=FALSE]
     }
     if(N1)         {
-      numer       <- switch(EXPR=l.meth,
+      numer       <- switch(EXPR=modtype,
                             CC  =-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE) + log.tau - P * log1p(V1 * exp(-lambda)),
                             UC  = sweep(-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE), 
                                         2L, P * log1p(V1 * exp(-lambda)),  FUN="-", check.margin=FALSE) + log.tau,
@@ -144,7 +144,7 @@
                             UUN = cbind(sweep(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)),
                                               2L, rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - P * log1p(V1)))
     } else         {
-      numer       <- switch(EXPR=l.meth,
+      numer       <- switch(EXPR=modtype,
                             CC  = -dG * lambda - P * log1p(V1 * exp(-lambda)),
                             UC  = sweep(-dG * lambda, 2L, P * log1p(V1 * exp(-lambda)), FUN="-", check.margin=FALSE),
                             CU  = -vapply(lapply(dG, "*", as.vector(lambda)), FUN=colSums2,  na.rm=TRUE,  numeric(N)) - sum(log1p(V1 * exp(-lambda))),
@@ -153,17 +153,17 @@
                             UCN = c(sweep(-dG * lambda[-G,, drop=FALSE], 2L, P * log1p(V1 * exp(-lambda[-G])), FUN="-", check.margin=FALSE), -P * log1p(V1)),
                             CUN = c(-vapply(lapply(dG, "*", lambda[1L,]), FUN=colSums2, na.rm=TRUE, numeric(N)) - sum(log1p(V1 * exp(-lambda[1L,]))), - P * log1p(V1)),
                             UUN = c(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)) - rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), - P * log1p(V1)))
-      numer       <- matrix(numer, nrow=1L) + switch(EXPR=l.meth, CC=, UC=, CU=, UU=log.tau, c(log.tau, tau0))
+      numer       <- matrix(numer, nrow=1L) + switch(EXPR=modtype, CC=, UC=, CU=, UU=log.tau, c(log.tau, tau0))
     }
     
     if(any(iLAM   <- is.infinite(lambda))) {
-      switch(EXPR  = l.meth,
+      switch(EXPR  = modtype,
              CC    =,
              CCN   = numer[is.na(numer)]  <- log.tau - P * log1p(V1),
              UC    =,
              UCN   =         {
              i.x  <- which(dG == 0, arr.ind=TRUE)
-             i.x  <- i.x[i.x[,2L] %in% which(switch(EXPR=l.meth, UC=iLAM, UCN=iLAM[-G])),, drop=FALSE]
+             i.x  <- i.x[i.x[,2L] %in% which(switch(EXPR=modtype, UC=iLAM, UCN=iLAM[-G])),, drop=FALSE]
              numer[i.x]     <- log.tau[i.x]          - P * log1p(V1)
       })
     }
@@ -208,8 +208,8 @@
   st.ait          <- ctrl$stopping == "aitken"
   tol             <- ctrl$tol
   if(!(runEM      <- g > 1))   {
-    Mstep         <- .M_step(SEQ, l.meth=modtype, ctrl=ctrl, numseq=numseq)
-    ll            <- .E_step(SEQ, l.meth=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
+    Mstep         <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq)
+    ll            <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
     j             <- 1L
     ERR           <- FALSE
   } else           {
@@ -218,8 +218,8 @@
     emptywarn     <- TRUE
     while(isTRUE(runEM))       {
       j           <- j + 1L
-      Mstep       <- .M_step(SEQ, l.meth=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z)
-      Estep       <- .E_step(SEQ, l.meth=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
+      Mstep       <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z)
+      Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
       z           <- Estep$z
       ERR         <- any(is.nan(z))
       if(isTRUE(ERR))            break
@@ -254,13 +254,13 @@
 
 #' @importFrom matrixStats "colSums2" "rowMeans2" "rowSums2"
 #' @importFrom stringdist "stringdistmatrix"
-.lambda_mle       <- function(seqs, params, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
+.lambda_mle       <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
   theta           <- params$theta
   P               <- attr(seqs, "P")
   V1V             <- attr(seqs, "V1V")
   lV1             <- attr(seqs, "logV1")
   W               <- attr(seqs, "W")
-  l.meth          <- match.arg(l.meth)
+  l.meth          <- match.arg(modtype)
   noise           <- attr(seqs, "Noise")
   n.meth          <- is.element(l.meth, c("CU", "UU", "CUN", "UUN"))
   p.meth          <- is.element(l.meth, c("UC", "UU", "UCN", "UUN"))
@@ -315,7 +315,7 @@
 
 #' @importFrom matrixStats "colMeans2" "colSums2" "rowSums2"
 #' @importFrom nnet "multinom"
-.M_step           <- function(seqs, l.meth = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
+.M_step           <- function(seqs, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
                               ctrl, gating = NULL, covars = NULL, z = NULL, numseq = NULL) {
   if(!is.null(gating))    {
     environment(gating)  <- environment()
@@ -333,7 +333,7 @@
       z           <- z * attr(seqs, "Weights")
     }
     if((gate.g    <- ctrl$gate.g))    {
-      prop        <- if(is.element(l.meth, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) colSums2(z)/attr(seqs, "W") else colMeans2(z) }
+      prop        <- if(is.element(modtype, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) colSums2(z)/attr(seqs, "W") else colMeans2(z) }
       if(!noise   || ctrl$noise.gate) {
         fitG      <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
         tau       <- fitG$fitted.values
@@ -352,9 +352,9 @@
     }
   }   else prop   <- tau <- 1L
   theta           <- .optimise_theta(seqs=seqs, ctrl=ctrl, z=z, numseq=numseq)
-  MLE             <- .lambda_mle(seqs=seqs, params=list(theta=theta, z=z, prop=prop), l.meth=l.meth, ctrl=ctrl, numseq=numseq)
+  MLE             <- .lambda_mle(seqs=seqs, params=list(theta=theta, z=z, prop=prop), modtype=modtype, ctrl=ctrl, numseq=numseq)
   param           <- list(theta=theta, lambda=MLE$lambda, dG=if(G > 1) MLE$dG, tau=tau, fitG=if(G > 1 && gate.g) fitG)
-  attr(param, "l.meth")  <- l.meth
+  attr(param, "modtype") <- modtype
     return(param)
 }
 
@@ -526,6 +526,11 @@
   }
 }
 
+.unique_list      <- function(x) {
+  x               <- lapply(x, function(x) { attributes(x) <- NULL; x} )
+    sum(duplicated.default(x, nmax=1L))   == length(x) - 1L
+}
+
 .unMAP            <- function(classification, groups = NULL, noise = NULL, ...) {
   n               <- length(classification)
   u               <- sort(unique(classification))
@@ -554,7 +559,7 @@
   }
   z               <- matrix(0L, n, k, dimnames = c(names(classification), nam))
   for(j in seq_len(k)) {
-    z[classification  == groups[j], j] <- 1
+    z[classification  == groups[j], j] <- 1L
   }
     return(z)
 }

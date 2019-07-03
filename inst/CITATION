@@ -1,0 +1,44 @@
+citHeader("To cite the 'MEDseq' package in publications, please use:")
+
+citEntry(entry  = "Article",
+  author  = personList(person(given="Keefe", family="Murphy"),
+                       person(given=c("Thomas", "Brendan"), family="Murphy"),
+                       person(given=c("Isobel", "Claire"), family="Gormley"),
+                       person(given="Raffaella", family="Piccarreta")),
+  title   = "Mixtures of Exponential-Distance Models for Clustering Longitudinal Life-Course Sequences",
+  year    = "2019",
+  journal = "To appear",
+  volume  = "",
+  number  = "",
+  pages   = "",
+  url     = "https://arxiv.org/abs/19xx.xxxxx",
+  archivePrefix = "arXiv",
+  eprint  = "19xx.xxxxx",
+  primaryClass  = "stat.ME",
+
+  textVersion   =
+    paste0("Keefe Murphy, T. Brendan Murphy, I. Claire Gormley, and Raffaella Piccarreta (2019). ",
+           "Mixtures of Exponential-Distance Models for Clustering Longitudinal Life-Course Sequences. ",
+           "To appear. ",
+           "Pre-print available at arXiv. ",
+           "URL: https://arxiv.org/abs/19xx.xxxxx.")
+)
+
+year     <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)
+vers     <- paste("package version", meta$Version)
+
+citEntry(entry  = "Manual",
+  author  = personList(person(given="Keefe", family="Murphy"),
+                       person(given=c("Thomas", "Brendan"), family="Murphy"),
+                       person(given=c("Isobel", "Claire"), family="Gormley"),
+                       person(given="Raffaella", family="Piccarreta")),
+  title   = "\\texttt{\\textup{MEDseq}}: Mixtures of Exponential-Distance Models with Covariates",
+  year    = year,
+  note    = paste0("{R} ", vers),
+  url     = "https://cran.r-project.org/package=MEDseq",
+
+  textVersion   =
+    paste0("Keefe Murphy, T. Brendan Murphy, I. Claire Gormley, and Raffaella Piccarreta (", year, "). ",
+           "MEDseq: Mixtures of Exponential-Distance Models with Covariates. ",
+           "URL: https://cran.r-project.org/package=MEDseq ", "R ", vers)
+)
