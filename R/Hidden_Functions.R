@@ -202,13 +202,13 @@
 }
 
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowMeans2" "rowSums2"
-.EM_algorithm     <- function(SEQ, numseq, g, modtype, z, ctrl, gating = NULL, covars = NULL, ll = NULL) {
+.EM_algorithm     <- function(SEQ, numseq, g, modtype, z, ctrl, gating = NULL, covars = NULL, HAM.mat = NULL, ll = NULL) {
   algo            <- ctrl$algo
   itmax           <- ctrl$itmax
   st.ait          <- ctrl$stopping == "aitken"
   tol             <- ctrl$tol
   if(!(runEM      <- g > 1))   {
-    Mstep         <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq)
+    Mstep         <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, HAM.mat=HAM.mat)
     ll            <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
     j             <- 1L
     ERR           <- FALSE
@@ -218,7 +218,7 @@
     emptywarn     <- TRUE
     while(isTRUE(runEM))       {
       j           <- j + 1L
-      Mstep       <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z)
+      Mstep       <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z, HAM.mat=HAM.mat)
       Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
       z           <- Estep$z
       ERR         <- any(is.nan(z))
@@ -316,7 +316,7 @@
 #' @importFrom matrixStats "colMeans2" "colSums2" "rowSums2"
 #' @importFrom nnet "multinom"
 .M_step           <- function(seqs, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
-                              ctrl, gating = NULL, covars = NULL, z = NULL, numseq = NULL) {
+                              ctrl, gating = NULL, covars = NULL, z = NULL, numseq = NULL, HAM.mat = HAM.mat) {
   if(!is.null(gating))    {
     environment(gating)  <- environment()
   }
@@ -340,7 +340,7 @@
       } else       {
         zN        <- z
         z         <- z[,-G, drop=FALSE]
-        z         <- z/rowSums2(z)
+        z         <- .renorm_z(z)
         z[is.nan(z)]     <- .Machine$double.eps
         fitG      <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
         tau       <- .tau_noise(fitG$fitted.values, zN[,G])
@@ -351,7 +351,7 @@
       tau         <- if(isFALSE(ctrl$equalPro)) prop else if(noise && !ctrl$equalNoise) c(rep((1 - prop[G])/attr(seqs, "G0"), attr(seqs, "G0")), prop[G]) else rep(1/G, G)
     }
   }   else prop   <- tau <- 1L
-  theta           <- .optimise_theta(seqs=seqs, ctrl=ctrl, z=z, numseq=numseq)
+  theta           <- .optimise_theta(seqs=seqs, ctrl=ctrl, z=z, numseq=numseq, HAM.mat=HAM.mat)
   MLE             <- .lambda_mle(seqs=seqs, params=list(theta=theta, z=z, prop=prop), modtype=modtype, ctrl=ctrl, numseq=numseq)
   param           <- list(theta=theta, lambda=MLE$lambda, dG=if(G > 1) MLE$dG, tau=tau, fitG=if(G > 1 && gate.g) fitG)
   attr(param, "modtype") <- modtype
@@ -373,7 +373,7 @@
 }
 
 #' @importFrom stringdist "stringdistmatrix"
-.optimise_theta   <- function(seqs, ctrl, z = NULL, numseq = NULL) {
+.optimise_theta   <- function(seqs, ctrl, z = NULL, numseq = NULL, HAM.mat = NULL) {
   opti            <- ctrl$opti
   ordering        <- ctrl$ordering
   P               <- attr(seqs, "P")
@@ -411,7 +411,7 @@
   }
   
   V               <- attr(seqs, "V")
-  theta.opt       <- .theta_data(seqs=seqs, z=z, ctrl=ctrl)
+  theta.opt       <- .theta_data(seqs=seqs, z=z, ctrl=ctrl, HAM.mat=HAM.mat)
   if(opti == "medoid")       {
       return(if(nmeth) c(theta.opt$theta, NA) else theta.opt$theta)
   }
@@ -495,6 +495,9 @@
     return(list(crits = stats::setNames(x.val[seq_len(pick)], vapply(seq_len(pick), function(p, b=x.ind[p,]) paste0(b[2L], ",", b[1L]), character(1L))), pick = pick))
 }
 
+#' @importFrom matrixStats "rowSums2"
+.renorm_z         <- function(z) z/rowSums2(z)
+
 .replace_levels   <- function(seq, levels = NULL) {
   seq             <- as.numeric(strsplit(seq, "")[[1L]])
     if(is.null(levels)) factor(seq) else factor(seq, levels=seq_along(levels) - any(seq == 0), labels=as.character(levels))
@@ -506,18 +509,18 @@
 }
 
 #' @importFrom stringdist "stringdistmatrix"
-.theta_data       <- function(seqs, z = NULL, ctrl = NULL) {
+.theta_data       <- function(seqs, z = NULL, ctrl = NULL, HAM.mat = HAM.mat) {
   if((G <- attr(seqs, "G"))   == 1L)  {
     sumdist       <- if(ctrl$do.wts)  {
-                          vapply(seq_len(attr(seqs, "N")), function(i) sum(.dseq(seqs, seqs[i]) * attr(seqs, "Weights")), numeric(1L))
-                   } else vapply(seq_len(attr(seqs, "N")), function(i) sum(.dseq(seqs, seqs[i])), numeric(1L))
+                          vapply(seq_len(attr(seqs, "N")), function(i) sum(HAM.mat[i,] * attr(seqs, "Weights")), numeric(1L))
+                   } else vapply(seq_len(attr(seqs, "N")), function(i) sum(HAM.mat[i,]), numeric(1L))
       return(list(theta = seqs[which.min(sumdist)], dsum = min(sumdist)))
   } else           {
     if(is.null(z))               stop("'z' must be supplied if 'G'>1",     call.=FALSE)
     if(is.null(ctrl$nmeth))      stop("'nmeth' must be supplied if 'G'>1", call.=FALSE)
     theta         <- dsum     <- list()
     for(g in seq_len(G - ctrl$nmeth)) {
-      sumdist     <- vapply(seq_len(attr(seqs, "N")), function(i) sum(.dseq(seqs, seqs[i]) * z[,g]), numeric(1L))
+      sumdist     <- vapply(seq_len(attr(seqs, "N")),      function(i) sum(HAM.mat[i,] * z[,g]), numeric(1L))
       theta[[g]]  <- seqs[which.min(sumdist)]
       dsum[[g]]   <- min(sumdist)
     }

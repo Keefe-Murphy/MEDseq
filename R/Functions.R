@@ -38,7 +38,7 @@ dbs               <- function(z, tol = 1E-100, weights = NULL, summ = c("mean", 
   if(any(!is.matrix(z), !is.numeric(z)) ||
      ncol(z)      <= 1     ||
      nrow(z)      <= 1)          stop("'z' must be a numeric matrix with 2 or more columns & 2 or more rows", call.=FALSE)
-  z               <- z/rowSums2(z)
+  z               <- .renorm_z(z)
   if(length(tol)   > 1     ||
      !is.numeric(tol))           stop("Invalid 'tol'", call.=FALSE)
   if(!missing(weights))     {
@@ -495,7 +495,7 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #' @param equalNoise Logical which is only invoked when \code{isTRUE(equalPro)} and gating covariates are not supplied. Under the default setting (\code{FALSE}), the mixing proportion for the noise component is estimated, and remaining mixing proportions are equal; when \code{TRUE} all components, including the noise component, have equal mixing proportions.
 #' @param tol A vector of length two giving relative convergence tolerances for 1) the log-likelihood of the EM/CEM algorithm, and 2) optimisation in the multinomial logistic regression in the gating network, respectively. The default is \code{c(1e-05, 1e-08)}. If only one number is supplied, it is used as the tolerance in both cases.
 #' @param itmax A vector of length two giving integer limits on the number of iterations for 1) the EM/CEM algorithm, and 2) the multinomial logistic regression in the gating network, respectively. The default is \code{c(.Machine$integer.max, 100)}.
-#' @param opti Charactering string indicating how central sequence parameters should be estimated. The default "\code{mode}" is exact and thus this experimental argument should only be tampered with by expert users. The option "\code{medoid}" fixes the central sequence(s) to be one of the observed sequences (like k-medoids).
+#' @param opti Charactering string indicating how central sequence parameters should be estimated. The default "\code{mode}" is exact and thus this experimental argument should only be tampered with by expert users. The option "\code{medoid}" fixes the central sequence(s) to be one of the observed sequences (like k-medoids). The other options \code{"first"} and \code{"GA"} use the first-improvement and genetic algorithms, respectively, to mutate the medoid. Pre-computation of the Hamming distance matrix for the observed sequences speeds-up computation of all options other than \code{"mode"}.
 #' @param ordering Experimental feature that should only be tampered with by experienced users. Allows sequences to be reordered on the basis of the column-wise entropy when \code{opti} is "\code{first}" or "\code{GA}".
 #' @param MaxNWts The maximum allowable number of weights in the call to \code{\link[nnet]{multinom}} for the multinomial logistic regression in the gating network. There is no instrinsic limit in the code, but increasing \code{MaxNWts} will probably allow fits that are very slow and time-consuming. It may be necessary to increase \code{MaxNWts} when categorical concomitant variables with many levels are included or the number of components is high.
 #' @param verbose Logical indicating whether to print messages pertaining to progress to the screen during fitting. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise. If \code{FALSE}, warnings and error messages will still be printed to the screen, but everything else will be suppressed.
@@ -796,10 +796,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     if(any(n.meth))              warning("'tau0' is zero: models with noise component will not be fitted\n", call.=FALSE, immediate.=TRUE)
     l.meths       <- c("CC", "UC", "CU", "UU")
   } else l.meths  <- c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN")
+  HAM.mat         <- suppressMessages(seqdist(seqs, "HAM", full.matrix=FALSE))
   if(is.null(dist.mat))        { 
-    dist.mat      <- suppressMessages(seqdist(seqs, "HAM", full.matrix=FALSE))
+    dist.mat      <- HAM.mat
   } else if((sqrt(length(dist.mat) * 2L + N) !=
              N))                 stop("Invalid 'dist.mat' dimensions", call.=FALSE)
+  HAM.mat         <- as.matrix(HAM.mat)
   
   if((gate.x      <- !missing(gating))) {
     if(!inherits(gating, 
@@ -879,6 +881,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     weights       <- if(do.wts) counts * agg.DF$weights[agg.id][uni.ind] else counts
     if(ctrl$do.wts       <- (length(unique(weights)) > 1)) {
       dist.mat2   <- dist.mat
+      HAM.mat2    <- HAM.mat[uni.ind,uni.ind]
       w2          <- rep(0L, N)
       w2[uni.ind]        <- weights
       dist.mat    <- stats::as.dist(as.matrix(dist.mat)[uni.ind,uni.ind])
@@ -897,6 +900,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     uni.ind       <- rep(TRUE, N)
     w2            <- weights
     dist.mat2     <- dist.mat
+    HAM.mat2      <- HAM.mat
   }
   
   if(any(G        != floor(G))    &&
@@ -1004,6 +1008,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     CV.x          <- BICs
     cv.ind        <- sample(N)
     cv.SEQ        <- SEQ[cv.ind]
+    gCV           <- covars[cv.ind,,        drop=FALSE]
+    hmCV          <- HAM.mat[cv.ind,cv.ind, drop=FALSE]
     if(ctrl$numseq)         {
       cv.numseq   <- numseq[,cv.ind, drop=FALSE]
     }
@@ -1089,7 +1095,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         if(isTRUE(nonoise)) {
           switch(EXPR=init.z, 
                  list=      {
-          zg      <- z.list[[h]]/rowSums2(z.list[[h]])
+          zg      <- .renorm_z(z.list[[h]])
           },       {
           zg      <- .unMAP(switch(EXPR=init.z, 
                                    random=sample(seq_len(g),  size=N, replace=TRUE),
@@ -1103,7 +1109,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         if(isTRUE(noise))   {
           switch(EXPR=init.z, 
                  list=      {
-          zg0     <- z.list[[h]]/rowSums2(z.list[[h]])
+          zg0     <- .renorm_z(z.list[[h]])
           },       {
           if(g0    > 1)     {
             zg0   <- .unMAP(switch(EXPR=init.z, 
@@ -1154,36 +1160,36 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
          switch(EXPR=algog,
                cemEM=          {
             ctrl$algo      <- "CEM"
-            EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],  ctrl=ctrl, gating=gating, covars=covars)
+            EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],  ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2)
             if(!EMX[[i]]$ERR)  {
               ctrl$algo    <- "EM"
               tmpEMX       <- EMX[[i]]
               j.i          <- pmax(tmpEMX$j, 2L)
-              EMX[[i]]     <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=tmpEMX$z, ctrl=ctrl, gating=gating, covars=covars, ll=tmpEMX$ll[c(j.i - 1L, j.i)])
+              EMX[[i]]     <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=tmpEMX$z, ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, ll=tmpEMX$ll[c(j.i - 1L, j.i)])
               if(EMX[[i]]$ERR) {
                 EMX[[i]]   <- tmpEMX
                 ctrl$algo  <- "CEM"
               }
             }
-         }, EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],  ctrl=ctrl, gating=gating, covars=covars))
+         }, EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],  ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2))
         }
         EMX       <- EMX[[which.max(vapply(lapply(EMX, "[[", "ll"), max, numeric(1L)))]]
       } else       {
         switch(EXPR=algog,
               cemEM=        {
           ctrl$algo        <- "CEM"
-          EMX              <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,       ctrl=ctrl, gating=gating, covars=covars)
+          EMX              <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,       ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2)
           if(!EMX$ERR)      {
             ctrl$algo      <- "EM"
             tmpEMX         <- EMX
             j.i            <- pmax(EMX$j, 2L)
-            EMX            <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=EMX$z,    ctrl=ctrl, gating=gating, covars=covars, ll=EMX$ll[c(j.i - 1L, j.i)])
+            EMX            <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=EMX$z,    ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, ll=EMX$ll[c(j.i - 1L, j.i)])
             if(EMX$ERR)     {
               EMX          <- tmpEMX
               ctrl$algo    <- "CEM"
             }
           }
-        }, EMX             <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,       ctrl=ctrl, gating=gating, covars=covars))
+        }, EMX             <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,       ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2))
       }
       ERR         <- EMX$ERR
       j           <- EMX$j
@@ -1199,14 +1205,13 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       } else if(cvsel.X)    {
         ctrl$warn <- FALSE
         lCV       <- vector("numeric", nfolds)
-        zCV       <- z[cv.ind,,      drop=FALSE]
-        gCV       <- covars[cv.ind,, drop=FALSE]
+        zCV       <- z[cv.ind,,    drop=FALSE]
         for(i in foldseq)   {
           testX   <- which(cv.folds == i)
           CVS     <- cv.SEQ[testX]
           SCV     <- cv.SEQ[-testX]
-          CVz     <- zCV[-testX,,    drop=FALSE]
-          CVg     <- gCV[-testX,,    drop=FALSE]
+          CVz     <- zCV[-testX,, drop=FALSE]
+          CVg     <- gCV[-testX,, drop=FALSE]
           attributes(CVS)  <-
           attributes(SCV)  <- attributes(SEQ)
           attr(CVS, "N")   <- fcount[i]
@@ -1226,7 +1231,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
             nCV   <-
             CVn   <- NULL
           }
-          EMX     <- .EM_algorithm(SEQ=SCV, numseq=nCV, g=g, modtype=modtype, z=CVz, ctrl=ctrl, gating=gating, covars=CVg)
+          EMX     <- .EM_algorithm(SEQ=SCV, numseq=nCV, g=g, modtype=modtype, z=CVz, ctrl=ctrl, gating=gating, covars=CVg, HAM.mat = if(ctrl$opti != "mode") hmCV[-testX,-testX, drop=FALSE])
           MCV     <- EMX$Mstep
           if(is.matrix(MCV$tau)) {
             tau.tmp        <- stats::predict(MCV$fitG, newdata=gCV[testX,, drop=FALSE], type="probs")
@@ -1542,7 +1547,6 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
                           ZS      = stats::setNames(ZS, rG),
                           uncert  = if(G > 1) 1 - rowMaxs(x.z) else vector("integer", N),
                           covars  = covars))
-  dist.mat        <- as.matrix(dist.mat2)
   N               <- length(MAP)
   if(!all((unip   <- unique(MAP)) == 0)) {
     Nseq          <- seq_len(N)
@@ -1550,9 +1554,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     set.seed(100)
     for(g in sort(unip[unip > 0]))  {
       srows       <- Nseq[MAP2 == g]
-      meds        <- c(meds, srows[which.min(rowSums2(dist.mat[srows,srows, drop=FALSE]))])
+      meds        <- c(meds, srows[which.min(rowSums2(HAM.mat[srows,srows, drop=FALSE]))])
     }
-    perm          <- get_order(seriate(stats::as.dist(dist.mat[meds,meds]), method="TSP"))
+    perm          <- get_order(seriate(stats::as.dist(HAM.mat[meds,meds]), method="TSP"))
   } else perm     <- NULL
   attr(results, "Algo")         <- algo
   attr(results, "ASW")          <- do.asw
@@ -1560,7 +1564,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(results, "Criterion")    <- criterion
   attr(results, "CV")           <- cvsel
   attr(results, "DBS")          <- do.dbs
-  attr(results, "DistMat")      <- dist.mat
+  attr(results, "DistMat")      <- HAM.mat
   attr(results, "EqualPro")     <- x.ctrl$equalPro
   attr(results, "EqualNoise")   <- x.ctrl$equalNoise
   attr(results, "Gating")       <- x.gcov | bG
