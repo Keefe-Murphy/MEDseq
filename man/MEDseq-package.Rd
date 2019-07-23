@@ -51,7 +51,7 @@ mvad          <- list(sequences = mvad[,15L:86L], weights = mvad[,2],
                       covariates = mvad[c(3:4,10:14,87)])
 mvad.cov      <- mvad$covariates
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
-labels        <- c("employment", "FE", "HE", "joblessness", "school", "training")
+labels        <- c("Employment", "FE", "HE", "Joblessness", "School", "Training")
 mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
                         
 # Fit a range of unweighted models without covariates

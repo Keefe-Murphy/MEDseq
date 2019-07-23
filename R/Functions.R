@@ -144,6 +144,8 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
        criterion  == "dbs"    ||
        criterion  == "asw")   &&
       !m.G  &&  G == 1)          stop(paste0("Can't select based on the ", toupper(criterion), " criterion when G=1"), call.=FALSE)
+    if(criterion  == "dbs"    &&
+       attr(x, "Algo") == "CEM") stop(paste0("Can't select based on the ", toupper(criterion), " criterion as the CEM algorithm was used to fit the model"), call.=FALSE)
     if(criterion  == "cv"     &&
        !attr(x, "CV"))           stop("Can't select based on the CV criterion as cross-validated likelihood wasn't performed", call.=FALSE)
     tmp           <- switch(EXPR=criterion, bic=x$BIC, icl=x$ICL, aic=x$AIC, cv=x$CV, nec=x$NEC, dbs=x$DBS, asw=x$ASW, loglik=x$LOGLIK)
@@ -689,7 +691,6 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @importFrom cluster "agnes" "pam"
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowMaxs" "rowMeans2" "rowSums2" "weightedMedian" "weightedMean"
 #' @importFrom nnet "multinom"
-#' @importFrom seriation "get_order" "seriate"
 #' @importFrom stringdist "stringdistmatrix"
 #' @importFrom WeightedCluster "wcKMedoids" "wcSilhouetteObs"
 #' @export
@@ -717,7 +718,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #'                       covariates = mvad[c(3:4,10:14,87)])
 #' mvad.cov      <- mvad$covariates
 #' states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
-#' labels        <- c("employment", "FE", "HE", "joblessness", "school", "training")
+#' labels        <- c("Employment", "FE", "HE", "Joblessness", "School", "Training")
 #' mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
 #'                         
 #' # Fit a range of unweighted models without covariates
@@ -1412,7 +1413,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   class(x.theta)                <- "MEDtheta"
   Gseq            <- seq_len(G)
   colnames(x.z)   <- if(G == 1  && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq)
-  MAP             <- MAP2       <- max.col(x.z)
+  MAP             <- max.col(x.z)
   MAP             <- if(noise) replace(MAP, MAP == G, 0L) else MAP
   equalPro        <- equal.tau[1L   + noise,best.G] 
   equalNoise      <- equal.n0[1L    + noise,best.G] 
@@ -1545,22 +1546,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   results         <- if(cvsel)           c(results, list(cv  = x.cv))  else results
   results         <- c(results, list(
                           ZS      = stats::setNames(ZS, rG),
-                          uncert  = if(G > 1) 1 - rowMaxs(x.z) else vector("integer", N),
+                          uncert  = if(G > 1) 1 - rowMaxs(x.z) else vector("integer", N2),
                           covars  = covars))
-  N               <- length(MAP)
-  if(!all((unip   <- unique(MAP)) == 0)) {
-    Nseq          <- seq_len(N)
-    meds          <- NULL
-    set.seed(100)
-    for(g in sort(unip[unip > 0]))  {
-      srows       <- Nseq[MAP2 == g]
-      meds        <- c(meds, srows[which.min(rowSums2(HAM.mat[srows,srows, drop=FALSE]))])
-    }
-    perm          <- get_order(seriate(stats::as.dist(HAM.mat[meds,meds]), method="TSP"))
-  } else perm     <- NULL
   attr(results, "Algo")         <- algo
   attr(results, "ASW")          <- do.asw
-  attr(results, "Counts")       <- if(do.uni) c2         else rep(1L, N)
+  attr(results, "Counts")       <- if(do.uni) c2         else rep(1L, N2)
   attr(results, "Criterion")    <- criterion
   attr(results, "CV")           <- cvsel
   attr(results, "DBS")          <- do.dbs
@@ -1568,12 +1558,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(results, "EqualPro")     <- x.ctrl$equalPro
   attr(results, "EqualNoise")   <- x.ctrl$equalNoise
   attr(results, "Gating")       <- x.gcov | bG
-  attr(results, "N")            <- N
+  attr(results, "N")            <- N2
   attr(results, "NEC")          <- do.nec
   attr(results, "Noise")        <- noise
   attr(results, "NoiseGate")    <- x.ctrl$noise.gate
   attr(results, "P")            <- P
-  attr(results, "Seriate")      <- if(noise)  c(perm, G) else perm
   attr(results, "Unique")       <- do.uni
   attr(results, "V")            <- V
   attr(results, "Weighted")     <- do.wts
@@ -1614,9 +1603,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{"\code{i}"}{Selected sequence index plots (by cluster).}
 #' \item{"\code{I}"}{Whole set index plots.}
 #' }
-#' @param seriate Logical indicating whether seriation should be used to reorder clusters for visualisation purposes (defaults to \code{TRUE}). See \code{\link[seriation]{seriate}}. Only relevant when \code{type} is one of "\code{clusters}", "\code{mean}", "\code{precision}", "\code{gating}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}". Additionally, observations within clusters are also reordered when \code{type} is one of "\code{clusters}" or "\code{gating}".
+#' @param seriate Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The options \code{"clusters"} and \code{"both"} are only invoked when \code{type} is one of "\code{clusters}", "\code{mean}", "\code{precision}", "\code{gating}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}". Additionally, the options \code{"observations"} and \code{"both"} are only invoked when \code{type} is one of "\code{clusters}" or "\code{gating}".
+#' @param preczero Logical indicating whether central sequence parameter positions corresponding to zero-valued precision parameters (if any!) should also be suppressed for the non-noise components. Defaults to \code{TRUE}; noise-component means are never shown regardless of the value of \code{preczero}.
 #' @param log.scale Logical indicating whether precision parameter heatmaps should be plotted on the log-scale when \code{type="precision"}. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are effected. Heavily imbalanced values are more likely for the "\code{UU}" and "\code{UUN}" model types, thus \code{log.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise.
-#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed, as well as the \code{x.axis} argument when \code{type="gating"}.
+#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}, as well as the \code{x.axis} argument when \code{type="gating"}.
 #'
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
 #' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the "\code{MEDseq}" object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of "\code{clusters}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}".
@@ -1628,13 +1618,14 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #'                "cv", "LOGLIK", "dbsvals", "aswvals", 
 #'                "uncert.bar", "uncert.profile", "loglik", 
 #'                "d", "f", "Ht", "i", "I"), 
-#'        seriate = TRUE, 
-#'        log.scale = NULL, 
+#'        seriate = c("observations", "both", "clusters", "none"), 
+#'        preczero = TRUE,
+#'        log.scale = FALSE, 
 #'        ...)
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
 #' @keywords plotting main
 #' @export
-#' @importFrom matrixStats "rowSums2" "weightedMedian" "weightedMean"
+#' @importFrom matrixStats "rowMaxs" "rowSums2" "weightedMedian" "weightedMean"
 #' @importFrom seriation "get_order" "seriate"
 #' @importFrom TraMineR "seqdef" "seqdist" "seqplot"
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}
@@ -1650,7 +1641,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #'                       covariates = mvad[c(3:4,10:14,87)])
 #' mvad.cov      <- mvad$covariates
 #' states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
-#' labels        <- c("employment", "FE", "HE", "joblessness", "school", "training")
+#' labels        <- c("Employment", "FE", "HE", "Joblessness", "School", "Training")
 #' mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
 #'                         
 #' # Fit a range of unweighted models without covariates
@@ -1683,15 +1674,19 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' # Note that these plots may not display properly in the preview panel
 #' plot(mod2, "dbsvals")
 #' plot(mod2, "Ht")}
-plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gating", "dbs", "asw", "bic", "icl", "aic", "nec", "cv", "LOGLIK", "dbsvals", "aswvals", 
-                                          "uncert.bar", "uncert.profile", "loglik", "d", "f", "Ht", "i", "I"), seriate = TRUE, log.scale = NULL, ...) {
+plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gating", "dbs", "asw", "bic", "icl", "aic", "nec", "cv", "LOGLIK", "dbsvals", "aswvals", "uncert.bar", "uncert.profile", 
+                                          "loglik", "d", "f", "Ht", "i", "I"), seriate = c("observations", "both", "clusters", "none"), preczero = TRUE, log.scale = FALSE, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(type)           &&
      (length(type)       > 1  ||
-      !is.character(type)))      stop("'type' must be a character vector of length 1", call.=FALSE)
-  if(length(seriate)     > 1  ||
-     !is.logical(seriate))       stop("'seriate' must be a single logical indicator",  call.=FALSE)
+      !is.character(type)))      stop("'type' must be a character vector of length 1",    call.=FALSE)
+  if(!missing(seriate)        &&
+     (length(seriate)    > 1  ||
+      !is.character(seriate)))   stop("'seriate' must be a character vector of length 1", call.=FALSE)
   type            <- match.arg(type)
+  seriate         <- match.arg(seriate)
+  sericlus        <- is.element(seriate, c("both", "clusters"))
+  seriobs         <- is.element(seriate, c("both", "observations"))
   savepar         <- graphics::par(no.readonly=TRUE)
   on.exit(graphics::par(savepar))
   G               <- x$G
@@ -1703,7 +1698,6 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   weighted        <- attr(x, "Weighted")
   dat             <- x$data
   modtype         <- x$modtype
-  Gseq    <- perm <- seq_len(G)
   Nseq            <- seq_len(N)
   Pseq            <- seq_len(P)
   symbols         <- c(17, 2, 16, 10, 13, 18, 15, 7)
@@ -1719,82 +1713,68 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   }
   dots            <- list(...)
   dots            <- dots[unique(names(dots))]
-  switch(EXPR=type, dbsvals=, aswvals= {
-    has.dot       <- length(dots) > 0
-  }, {
-    if((has.dot   <- length(dots) > 0 && any(names(dots)  == "what")))    {
-      MAP         <- dots$MAP
-      if(length(MAP)    != N  ||
-         !is.numeric(MAP)     ||
-        MAP       != floor(MAP)) stop(paste0("'MAP' must be an integer vector of length N=", N),  call.=FALSE)
+  has.dot         <- length(names(dots)[names(dots) != "what"]) > 0
+  if((has.MAP     <- length(dots) > 0 && any(names(dots)  == "MAP")))    {
+    MAP           <- dots$MAP
+    if(length(MAP)      != N  ||
+       !is.numeric(MAP)       ||
+       MAP        != floor(MAP)) stop(paste0("'MAP' must be an integer vector of length N=", N),  call.=FALSE)
+  } else MAP      <- x$MAP
+  if(is.element(type,    c("clusters", "d", "f", "Ht", "i", "I"))       ||
+    (isTRUE(sericlus) && (is.element(type, c("mean", "precision"))      ||
+    (type == "gating" && attr(x, "Gating"))))) {
+    if(!is.element(type, c("gating", "mean", "precision"))) {
+      if(has.MAP)  {
+        G         <- length(unique(MAP))
+        noise     <- any(MAP  == 0)
+      } else if(has.dot)       {
+        MAP       <- do.call(get_MEDseq_results, c(list(x=x, what="MAP"), dots[!(names(dots) %in% c("x", "what"))]))
+        G         <- attr(MAP, "G")
+        noise     <- attr(MAP, "Noise")
+      }
     }
-  })
-  if(is.element(type, c("clusters", "gating", "d", "f", "Ht", "i", "I")) ||
-     all(isTRUE(seriate), is.element(type, c("mean", "precision"))))      {
+    if(isTRUE(sericlus)       &&
+       !all((unip <- unique(MAP)) == 0))       {
+      meds        <- NULL
+      set.seed(100)
+      for(g in sort(unip[unip > 0]))           {
+        srows     <- Nseq[MAP == g]
+        meds      <- c(meds, srows[which.min(rowSums2(dmat[srows,srows, drop=FALSE]))])
+      }
+      perm        <- c(get_order(seriate(stats::as.dist(dmat[meds,meds]), method="TSP")), G)
+    }
     switch(EXPR=type,
-           mean=,
-      precision=,
-         gating=   {
-     perm         <- if(isTRUE(noise) && type == "gating") replace(attr(x, "Seriate"), G, 0L) else attr(x, "Seriate")
-     MAP          <- x$MAP
-     switch(EXPR=type,
-            mean= {
+             mean= {
        theta      <- theta[perm,,  drop=FALSE]
      }, precision= {
        lambda     <- lambda[perm,, drop=FALSE]
-     })
-    },             {
-      if(length(dots) > 0) {
-        if(has.dot)   {
-          G       <- length(unique(MAP))
-          noise   <- any(MAP  == 0)
-        } else     {
-          MAP     <- do.call(get_MEDseq_results, c(list(x=x, what="MAP"), dots[!(names(dots) %in% c("x", "what"))]))
-          G       <- attr(MAP, "G")
-          noise   <- attr(MAP, "Noise")
-        }
-        Gseq      <-
-        perm      <- seq_len(G)
-        if(isTRUE(seriate))    {
-          unip    <- unique(MAP)
-          meds    <- NULL
-          set.seed(100)
-          for(g in sort(unip[unip > 0])) {
-            srows <- Nseq[MAP == g]
-            meds  <- c(meds, srows[which.min(rowSums2(dmat[srows,srows, drop=FALSE]))])
-          }
-          perm    <- get_order(seriate(stats::as.dist(dmat[meds,meds]), method="TSP"))
-        }
-      } else       {
-        MAP       <- x$MAP
-        perm      <- if(isTRUE(seriate)) attr(x, "Seriate") else perm
-      }
-      perm        <- if(isTRUE(noise)) replace(perm, G, 0L) else perm
     })
   }
-  perm            <- if(noise && !is.element(type, c("clusters", "gating"))) replace(perm, G, "Noise") else perm
+  Gseq            <- seq_len(G)
+  perm            <- if(isTRUE(sericlus)) perm else Gseq
+  perm            <- if(isTRUE(noise))    replace(perm, G, ifelse(is.element(type, c("clusters", "gating")), 0L, "Noise")) else perm
 
-  switch(EXPR=type,
-         clusters=,
-         gating=   {
+  if(type == "clusters" || 
+    (type == "gating"   && 
+    attr(x,  "Gating"))) {
     glo.order     <-
     num.cl        <- NULL
     set.seed(200)
     for(g in Gseq) {
       srows       <- Nseq[MAP == perm[g]]
       num.cl      <- c(num.cl, length(srows))
-      glo.order   <- c(glo.order, srows[get_order(seriate(stats::as.dist(dmat[srows,srows]), method="TSP"))])
+      glo.order   <- c(glo.order, if(isTRUE(seriobs)) srows[get_order(seriate(stats::as.dist(dmat[srows,srows]), method="TSP"))] else srows)
     }
     cum.cl        <- cumsum(num.cl)
     gcl           <- c(0L, cum.cl)
-  })
+  }
   
   switch(EXPR=type,
          clusters= {
     graphics::layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
     OrderedStates <- data.matrix(.fac_to_num(dat))[glo.order,]
     graphics::image(x=Pseq, z=t(OrderedStates), y=Nseq, zlim=c(1, length(cpal.x)), xlim=c(1, P), ylim=c(1, N),
-                    axes=FALSE, xlab="", ylab="Clusters", col=cpal.x, main=ifelse(seriate, "Observations Ordered by Cluster", "Clusters"))
+                    axes=FALSE, xlab="Time", ylab="Clusters", col=cpal.x, main=switch(EXPR=seriate, none="Clusters", observations="Observations Ordered Within Clusters", clusters="Ordered Clusters", "Ordered Clusters and Observations"))
     graphics::box(lwd=2)
     graphics::axis(side=1, at=Pseq, labels=attr(x$data, "names"), cex.axis=0.75)
     graphics::axis(side=2, at=gcl[-length(gcl)] + diff(gcl)/2, labels=if(noise) replace(perm, G, "Noise") else perm, lwd=1, line=-0.5, las=2, tick=FALSE, cex.axis=0.75)
@@ -1808,25 +1788,33 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     graphics::layout(1)
       invisible()
   }, mean=         {
+    miss.prec     <- missing(preczero)
+    if(length(preczero)  > 1  ||
+       !is.logical(preczero))    stop("'preczero' must be a single logical indicator", call.=FALSE)
     lmiss         <- lambda   == 0
-    if(indmiss    <-
-       any(lmiss)) {
+    if(indmiss    <- 
+       any(lmiss))       {
       lab         <- c(label.x, expression(paste(lambda, " = 0")))
       mV          <- V   + 1L
       if(any(gmiss      <- apply(lmiss, 1L, all))) {
-        if(G    == 1L)   {       message("The single central sequence is entirely missing\n")
+        if(G      == 1L) {       message("The single central sequence is entirely missing\n")
         } else                   message(paste0("One or more central sequences (", paste(shQuote(ifelse(noise && which(gmiss) == G, "Noise", which(gmiss))), collapse=" & "), ") are entirely missing\n"))
-      }
+      }   else                   message("Discarding sequence positions corresponding to zero-valued precision parameters:\nSupply 'preczero'=FALSE to change this behaviour\n")
+    }     else if(!miss.prec)    message("No missing values to discard\n")
+    if(isTRUE(preczero)) {
+      missind           <- which(tabulate(theta[!lmiss], nbins=V) == 0)
+      theta[lmiss]      <- NA
+    } else if(indmiss)   {
+      missind           <- which(tabulate(theta,         nbins=V) == 0)
+      theta[gmiss,]     <- NA
     }
-    missind       <- which(tabulate(theta[!lmiss], nbins=V) == 0)
-    theta[lmiss]  <- NA
     l.ncol        <- ceiling(mV/ifelse(mV > 6, 3, 2))
     if(vmiss      <-
        any(missind))             message(paste0("One or more sequence categories (", paste(shQuote(label.x[missind]), collapse=" & "), ") are entirely missing\n"))
     dat           <- suppressMessages(seqdef(as.data.frame(theta), states=alpha.x, labels=label.x, cpal=if(vmiss) c(cpal.x[-missind], rep(NA, length(missind))) else cpal.x))
     attr(dat, "names")  <- attr(x$data, "names")
     graphics::layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
-    seqplot(dat, type="I", with.legend=FALSE, main="Central Sequences Plot", border=NA, missing.color=graphics::par()$bg, ylab=paste0(G, " seq. (N=", N, ")"), yaxis=FALSE, cex.axis=0.75)
+    seqplot(dat, type="I", with.legend=FALSE, main="Central Sequences Plot", border=NA, missing.color=graphics::par()$bg, yaxis=FALSE, cex.axis=0.75, ylab=switch(EXPR=seriate, clusters=, both="Ordered Clusters", "Clusters"), xlab="Time")
     if(G > 1) graphics::axis(2, at=seq_len(G) - 0.5, labels=as.character(perm), tick=FALSE, las=2, line=-0.5, cex.axis=0.75)
     graphics::par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=FALSE)
     graphics::plot.new()
@@ -1850,8 +1838,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     cmat[num.ind]          <- cols[as.numeric(facs)]
     levels        <- sort(unique(as.vector(cmat)))
     z             <- matrix(unclass(factor(cmat, levels=levels, labels=seq_along(levels))), nrow=P, ncol=G, byrow=TRUE)
-    Gseq          <- seq_len(G)
-    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Positions", ylab="Clusters", main=paste0("Precision Parameters Plot", ifelse(log.scale, " (Log Scale)",  "")))
+    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Positions", ylab=switch(EXPR=seriate, clusters=, both="Ordered Clusters", "Clusters"), main=paste0("Precision Parameters Plot", ifelse(log.scale, " (Log Scale)",  "")))
     graphics::axis(1, at=Pseq, tick=FALSE, las=1, cex.axis=0.75, labels=Pseq)
     graphics::axis(2, at=Gseq, tick=FALSE, las=1, cex.axis=0.75, labels=as.character(perm))
     graphics::box(lwd=2)
@@ -1880,33 +1867,35 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   }, gating=       {
     suppressWarnings(graphics::par(pty="m"))
     Tau        <- .mat_byrow(x$params$tau, nrow=N, ncol=ncol(x$z))
-    Tau        <- if(isTRUE(seriate)) Tau[,perm, drop=FALSE]      else Tau
-    if(miss.x  <- length(dots) > 0 && any(names(dots) == "x.axis")) {
+    sericlus   <- isTRUE(sericlus)   && attr(x, "Gating")
+    seriobs    <- isTRUE(seriobs)    && attr(x, "Gating")
+    Tau        <- if(isTRUE(sericlus))  Tau[,perm, drop=FALSE]      else Tau
+    if(miss.x  <- length(dots) > 0   && any(names(dots) == "x.axis")) {
       x.axis   <- dots$x.axis
     } else         {
-      Tau      <- if(isTRUE(seriate)) Tau[glo.order,, drop=FALSE] else Tau
+      Tau      <- if(isTRUE(seriobs))   Tau[glo.order,, drop=FALSE] else Tau
       x.axis   <- seq_len(N)
     }
-    xlab       <- ifelse(miss.x, "", ifelse(isTRUE(seriate), "Seriated Observations", "Observation"))
+    xlab       <- ifelse(miss.x, "", ifelse(isTRUE(seriobs), "Seriated Observations", ifelse(isTRUE(sericlus), "Observations", "Observation")))
     type       <- ifelse(miss.x, "p", "l")
-    col        <- if(noise)  replace(seq_len(G), G, "grey65")     else seq_len(G)
+    col        <- if(noise)  replace(seq_len(G), G, "grey65")       else seq_len(G)
     if(length(x.axis) != N)      stop("'x.axis' must be of length N", call.=FALSE)
     if(x.fac   <- is.factor(x.axis)) {
       xlev     <- levels(x.axis)
       x.axis   <- as.integer(x.axis)
       xaxt     <- "n"
     } else      {
-      xaxt     <- ifelse(isTRUE(seriate), "n", "s")
+      xaxt     <- ifelse(any(seriobs, sericlus), "n", "s")
     }
     graphics::matplot(x=x.axis, y=Tau, type=type, main="Gating Network", xaxt=xaxt, xlab=xlab, ylab="", col=col, pch=1)
     graphics::mtext(expression(widehat(tau)[g]), side=2, las=2, line=3)
     if(x.fac)   {
       graphics::axis(1, at=unique(x.axis), labels=xlev)
     }
-    if(isTRUE(seriate)) {
+    if(isTRUE(sericlus)) {
       graphics::abline(v=cum.cl)
       graphics::mtext(perm, at=gcl[-length(gcl)] + diff(gcl)/2, side=1, las=1)
-      graphics::mtext("Cluster", side=1, line=1, las=1)
+      graphics::mtext("Ordered Clusters", side=1, line=1, las=1)
     }
   }, cv=,
      bic=,
@@ -1921,17 +1910,17 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     dat           <- switch(EXPR=type, cv=x$CV, bic=x$BIC, icl=x$ICL, aic=x$AIC, nec=x$NEC, dbs=x$DBS, asw=x$ASW, LOGLIK=x$LOGLIK)
     if(type ==  "nec"     &&
       (!attr(x, "NEC")     || 
-       is.null(dat)))            stop("NEC values cannot be plotted", call.=FALSE)
+       is.null(dat)))            stop(paste0("NEC values cannot be plotted as ", ifelse(attr(x, "NEC"), "only 1-component models were fitted", "'do.nec' was set to FALSE")), call.=FALSE)
     if(type ==  "dbs"      &&
       (!attr(x, "DBS")     ||
-       is.null(dat)))            stop("DBS values cannot be plotted", call.=FALSE)
+       is.null(dat)))            stop(paste0("DBS values cannot be plotted as ", ifelse(attr(x, "Algo") == "CEM", "the CEM algorithm was used to fit the models", "only 1-component models were fitted")), call.=FALSE)
     if(type ==  "asw"      &&
       (!attr(x, "ASW")     ||
-       is.null(dat)))            stop("ASW values cannot be plotted", call.=FALSE)
+       is.null(dat)))            stop("ASW values cannot be plotted as only 1-component models were fitted", call.=FALSE)
     ms            <- which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% colnames(dat))
     symbols       <- symbols[ms]
     use.col       <- use.col[ms]
-    graphics::matplot(dat, type="b", xlab="Number of Components (g)", ylab=switch(EXPR=type, cv=, LOGLIK=, asw=, dbs="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
+    graphics::matplot(dat, type="b", xlab="Number of Components (G)", ylab=switch(EXPR=type, cv=, LOGLIK=, asw=, dbs="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
     if(type == "cv")     graphics::mtext(ifelse(weighted, expression("\u2113"["cv"]^"w"), expression("\u2113"["cv"])), side=2, line=3, las=1, cex=1.5)
     if(type == "LOGLIK") graphics::mtext(paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), side=2, line=3, las=3)
     if(type == "dbs")    graphics::mtext(paste0(ifelse(weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " DBS"), side=2, line=3, las=3)
@@ -1945,7 +1934,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
           dbsvals= {
       if(!attr(x, "DBS")     ||
          all(type   == "dbs",
-         is.null(x$DBSvals)))    stop("DBS values cannot be plotted as only 1-component models were fitted", call.=FALSE)
+         is.null(x$DBSvals)))    stop(paste0("DBS values cannot be plotted as ", ifelse(attr(x, "Algo") == "CEM", "the CEM algorithm was used to fit the model", "only 1-component models were fitted")), call.=FALSE)
       object      <- if(has.dot) do.call(get_MEDseq_results, c(list(x=x, what="DBS"), dots[!(names(dots) %in% c("x", "what"))])) else x$dbsvals
     },    aswvals= {
       if(!attr(x, "ASW")     ||
@@ -1994,7 +1983,11 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   }, uncert.profile=,
      uncert.bar=   {
     graphics::par(pty="m", mar=c(5.1, 4.1, 4.1, 3.1))
-    uncX          <- x$uncert
+    if(has.dot)    {
+      z           <- do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))]))
+      G           <- ncol(z)
+      uncX        <- 1 - rowMaxs(z)
+    } else uncX   <- x$uncert
     oneG          <- 1/G
     min1G         <- 1 - oneG
     yx            <- unique(c(0, pretty(c(0, min1G))))
@@ -2033,8 +2026,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       invisible()
   },               {
     MAP           <- factor(replace(MAP, MAP == 0, "Noise"), levels=perm)
-    dots          <- c(list(seqdata=dat, with.legend=FALSE, group=MAP, type=type, with.missing=FALSE), dots[!(names(dots) %in% c("G", "modtype", "noise"))])
-    dots          <- if(type == "i") dots else c(list(border=NA), dots)
+    attr(dat, "Weights")      <- if(attr(x, "Weighted")) attr(dat, "Weights") else 1L
+    dots          <- c(list(seqdata=dat, with.legend=FALSE, group=MAP, type=type, with.missing=FALSE, weighted=attr(x, "Weighted")), dots[!(names(dots) %in% c("G", "modtype", "noise"))])
+    dots          <- if(type  == "i") dots else c(list(border=NA), dots)
     dots          <- dots[unique(names(dots))]
     if(type       != "Ht")     {
       l.ncol      <- ceiling(V/ifelse(V > 6 | G %% 2 != 0, 3, 2))
@@ -2050,7 +2044,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
         graphics::legend("bottomright", fill=attr(dat, "cpal"), legend=lab, ncol=l.ncol)
       }
     } else         {
-      try(suppressWarnings(do.call(seqplot, dots)), silent=TRUE)
+      suppressWarnings(do.call(seqplot, dots))
     }
       invisible()
   })
@@ -2251,22 +2245,30 @@ print.MEDseqCompare    <- function(x, index=seq_len(x$pick), digits = 3L, ...) {
 
 #' @method print MEDtheta
 #' @export
-print.MEDtheta    <- function(x, ...) {
+print.MEDtheta    <- function(x, preczero = TRUE, ...) {
   lambda          <- attr(x, "lambda")
   alpha           <- attr(x, "alphabet")
   lab.x           <- attr(x, "labels")
   G               <- nrow(x)
   V               <- length(alpha)
   class(x)        <- NULL
+  miss.prec       <- missing(preczero)
+  if(length(preczero)  > 1  ||
+     !is.logical(preczero))      stop("'preczero' must be a single logical indicator", call.=FALSE)
   if(any(lam0     <- lambda == 0)) {
-    x[lam0]       <- V + 1L
     alpha         <- c(alpha, "*")
     if(any(gm0    <- apply(lam0, 1L, all))) {
       if(G        == 1L)     {   message("The single central sequence is entirely missing\n")
       } else                     message(paste0("One or more central sequences (", paste(shQuote(which(gm0)), collapse=" & "), ") are entirely missing\n"))
-    }
+    }   else                     message("Discarding sequence positions corresponding to zero-valued precision parameters:\nSupply 'preczero'=FALSE to change this behaviour\n")
+  }     else if(!miss.prec)      message("No missing values to discard\n")
+  if(isTRUE(preczero))       {
+    missind       <- which(tabulate(x[!lam0], nbins=V) == 0)
+    x[lam0]       <- V + 1L
+  }     else if(any(lam0))   {
+    missind       <- which(tabulate(x,        nbins=V) == 0)  
+    x[gm0,]       <- V + 1L
   }
-  missind         <- which(tabulate(x[!lam0], nbins=V) == 0)
   if(any(missind))               message(paste0("One or more sequence categories (", paste(shQuote(lab.x[missind]), collapse=" & "), ") are entirely missing\n"))
   theta           <- as.data.frame(lapply(as.data.frame(x), function(theta) .replace_levels(.num_to_char(theta), alpha)))
     print(theta, ...)

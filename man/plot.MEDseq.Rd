@@ -10,8 +10,9 @@
                "cv", "LOGLIK", "dbsvals", "aswvals", 
                "uncert.bar", "uncert.profile", "loglik", 
                "d", "f", "Ht", "i", "I"), 
-       seriate = TRUE, 
-       log.scale = NULL, 
+       seriate = c("observations", "both", "clusters", "none"), 
+       preczero = TRUE,
+       log.scale = FALSE, 
        ...)
 }
 \arguments{
@@ -46,11 +47,13 @@ Also available are the following options which act as wrappers to types of plots
 \item{"\code{I}"}{Whole set index plots.}
 }}
 
-\item{seriate}{Logical indicating whether seriation should be used to reorder clusters for visualisation purposes (defaults to \code{TRUE}). See \code{\link[seriation]{seriate}}. Only relevant when \code{type} is one of "\code{clusters}", "\code{mean}", "\code{precision}", "\code{gating}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}". Additionally, observations within clusters are also reordered when \code{type} is one of "\code{clusters}" or "\code{gating}".}
+\item{seriate}{Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The options \code{"clusters"} and \code{"both"} are only invoked when \code{type} is one of "\code{clusters}", "\code{mean}", "\code{precision}", "\code{gating}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}". Additionally, the options \code{"observations"} and \code{"both"} are only invoked when \code{type} is one of "\code{clusters}" or "\code{gating}".}
+
+\item{preczero}{Logical indicating whether central sequence parameter positions corresponding to zero-valued precision parameters (if any!) should also be suppressed for the non-noise components. Defaults to \code{TRUE}; noise-component means are never shown regardless of the value of \code{preczero}.}
 
 \item{log.scale}{Logical indicating whether precision parameter heatmaps should be plotted on the log-scale when \code{type="precision"}. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are effected. Heavily imbalanced values are more likely for the "\code{UU}" and "\code{UUN}" model types, thus \code{log.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise.}
 
-\item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed, as well as the \code{x.axis} argument when \code{type="gating"}.}
+\item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}, as well as the \code{x.axis} argument when \code{type="gating"}.}
 }
 \value{
 The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
@@ -75,7 +78,7 @@ mvad          <- list(sequences = mvad[,15L:86L], weights = mvad[,2],
                       covariates = mvad[c(3:4,10:14,87)])
 mvad.cov      <- mvad$covariates
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
-labels        <- c("employment", "FE", "HE", "joblessness", "school", "training")
+labels        <- c("Employment", "FE", "HE", "Joblessness", "School", "Training")
 mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
                         
 # Fit a range of unweighted models without covariates
