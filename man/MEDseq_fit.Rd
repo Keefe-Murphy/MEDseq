@@ -98,22 +98,27 @@ While model selection in terms of choosing the optimal number of components and 
 Where \code{DBS}, \code{ASW}, \code{BIC}, \code{ICL}, \code{AIC}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{NEC}, and \code{CV} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which a dedicated printing functions exists.
 }
 \examples{
-\dontrun{
+\dontshow{library(TraMineR)}
 # Load the MVAD data
-library(TraMineR)
-data(mvad,   package = "TraMineR")
-mvad$location <- factor(apply(mvad[,5:9], 1L, function(x) 
+data(mvad)
+mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
                  which(x == "yes")), labels = colnames(mvad[,5:9]))
-mvad          <- list(sequences = mvad[,15L:86L], weights = mvad[,2], 
-                      covariates = mvad[c(3:4,10:14,87)])
+mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
+                      sequences = mvad[,15L:86L], 
+                      weights = mvad[,2])
 mvad.cov      <- mvad$covariates
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
-labels        <- c("Employment", "FE", "HE", "Joblessness", "School", "Training")
+labels        <- c("Employment", "Further Education", "Higher Education", 
+                   "Joblessness", "School", "Training")
 mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
-                        
+
+# Fit an exponential-distance model without clustering
+mod0          <- MEDseq_fit(mvad.seq, G=1)
+
 # Fit a range of unweighted models without covariates
 # Only consider models with a noise component
 # Supply some MEDseq_control() arguments
+\donttest{
 mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"),
                             algo="CEM", init.z="hc", criterion="asw")
 
@@ -127,6 +132,9 @@ mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights
 summary(mod2)
 summary(mod2$gating)
 plot(mod2, "clusters")}
+}
+\references{
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
 \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{I}}

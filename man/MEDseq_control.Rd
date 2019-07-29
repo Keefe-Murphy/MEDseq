@@ -70,7 +70,7 @@ MEDseq_control(algo = c("EM", "CEM", "cemEM"),
 
 \item{verbose}{Logical indicating whether to print messages pertaining to progress to the screen during fitting. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise. If \code{FALSE}, warnings and error messages will still be printed to the screen, but everything else will be suppressed.}
 
-\item{...}{Catches unused arguments, and also allows the optional argument \code{summ} to be passed to \code{\link{dbs}} and the ASW computation.}
+\item{...}{Catches unused arguments, and also allows the optional arguments \code{ztol} and \code{summ} to be passed to \code{\link{dbs}} (\code{ztol} and \code{summ}) and the ASW computation (\code{summ}).}
 }
 \value{
 A named list in which the names are the names of the arguments and the values are the values supplied to the arguments.
@@ -82,23 +82,26 @@ Supplies a list of arguments (with defaults) for use with \code{\link{MEDseq_fit
 \code{\link{MEDseq_control}} is provided for assigning values and defaults within \code{\link{MEDseq_fit}}. While the \code{criterion} argument controls the choice of the optimal number of components and MEDseq model type (in terms of the constraints or lack thereof on the precision parameters), \code{\link{MEDseq_compare}} is provided for choosing between fits with different combinations of covariates or different initialisation settings.
 }
 \examples{
-\dontrun{
+data(mvad)
+
 # The CC MEDseq model is equivalent to k-medoids when the CEM 
 # algorithm is employed, mixing proportions are constrained,
-# and the central sequence are restricted to the observed sequences
+# and the central sequences are restricted to the observed sequences
 ctrl   <- MEDseq_control(algo="CEM", equalPro=TRUE, opti="medoid", criterion="asw")
-
-library(TraMineR)
-data(mvad, package = "TraMineR")
-
+\donttest{
 # Note that ctrl must be explicitly named 'ctrl'
 mod   <- MEDseq_fit(seqdef(mvad[,15:86]), G=8, modtype="CC", weights=mvad$weight, ctrl=ctrl)
 
-# Alternatively, speficy the control arguments directly
-# mod <- MEDseq_fit(seqdef(mvad[,15:86]), G=8, modtype="CC", weights=mvad$weight,
-#                   algo="CEM", equalPro=TRUE, opti="medoid", criterion="asw")}
+# Alternatively, specify the control arguments directly
+mod   <- MEDseq_fit(seqdef(mvad[,15:86]), G=8, modtype="CC", weights=mvad$weight,
+                    algo="CEM", equalPro=TRUE, opti="medoid", criterion="asw")
+
+# Note that supplying control arguments via a mix of the ... construct and the named argument 
+# 'control' or supplying MEDseq_control output without naming it 'control' can throw an error}
 }
 \references{
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+
 Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing} 21(3): 295-308.
 }
 \seealso{

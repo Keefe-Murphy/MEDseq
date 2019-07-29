@@ -5,7 +5,7 @@
 \title{Compute the Density-based Silhouette}
 \usage{
 dbs(z,
-    tol = 1E-100,
+    ztol = 1E-100,
     weights = NULL,
     summ = c("mean", "median"),
     ...)
@@ -13,7 +13,7 @@ dbs(z,
 \arguments{
 \item{z}{A numeric matrix such that rows correspond to observations, columns correspond to clusters, and rows sum to \code{1}.}
 
-\item{tol}{A small (single, numeric) tolerance parameter governing whether small assignment probabilities are treated instead as crisp assignments. Defaults to \code{1E-100}.}
+\item{ztol}{A small (single, numeric, non-negative) tolerance parameter governing whether small assignment probabilities are treated instead as crisp assignments. Defaults to \code{1E-100}.}
 
 \item{weights}{An optional numeric vector giving observation-specific weights for computing the (weighted) mean/median DBS (see \code{summ}).}
 
@@ -35,10 +35,16 @@ Computes the Density-based Silhouette for a 'soft' clustering assignment matrix.
 When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the DBS and ASW criteria.
 }
 \examples{
-\dontrun{
-library(TraMineR)
-data(mvad, package = "TraMineR")
+# Generate a toy z matrix
+z <- abs(matrix(rnorm(50), ncol=2))
+z <- z/rowSums(z)
 
+# Return the mean DBS width
+dbs(z)$msw
+
+# For real sequence data
+data(mvad)
+\donttest{
 mod <- MEDseq_fit(seqdef(mvad[,15:86]), G=10, modtype="UCN", weights=mvad$weight)
 
 dbs(mod$z, weights=mvad$weight)}

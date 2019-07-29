@@ -10,7 +10,7 @@ Fits MEDseq models: mixtures of Exponential-Distance models with gating covariat
 }
 \section{Usage}{
 
-Fits _MEDseq_ models introduced by Murphy et al. (2019), i.e. fits mixtures of exponential distance models for clustering longitudinal life-course sequence data via the EM/CEM algorithm. 
+Fits _MEDseq_ models introduced by Murphy et al. (2019) <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>, i.e. fits mixtures of exponential distance models for clustering longitudinal life-course sequence data via the EM/CEM algorithm. 
 
 A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces.
 
@@ -20,7 +20,9 @@ The most important function in the \pkg{MEDseq} package is: \code{\link{MEDseq_f
 
 \code{\link{MEDseq_compare}} is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. 
 
-Finally, A dedicated plotting function exists for visualising various aspects of results, using new methods as well as some existing methods from the \pkg{TraMineR} package.
+A dedicated plotting function exists for visualising various aspects of results, using new methods as well as some existing methods from the \pkg{TraMineR} package.
+
+Finally, the package also contains two data sets: \code{\link{biofam}} and \code{\link{mvad}}.
 }
 
 \section{Details}{
@@ -29,7 +31,7 @@ Finally, A dedicated plotting function exists for visualising various aspects of
 \item{Type: }{Package}
 \item{Package: }{MEDseq}
 \item{Version: }{1.0.0}
-\item{Date: }{2019-07-10 (this version), 2019-07-10 (original release)}
+\item{Date: }{2019-08-23 (this version), 2019-08-23 (original release)}
 \item{Licence: }{GPL (>=2)}
 }
 }
@@ -41,19 +43,19 @@ Further details and examples are given in the associated vignette document:\cr
 }
 
 \examples{
-\dontrun{
+\dontshow{library(TraMineR)}
 # Load the MVAD data
-library(TraMineR)
-data(mvad,   package = "TraMineR")
-mvad$location <- factor(apply(mvad[,5:9], 1L, function(x) 
+data(mvad)
+mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
                  which(x == "yes")), labels = colnames(mvad[,5:9]))
-mvad          <- list(sequences = mvad[,15L:86L], weights = mvad[,2], 
-                      covariates = mvad[c(3:4,10:14,87)])
+mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
+                      sequences = mvad[,15L:86L], 
+                      weights = mvad[,2])
 mvad.cov      <- mvad$covariates
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
 labels        <- c("Employment", "FE", "HE", "Joblessness", "School", "Training")
 mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
-                        
+\donttest{                         
 # Fit a range of unweighted models without covariates
 # Only consider models with a noise component
 # Supply some MEDseq_control() arguments
@@ -71,6 +73,8 @@ summary(mod2)
 summary(mod2$gating)
 plot(mod2, "clusters")}
 }
+\references{
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
 Useful links:
@@ -81,7 +85,7 @@ Useful links:
 
 }
 \author{
-Keefe Murphy [aut, cre], Thomas Brendan Murphy [ctb], Isobel Claire Gormley [ctb], Raffaella Piccarreta [ctb]
+Keefe Murphy [aut, cre], Thomas Brendan Murphy [ctb], Raffaella Piccarreta [ctb], Isobel Claire Gormley [ctb]
 
 \strong{Maintainer}: Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
 }

@@ -3,15 +3,17 @@
 [![rstudio mirror downloads](https://cranlogs.r-pkg.org/badges/grand-total/MEDseq?color=82b4e8)](https://github.com/metacran/cranlogs.app)
 
 # MEDseq R Package
-## Mixtures of Exponential-Location Models
+## Mixtures of Exponential-Distance Models
 ## for Clustering Longitudinal Life-Course Sequences
 ## with Gating Covariates and Sampling Weights
 ### Written by Keefe Murphy
 ## Description
 
-Fits _MEDseq_ models introduced by Murphy et al. (2019), i.e. fits mixtures of exponential distance models for clustering longitudinal life-course sequence data via the EM/CEM algorithm. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
+Fits _MEDseq_ models introduced by Murphy et al. (2019) <[arXiv:1908.07963](https://arxiv.org/abs/1908.07963)>, i.e. fits mixtures of exponential distance models for clustering longitudinal/categorical life-course sequence data via the EM/CEM algorithm. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
 
-The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via EM/CEM. `MoE_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. Finally, A dedicated plotting function exists for visualising various aspects of results, using new methods as well as some existing methods from the __TraMineR__ package.
+The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via EM/CEM. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc.
+
+A dedicated plotting function exists for visualising various aspects of results, using new methods as well as some existing methods from the __TraMineR__ package. Finally, the package also contains two data sets: `biofam` and `mvad`.
 
 ## Installation
 
@@ -50,3 +52,5 @@ devtools::install_github('Keefe-Murphy/MEDseq', build_vignettes = TRUE)
 
 Alternatively, the vignette is available on the package's CRAN page.
 
+### References
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley, (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. _To appear_. <[arXiv:1908.07963](https://arxiv.org/abs/1908.07963)>

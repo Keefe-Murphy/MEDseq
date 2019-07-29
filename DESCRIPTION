@@ -1,12 +1,13 @@
 Package: MEDseq
 Type: Package
+Date: 2019-08-23
 Title: Mixtures of Exponential-Distance Models with Covariates
 Version: 1.0.0
 Authors@R: c(person("Keefe", "Murphy", email = "keefe.murphy@ucd.ie", role = c("aut", "cre")),
            person("Thomas Brendan", "Murphy", email = "brendan.murphy@ucd.ie", role = "ctb"),
-           person("Isobel Claire", "Gormley", email = "claire.gormley@ucd.ie", role = "ctb"),
-           person("Raffaella", "Piccarreta", email = "raffaella.piccarreta@unibocconi.it ", role = "ctb"))
-Description: Mixtures of Exponential-Distance Models for Clustering Longitudinal Life-Course Sequences with Gating Covariates and Sampling Weights.
+           person("Raffaella", "Piccarreta", email = "raffaella.piccarreta@unibocconi.it ", role = "ctb"),
+           person("Isobel Claire", "Gormley", email = "claire.gormley@ucd.ie", role = "ctb"))
+Description: Implements a model-based clustering method for categorical life-course sequences relying on mixtures of exponential-distance models introduced by Murphy et al. (2019) <arXiv:1908.07963>. A range of flexible precision parameter settings corresponding to weighted generalisations of the Hamming distance metric are considered, along with the potential inclusion of a noise component. Gating covariates can be supplied in order to relate sequences to baseline characteristics. Sampling weights are also accommodated. The models are fitted using the EM algorithm and tools for visualising the results are also provided.
 Depends: R (>= 3.3.0)
 License: GPL (>=2)
 Encoding: UTF-8

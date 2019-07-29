@@ -22,7 +22,7 @@
 #' @importFrom matrixStats "rowMaxs"
 .choice_crit      <- function(ll, seqs, z, gate.pen, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), nonzero = NULL) {
   G               <- attr(seqs, ifelse(noise <- is.element(modtype, c("CCN", "UCN", "CUN", "UUN")), "G0", "G"))
-  P               <- attr(seqs, "P")
+  P               <- attr(seqs, "T")
   kpar            <- ifelse(is.na(nonzero),
                             switch(EXPR= modtype,
                                    CC  = G * P   + 1L,
@@ -90,7 +90,7 @@
 .E_step           <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
   G               <- attr(seqs, "G")
   N               <- attr(seqs, "N")
-  P               <- attr(seqs, "P")
+  P               <- attr(seqs, "T")
   V1              <- attr(seqs, "V1")
   G0              <- ifelse(noise <- attr(seqs, "Noise"), attr(seqs, "G0"), G)
   Gseq            <- seq_len(G0)
@@ -256,7 +256,7 @@
 #' @importFrom stringdist "stringdistmatrix"
 .lambda_mle       <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
   theta           <- params$theta
-  P               <- attr(seqs, "P")
+  P               <- attr(seqs, "T")
   V1V             <- attr(seqs, "V1V")
   lV1             <- attr(seqs, "logV1")
   W               <- attr(seqs, "W")
@@ -325,7 +325,7 @@
   if(is.null(numseq)     && isFALSE(ctrl$numseq)) {
     numseq        <- sapply(seqs, .char_to_num)
     attr(numseq,  "G")   <- G
-    attr(numseq,  "P")   <- attr(seqs, "P")
+    attr(numseq,  "T")   <- attr(seqs, "T")
   }
   if(G > 1L)       {
     if(is.null(z))               stop("'z' must be supplied when 'G'>1", call.=FALSE)
@@ -376,7 +376,7 @@
 .optimise_theta   <- function(seqs, ctrl, z = NULL, numseq = NULL, HAM.mat = NULL) {
   opti            <- ctrl$opti
   ordering        <- ctrl$ordering
-  P               <- attr(seqs, "P")
+  P               <- attr(seqs, "T")
   nmeth           <- ctrl$nmeth
   G               <- attr(seqs, "G") - nmeth
   Gseq            <- seq_len(G)
@@ -387,7 +387,7 @@
   if(opti         == "mode" || ordering != "none")   {
     if(is.null(numseq)      && isFALSE(ctrl$numseq)) {
       numseq      <- sapply(seqs, .char_to_num)
-      attr(numseq, "P")     <- P
+      attr(numseq, "T")     <- P
     }
     attr(numseq, "G")       <- G
     if(opti       == "mode") {
@@ -569,6 +569,6 @@
 
 .weighted_mode    <- function(numseq, z) {
     sapply(seq_len(attr(numseq, "G")), function(g)
-    sapply(seq_len(attr(numseq, "P")), function(p, x=tapply(z[,g], numseq[p,], sum)) names(which(x == max(x)))))
+    sapply(seq_len(attr(numseq, "T")), function(p, x=tapply(z[,g], numseq[p,], sum)) names(which(x == max(x)))))
 }
 #

@@ -77,13 +77,11 @@ If random starts had been used via \code{init.z="random"} the \code{optimal} mod
 A dedicated \code{print} function exists for objects of class \code{"MEDseqCompare"} and \code{\link{plot.MEDseq}} can also be called on objects of class \code{"MEDseqCompare"}.
 }
 \examples{
-\dontrun{
-library(TraMineR)
-data(biofam, package = "TraMineR")
-
+\dontshow{library(TraMineR)}
+data(biofam)
 seqs <- seqdef(biofam[10:25] + 1L)
 covs <- biofam[2:3]
-
+\donttest{ 
 # Fit a range of models
 m1   <- MEDseq_fit(seqs, G=9:10)
 m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex, covars=covs)
@@ -100,11 +98,14 @@ m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + birthyr, covars=covs)
 comp2 <- MEDseq_compare(m1, m2, m3, m4, pick=Inf)
 print(comp2, comp2$gating != "None" & comp2$G == 10)}
 }
+\references{
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+}
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}
 }
 \author{
-Keefe Murphy - <\email{keefe.murphy@ucd.ie}>#'
+Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
 }
 \keyword{clustering}
 \keyword{main}

@@ -32,8 +32,8 @@
 \item{"\code{nec}"}{Plots all NEC values in a fitted \code{MEDseq} object.}
 \item{"\code{cv}"}{Plots all cross-validated log-likelihood values in a fitted \code{MEDseq} object.}
 \item{"\code{LOGLIK}"}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object.}
-\item{"\code{dbsvals}"}{Silhouette plot using observations-specific DBS values for the optimal model.}
-\item{"\code{aswvals}"}{Silhouette plot using observations-specific ASW values for the optimal model.}
+\item{"\code{dbsvals}"}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster).}
+\item{"\code{aswvals}"}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster).}
 \item{"\code{uncert.bar}"}{Plot the observation-specific clustering uncertainties in the form of a bar plot.}
 \item{"\code{uncert.profile}"}{Plot the observation-specific clustering uncertainties in the form of a profile plot.}
 \item{"\code{loglik}"}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
@@ -44,7 +44,7 @@ Also available are the following options which act as wrappers to types of plots
 \item{"\code{f}"}{Sequence frequency plots (by cluster).}
 \item{"\code{Ht}"}{Transversal entropy plots (by cluster).}
 \item{"\code{i}"}{Selected sequence index plots (by cluster).}
-\item{"\code{I}"}{Whole set index plots.}
+\item{"\code{I}"}{Whole set index plots (by cluster).}
 }}
 
 \item{seriate}{Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The options \code{"clusters"} and \code{"both"} are only invoked when \code{type} is one of "\code{clusters}", "\code{mean}", "\code{precision}", "\code{gating}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}". Additionally, the options \code{"observations"} and \code{"both"} are only invoked when \code{type} is one of "\code{clusters}" or "\code{gating}".}
@@ -68,19 +68,20 @@ The \code{type} options related to model selection criteria plot values for \emp
 Every \code{type} of plot respects the sampling weights, if any. Those related to \code{\link[TraMineR]{seqdef}} plots from \pkg{TraMineR} may be too wide to display in the preview panel. The same is also true when \code{type} is "\code{dbsvals}" or "\code{aswvals}".
 }
 \examples{
-\dontrun{
+\dontshow{library(TraMineR)}
 # Load the MVAD data
-library(TraMineR)
-data(mvad,   package = "TraMineR")
-mvad$location <- factor(apply(mvad[,5:9], 1L, function(x) 
+data(mvad)
+mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
                  which(x == "yes")), labels = colnames(mvad[,5:9]))
-mvad          <- list(sequences = mvad[,15L:86L], weights = mvad[,2], 
-                      covariates = mvad[c(3:4,10:14,87)])
+mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
+                      sequences = mvad[,15L:86L], 
+                      weights = mvad[,2])
 mvad.cov      <- mvad$covariates
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
-labels        <- c("Employment", "FE", "HE", "Joblessness", "School", "Training")
+labels        <- c("Employment", "Further Education", "Higher Education", 
+                   "Joblessness", "School", "Training")
 mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
-                        
+\donttest{
 # Fit a range of unweighted models without covariates
 # Only consider models with a noise component
 mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"))
@@ -112,6 +113,8 @@ plot(mod2, "uncert.bar")
 plot(mod2, "dbsvals")
 plot(mod2, "Ht")}
 }
+\references{
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}
