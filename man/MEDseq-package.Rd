@@ -10,7 +10,7 @@ Fits MEDseq models: mixtures of Exponential-Distance models with gating covariat
 }
 \section{Usage}{
 
-Fits _MEDseq_ models introduced by Murphy et al. (2019) <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>, i.e. fits mixtures of exponential distance models for clustering longitudinal life-course sequence data via the EM/CEM algorithm. 
+Fits _MEDseq_ models introduced by Murphy et al. (2019) <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>, i.e. fits mixtures of exponential-distance models for clustering longitudinal life-course sequence data via the EM/CEM algorithm. 
 
 A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces.
 
@@ -30,8 +30,8 @@ Finally, the package also contains two data sets: \code{\link{biofam}} and \code
 \itemize{
 \item{Type: }{Package}
 \item{Package: }{MEDseq}
-\item{Version: }{1.0.0}
-\item{Date: }{2019-08-23 (this version), 2019-08-23 (original release)}
+\item{Version: }{1.0.1}
+\item{Date: }{2019-12-10 (this version), 2019-08-24 (original release)}
 \item{Licence: }{GPL (>=2)}
 }
 }
@@ -63,7 +63,7 @@ mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UU
                             algo="CEM", init.z="hc", criterion="asw")
 
 # Fit a model with weights and gating covariates
-# Drop the 1st sequence position which was used to define the weights
+# Drop the 1st time point which was used to define the weights
 mvad.seq2     <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
 mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
@@ -74,7 +74,7 @@ summary(mod2$gating)
 plot(mod2, "clusters")}
 }
 \references{
-Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
 Useful links:

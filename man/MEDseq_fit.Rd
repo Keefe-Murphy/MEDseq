@@ -29,7 +29,7 @@ MEDseq_fit(seqs,
 \item{G}{A positive integer vector specifying the numbers of mixture components (clusters) to fit. Defaults to \code{G=1:9}.}
 
 \item{modtype}{A vector of character strings indicating the type of MEDseq models to be fitted, in terms of the constraints or lack thereof on the precision parameters. By default, all valid model types are fitted (except some only where \code{G > 1} or \code{G > 2}, see \code{note}). 
-The models are named "\code{CC}", "\code{CU}", "\code{UC}", "\code{UU}", \code{CCN}", "\code{CUN}", "\code{UCN}", and "\code{UUN}". The first letter denotes whether the precision parameters are constrained/unconstrained across clusters. The second letter denotes whether the precision parameters are constrained/unconstrained across sequence positions. The third letter denotes whether one of the components is constrained to have zero-precision/infinite variance. Such a noise component assumes sequences in that cluster follow a uniform distribution.}
+The models are named "\code{CC}", "\code{CU}", "\code{UC}", "\code{UU}", \code{CCN}", "\code{CUN}", "\code{UCN}", and "\code{UUN}". The first letter denotes whether the precision parameters are constrained/unconstrained across clusters. The second letter denotes whether the precision parameters are constrained/unconstrained across sequence positions (i.e. time points). The third letter denotes whether one of the components is constrained to have zero-precision/infinite variance. Such a noise component assumes sequences in that cluster follow a uniform distribution.}
 
 \item{gating}{A \code{\link[stats]{formula}} for determining the model matrix for the multinomial logistic regression in the gating network when fixed covariates enter the mixing proportions. Defaults to \code{~1}, i.e. no covariates. This will be ignored where \code{G=1}. Continuous, categorical, and/or ordinal covariates are allowed. Logical covariates will be coerced to factors. Interactions, transformations, and higher order terms are permitted: the latter \strong{must} be specified explicitly using the \code{AsIs} operator (\code{\link{I}}). The specification of the LHS of the formula is ignored. Intercept terms are included by default.}
 
@@ -115,7 +115,7 @@ mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
 # Fit an exponential-distance model without clustering
 mod0          <- MEDseq_fit(mvad.seq, G=1)
 
-# Fit a range of unweighted models without covariates
+# Fit a range of unweighted mixture models without covariates
 # Only consider models with a noise component
 # Supply some MEDseq_control() arguments
 \donttest{
@@ -123,7 +123,7 @@ mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UU
                             algo="CEM", init.z="hc", criterion="asw")
 
 # Fit a model with weights and gating covariates
-# Drop the 1st sequence position which was used to define the weights
+# Drop the 1st time point which was used to define the weights
 mvad.seq2     <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
 mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
@@ -134,7 +134,7 @@ summary(mod2$gating)
 plot(mod2, "clusters")}
 }
 \references{
-Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
 \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{I}}

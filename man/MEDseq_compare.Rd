@@ -99,7 +99,7 @@ comp2 <- MEDseq_compare(m1, m2, m3, m4, pick=Inf)
 print(comp2, comp2$gating != "None" & comp2$G == 10)}
 }
 \references{
-Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}

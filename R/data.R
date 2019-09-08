@@ -1,6 +1,6 @@
 #' MVAD: Transition from school to work
 #'
-#' The data comes from a study by McVicar and Anyadike-Danes on transition from school to work. The data consist of static background characteristics and a time series sequence of 72 monthly labour market activities for each of 712 individuals in a cohort survey. The individuals were followed up from July 1993 to June 1999. The monthly states are recorded in columns 15 (\code{Jul.93}) to 86 (\code{Jun.99}).
+#' The data comes from a study by McVicar and Anyadike-Danes on transition from school to work. The data consist of static background characteristics and a time series sequence of 72 monthly labour market activities for each of a cohort of 712 individuals in the Status Zero Survey. The individuals were followed up from July 1993 to June 1999. The monthly states are recorded in columns 15 (\code{Jul.93}) to 86 (\code{Jun.99}).
 #' @format A data frame containing 712 rows, 72 state variables, 1 id variable and 13 covariates.
 #' @details States are:\cr
 #' 
@@ -13,7 +13,7 @@
 #'  \code{training}    \tab (TR)\cr
 #'}
 
-#'The data set contains also ids (\code{id}) and sample weights (\code{weight}) as well as the following binary covariates:\cr
+#'The data set contains also ids (\code{id}) and sample weights (\code{weights}) as well as the following binary covariates:\cr
 #'\cr
 #'\code{male}\cr
 #'\code{catholic}\cr
@@ -23,7 +23,9 @@
 #'\code{gcse5eq} (qualifications gained by the end of compulsory education, 1=5+ GCSEs at grades A-C, or equivalent)\cr
 #'\code{fmpr} (SOC code of father's current or most recent job at time of survey, 1=SOC1 (professional, managerial or related))\cr
 #'\code{livboth} (living arrangements at time of first sweep of survey (June 1995), 1=living with both parents)
-#' @references McVicar, D. and Anyadike-Danes, M. (2002). Predicting Successful and Unsuccessful Transitions from School to Work by Using Sequence Methods. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 165(2): 317-334.
+#' @references McVicar, D. (2000). Status 0 four years on: young people and social exclusion in Northern Ireland. \emph{Labour Market Bulletin}, 14, 114-119.
+#' 
+#' McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 165(2): 317-334.
 #' @examples
 #' data(mvad, package="MEDseq")
 #' @docType data

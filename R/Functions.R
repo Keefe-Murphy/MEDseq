@@ -264,7 +264,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' @keywords clustering main
 #' @importFrom TraMineR "seqdef"
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}
 #' @usage
 #' MEDseq_compare(...,
@@ -515,7 +515,7 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #' @keywords control
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link[cluster]{agnes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' 
 #' Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing} 21(3): 295-308.
 #' @export
@@ -643,7 +643,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @param seqs A state-sequence object of class "\code{stslist}" as created by the \code{\link[TraMineR]{seqdef}} function in the \pkg{TraMineR} package.
 #' @param G A positive integer vector specifying the numbers of mixture components (clusters) to fit. Defaults to \code{G=1:9}.
 #' @param modtype A vector of character strings indicating the type of MEDseq models to be fitted, in terms of the constraints or lack thereof on the precision parameters. By default, all valid model types are fitted (except some only where \code{G > 1} or \code{G > 2}, see \code{note}). 
-#' The models are named "\code{CC}", "\code{CU}", "\code{UC}", "\code{UU}", \code{CCN}", "\code{CUN}", "\code{UCN}", and "\code{UUN}". The first letter denotes whether the precision parameters are constrained/unconstrained across clusters. The second letter denotes whether the precision parameters are constrained/unconstrained across sequence positions. The third letter denotes whether one of the components is constrained to have zero-precision/infinite variance. Such a noise component assumes sequences in that cluster follow a uniform distribution.
+#' The models are named "\code{CC}", "\code{CU}", "\code{UC}", "\code{UU}", \code{CCN}", "\code{CUN}", "\code{UCN}", and "\code{UUN}". The first letter denotes whether the precision parameters are constrained/unconstrained across clusters. The second letter denotes whether the precision parameters are constrained/unconstrained across sequence positions (i.e. time points). The third letter denotes whether one of the components is constrained to have zero-precision/infinite variance. Such a noise component assumes sequences in that cluster follow a uniform distribution.
 #' @param gating A \code{\link[stats]{formula}} for determining the model matrix for the multinomial logistic regression in the gating network when fixed covariates enter the mixing proportions. Defaults to \code{~1}, i.e. no covariates. This will be ignored where \code{G=1}. Continuous, categorical, and/or ordinal covariates are allowed. Logical covariates will be coerced to factors. Interactions, transformations, and higher order terms are permitted: the latter \strong{must} be specified explicitly using the \code{AsIs} operator (\code{\link{I}}). The specification of the LHS of the formula is ignored. Intercept terms are included by default.
 #' @param covars An optional data frame (or a matrix with named columns) in which to look for the covariates in the \code{gating} network formula, if any. If not found in \code{covars}, any supplied \code{gating} covariates are taken from the environment from which \code{MEDseq_fit} is called. Try to ensure the names of variables in \code{covars} do not match any of those in \code{seqs}.
 #' @param weights Optional numeric vector containing observation-specific sampling weights, which are accounted for in the model fitting and other functions where applicable. See the \code{unique} argument to \code{\link{MEDseq_control}} to see how incorporating weights also yields computational benefits.
@@ -704,7 +704,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @importFrom WeightedCluster "wcKMedoids" "wcSilhouetteObs"
 #' @export
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @keywords clustering main
 #' @seealso \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{I}}
 #' @usage
@@ -735,7 +735,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' # Fit an exponential-distance model without clustering
 #' mod0          <- MEDseq_fit(mvad.seq, G=1)
 #' 
-#' # Fit a range of unweighted models without covariates
+#' # Fit a range of unweighted mixture models without covariates
 #' # Only consider models with a noise component
 #' # Supply some MEDseq_control() arguments
 #' \donttest{
@@ -743,7 +743,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #'                             algo="CEM", init.z="hc", criterion="asw")
 #' 
 #' # Fit a model with weights and gating covariates
-#' # Drop the 1st sequence position which was used to define the weights
+#' # Drop the 1st time point which was used to define the weights
 #' mvad.seq2     <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
 #' mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
 #'                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
@@ -767,6 +767,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(SEQ, "V1") <- V1  <- V - 1L
   attr(SEQ, "V1V")       <- V1/V
   attr(SEQ, "logV1")     <- log(V1)
+  attr(SEQ, "lPV")       <- P * log(V)
   if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the sequence vocabulary must all be > 1", call.=FALSE)
   if(!is.null(modtype)   &&
      !is.character(modtype))     stop("'modtype' must be a character vector", call.=FALSE)
@@ -1632,7 +1633,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
 #' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the "\code{MEDseq}" object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of "\code{clusters}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}".
 #' @note Every \code{type} of plot respects the sampling weights, if any. Those related to \code{\link[TraMineR]{seqdef}} plots from \pkg{TraMineR} may be too wide to display in the preview panel. The same is also true when \code{type} is "\code{dbsvals}" or "\code{aswvals}".
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @usage 
 #' \method{plot}{MEDseq}(x,
 #'        type = c("clusters", "mean", "precision", "gating", 
@@ -1666,8 +1667,15 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' labels        <- c("Employment", "Further Education", "Higher Education", 
 #'                    "Joblessness", "School", "Training")
 #' mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
+#' 
+#' # Fit an exponential-distance model without clustering
+#' mod0          <- MEDseq_fit(mvad.seq, G=1)
+#' 
+#' # Show the central sequence and precision parameters
+#' plot(mod0, type="mean")
+#' plot(mod0, type="precision")
 #' \donttest{
-#' # Fit a range of unweighted models without covariates
+#' # Fit a range of unweighted mixture models without covariates
 #' # Only consider models with a noise component
 #' mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"))
 #' 
@@ -1681,7 +1689,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' plot(mod1, "clusters", modtype="UUN")
 #' 
 #' # Fit a model with weights and gating covariates
-#' # Drop the 1st sequence position which was used to define the weights
+#' # Drop the 1st time point which was used to define the weights
 #' mvad.seq2     <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
 #' mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
 #'                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
@@ -2370,19 +2378,19 @@ print.summaryMEDgate  <- function(x, ...) {
     invisible(x)
 }
 
-#' Compute the mean time spent in each sequence position
+#' Compute the mean time spent in each sequence category
 #'
-#' Computes the mean time (per cluster) spent in each sequence position for a fitted \code{MEDseq} model.
+#' Computes the mean time (per cluster) spent in each sequence category (i.e. state value) for a fitted \code{MEDseq} model.
 #' @param x An object of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}} or an object of class \code{"MEDseqCompare"} generated by \code{\link{MEDseq_compare}}.
 #' @param MAP A logical indicating whether to use the MAP classification in the computation of the averages, or the 'soft' clustering assignments given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}).
-#' @param norm A logical indicating whether the mean times are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries give the total (weighted) number of times a given sequence position was observered in a given cluster.
+#' @param norm A logical indicating whether the mean times are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries give the total (weighted) number of times a given sequence category was observered in a given cluster.
 #' @details Models with weights, covariates, &/or a noise component are also accounted for.
 #'
-#' @return A matrix with sequence position and cluster-specific mean times, giving clusters on the rows, corresponding cluster sizes in the first column, and sequence positions in the remaining columns.
+#' @return A matrix with sequence category and cluster-specific mean times, giving clusters on the rows, corresponding cluster sizes in the first column, and sequence categories in the remaining columns.
 #' @importFrom matrixStats "colSums2"
 #' @importFrom TraMineR "seqdef"
 #' @export
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{MEDseq_control}}
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
 #' @keywords utility

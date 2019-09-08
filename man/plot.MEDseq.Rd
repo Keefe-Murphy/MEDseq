@@ -81,8 +81,15 @@ states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
 labels        <- c("Employment", "Further Education", "Higher Education", 
                    "Joblessness", "School", "Training")
 mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
+
+# Fit an exponential-distance model without clustering
+mod0          <- MEDseq_fit(mvad.seq, G=1)
+
+# Show the central sequence and precision parameters
+plot(mod0, type="mean")
+plot(mod0, type="precision")
 \donttest{
-# Fit a range of unweighted models without covariates
+# Fit a range of unweighted mixture models without covariates
 # Only consider models with a noise component
 mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"))
 
@@ -96,7 +103,7 @@ plot(mod1, "clusters")
 plot(mod1, "clusters", modtype="UUN")
 
 # Fit a model with weights and gating covariates
-# Drop the 1st sequence position which was used to define the weights
+# Drop the 1st time point which was used to define the weights
 mvad.seq2     <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
 mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
@@ -114,7 +121,7 @@ plot(mod2, "dbsvals")
 plot(mod2, "Ht")}
 }
 \references{
-Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}

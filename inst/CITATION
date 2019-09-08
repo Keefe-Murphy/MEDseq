@@ -11,9 +11,9 @@ citEntry(entry  = "Article",
   volume  = "",
   number  = "",
   pages   = "",
-  url     = "https://arxiv.org/abs/1908.07963",
+  url     = "https://arxiv.org/abs/1908.07963v2",
   archivePrefix = "arXiv",
-  eprint  = "1908.07963",
+  eprint  = "1908.07963v2",
   primaryClass  = "stat.ME",
 
   textVersion   =
@@ -21,7 +21,7 @@ citEntry(entry  = "Article",
            "Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. ",
            "To appear. ",
            "Pre-print available at arXiv. ",
-           "URL: https://arxiv.org/abs/1908.07963.")
+           "URL: https://arxiv.org/abs/1908.07963v2.")
 )
 
 year     <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)

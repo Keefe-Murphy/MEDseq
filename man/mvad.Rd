@@ -12,7 +12,7 @@ McVicar and Anyadike-Danes (2002)
 data(mvad)
 }
 \description{
-The data comes from a study by McVicar and Anyadike-Danes on transition from school to work. The data consist of static background characteristics and a time series sequence of 72 monthly labour market activities for each of 712 individuals in a cohort survey. The individuals were followed up from July 1993 to June 1999. The monthly states are recorded in columns 15 (\code{Jul.93}) to 86 (\code{Jun.99}).
+The data comes from a study by McVicar and Anyadike-Danes on transition from school to work. The data consist of static background characteristics and a time series sequence of 72 monthly labour market activities for each of a cohort of 712 individuals in the Status Zero Survey. The individuals were followed up from July 1993 to June 1999. The monthly states are recorded in columns 15 (\code{Jul.93}) to 86 (\code{Jun.99}).
 }
 \details{
 States are:\cr
@@ -25,7 +25,7 @@ States are:\cr
  \code{school}      \tab (SC) \cr
  \code{training}    \tab (TR)\cr
 }
-The data set contains also ids (\code{id}) and sample weights (\code{weight}) as well as the following binary covariates:\cr
+The data set contains also ids (\code{id}) and sample weights (\code{weights}) as well as the following binary covariates:\cr
 \cr
 \code{male}\cr
 \code{catholic}\cr
@@ -40,6 +40,8 @@ The data set contains also ids (\code{id}) and sample weights (\code{weight}) as
 data(mvad, package="MEDseq")
 }
 \references{
-McVicar, D. and Anyadike-Danes, M. (2002). Predicting Successful and Unsuccessful Transitions from School to Work by Using Sequence Methods. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 165(2): 317-334.
+McVicar, D. (2000). Status 0 four years on: young people and social exclusion in Northern Ireland. \emph{Labour Market Bulletin}, 14, 114-119.
+
+McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 165(2): 317-334.
 }
 \keyword{datasets}

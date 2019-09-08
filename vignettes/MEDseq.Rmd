@@ -17,7 +17,7 @@ knitr::opts_chunk$set(fig.width=7, fig.height=7, fig.align = 'center', fig.show=
 ```
 
 ## Introduction
-__MEDseq__ is an R package which fits a range of models introduced by [Murphy et al. (2019)](https://arxiv.org/abs/1908.07963). These are finite mixtures of exponential distance models for clustering longitudinal/categorical life-course sequence data. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
+__MEDseq__ is an R package which fits a range of models introduced by [Murphy et al. (2019)](https://arxiv.org/abs/1908.07963). These are finite mixtures of exponential-distance models for clustering longitudinal/categorical life-course sequence data. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
 
 The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via the EM or CEM algorithms. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. 
 
@@ -60,7 +60,7 @@ suppressMessages(library(TraMineR))
 ```
 
 ## MVAD Data
-Load the MVAD data. The data comes from a study by McVicar and Anyadike-Danes (2002) on transition from school to work. The data consist of static background characteristics (covariates and sampling weights) and a time series sequence of 72 monthly labour market activities for each of 712 individuals in a cohort survey. The individuals were followed up from July 1993 to June 1999. Type `?mvad` for more information. We will drop the first sequence position as it (along with the covariates `Grammar` and `Location`) were used to define the sampling weights.
+Load the MVAD data. The data comes from a study by McVicar and Anyadike-Danes (2002) on transition from school to work. The data consist of static background characteristics (covariates and sampling weights) and a time series sequence of 72 monthly labour market activities for each of 712 individuals in a cohort survey. The individuals were followed up from July 1993 to June 1999. Type `?mvad` for more information. We will drop the first sequence position (i.e. time point) as it (along with the covariates `Grammar` and `Location`) were used to define the sampling weights.
 
 Note that the data set must have equal sequence lengths, and the intervals are assumed to be evenly spaced. The MVAD data meets these criteria. The __TraMineR__ function `seqdef` is used to convert the data to the appropriate format. 
 
@@ -92,7 +92,7 @@ mod1 <- MEDseq_fit(mvad.seq, G=10, modtype="UCN", weights=mvad$weights,
                    gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov, verbose=FALSE)
 ```
 
-The names of the model types are CC, UC, CU, UU, CCN, UCN, CUN, and UUN. The first letter denotes whether the precision parameters are constrained (C) or unconstrained (U) across clusters, the second denotes the same across sequence positions, and the third letter (N) indicates the precision of a noise component. In this context, a noise component is one wherein the distribution of the sequences is uniform. 
+The names of the model types are CC, UC, CU, UU, CCN, UCN, CUN, and UUN. The first letter denotes whether the precision parameters are constrained (C) or unconstrained (U) across clusters, the second denotes the same across time periods, and the third letter (N) indicates the precision of a noise component. In this context, a noise component is one wherein the distribution of the sequences is uniform. 
 
 Typically, a range of `G` values and `modtype` settings are supplied to a single call to `MEDseq_fit` and chosen from using some criterion. Thus, for a given set of covariates, the model which is optimum in terms of the number of components and the precision parameter configuration can be identified. 
 
@@ -100,13 +100,13 @@ To compare different runs using different sets of covariates, the function `MEDs
 
 ```{r}
 # 9-component CUN model with no covariates.
-# The CUN model has a precision parameter for each sequence position,
-# though each time-point's precision is common across clusters.
+# The CUN model has a precision parameter for each sequence position (i.e. time point),
+# though each time point's precision is common across clusters.
 
 mod2 <- MEDseq_fit(mvad.seq, G=9,  modtype="CUN", weights=mvad$weights, verbose=FALSE)
 
 # 11-component CC model with all coviarates.
-# The CC model has only a single precision parameter across all clusters and time-points.
+# The CC model has only a single precision parameter across all clusters and time points.
 
 mod3 <- MEDseq_fit(mvad.seq, G=11, modtype="CC", weights=mvad$weights,
                    gating=~. - Grammar - Location, covars=mvad.cov, verbose=FALSE)
@@ -178,10 +178,11 @@ In the previous example, the model by default assumed that covariates also influ
 
 ```{r, eval=FALSE}
 # The UUN model includes a noise component.
-# Otherwise, the model has a precision parameter for each sequence position in each cluster.
+# Otherwise, the model has a precision parameter for each time point in each cluster.
 
-bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", gating=~ birthyr, 
-                  covars=biofam.cov, control=MEDseq_control(noise.gate=FALSE))
+bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", 
+                  gating=~ birthyr, covars=biofam.cov, 
+                  control=MEDseq_control(noise.gate=FALSE))
 ```
 
 ```{r, echo=FALSE}
@@ -202,7 +203,7 @@ As before, let's look at the clusters uncovered by the model. This time, `seriat
 plot(bio, type="clusters", seriate="both")
 ```
 
-Use the following code to examine the precision parameters. Note how we have a full $16\times G$ matrix of precision parameters, one for each time point in each cluster. Typically, we would not supply the argument `log.scale=TRUE`. However, in this case there are many quite large precision parameter values which skew the colour scale. Indeed, some are even infinite! Infinite precision under UU or UUN models implies that all values for that time-point are identical within the given cluster.
+Use the following code to examine the precision parameters. Note how we have a full $16\times G$ matrix of precision parameters, one for each time point in each cluster. Typically, we would not supply the argument `log.scale=TRUE`. However, in this case there are many quite large precision parameter values which skew the colour scale. Indeed, some are even infinite! Infinite precision under UU or UUN models implies that all values for that time point are identical within the given cluster.
 
 ```{r}
 plot(bio, type="precision", log.scale=TRUE)
@@ -231,8 +232,8 @@ Other plot types adapted from __TraMineR__ can be produced using `type="d"` (sta
 ---------
 
 ## References
-Murphy, K., Murphy, T. B., Piccarreta, R., & Gormley I. C. (2019).  Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. _To appear_. Pre-print available at [arXiv:1908.07963](https://arxiv.org/abs/1908.07963).
+Murphy, K., Murphy, T. B., Piccarreta, R., & Gormley I. C. (2019).  Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _To appear_. Pre-print available at [arXiv:1908.07963](https://arxiv.org/abs/1908.07963).
 
-McVicar, D. and Anyadike-Danes, M. (2002). Predicting Successful and Unsuccessful Transitions from School to Work by Using Sequence Methods. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 165(2): 317-334.
+McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 165(2): 317-334.
 
 Muller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie a l'aide de l'optimal matching. In __XIVe Rencontre de la Societe francophone de classification (SFC 2007)__, Paris, 5 - 7 septembre 2007, pp. 157-160.
