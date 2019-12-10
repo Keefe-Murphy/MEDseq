@@ -51,6 +51,6 @@ Two additional weights variables are inserted for illustrative purpose ONLY (sin
 data(biofam, package="MEDseq")
 }
 \references{
-Muller, N. S., Studer, M. and Ritschard, G. (2007). Classification de parcours de vie a l'aide de l'optimal matching. In XIVe Rencontre de la Societe francophone de classification (SFC 2007), Paris, 5 - 7 septembre 2007, pp. 157-160.
+Mueller, N. S., Studer, M. and Ritschard, G. (2007). Classification de parcours de vie a l'aide de l'optimal matching. In \emph{XIVe Rencontre de la Societe francophone de classification (SFC 2007), Paris, 5-7 septembre 2007}, pp. 157-160.
 }
 \keyword{datasets}

@@ -55,7 +55,7 @@ A list (of class \code{"MEDseq"}) with the following named entries (of which som
 \item{\code{lambda}}{A matrix of precision parameters. Will contain \code{1} row if the 1st letter of \code{modtype} is "C" and \code{G} columns otherwise. Will contain \code{1} column if the 2nd letter of \code{modtype} is "C" and P columns otherwise, where P is the number of sequence positions. Precision parameter values of zero are reported for the noise component, if any. Note that values of \code{Inf} are also possible, corresponding to zero-variance, which is most likely under the "\code{UU}" or "\code{UUN}" models.}
 \item{\code{tau}}{The mixing proportions: either a vector of length \code{G} or, if \code{gating} covariates were supplied, a matrix with an entry for each observation (rows) and component (columns).}}
 }
-\item{\code{gating}}{An object of class \code{"MEDgating"} and either \code{"multinom"} or \code{"glm"} (for single-component models) giving the \code{\link[nnet]{multinom}} regression coefficients of the \code{gating} network. If \code{gating} covariates were \emph{NOT} supplied (or the best model has just one component), this corresponds to a RHS of \code{~1}, otherwise the supplied \code{gating} formula. As such, a fitted \code{gating} network is always returned even in the absence of supplied covariates. If there is a noise component (and the option \code{noise.gate=TRUE} is invoked), its coefficients are those for the \emph{last} component. \strong{Users are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network}.}
+\item{\code{gating}}{An object of class \code{"MEDgating"} and either \code{"multinom"} or \code{"glm"} (for single-component models) giving the \code{\link[nnet]{multinom}} regression coefficients of the \code{gating} network. If \code{gating} covariates were \emph{NOT} supplied (or the best model has just one component), this corresponds to a RHS of \code{~1}, otherwise the supplied \code{gating} formula. As such, a fitted \code{gating} network is always returned even in the absence of supplied covariates. If there is a noise component (and the option \code{noise.gate=TRUE} is invoked), its coefficients are those for the \emph{last} component. \strong{Users are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network. Users are instead advised to use the function \code{\link{MEDseq_stderr}}}.}
 \item{\code{z}}{The final responsibility matrix whose \code{[i,k]}-th entry is the probability that observation \emph{i} belonds to the \emph{k}-th component. If there is a noise component, its values are found in the \emph{last} column.}
 \item{\code{MAP}}{The vector of cluster labels for the chosen model corresponding to \code{z}, i.e. \code{max.col(z)}. Observations belonging to the noise component, if any, will belong to component \code{0}.}
 \item{\code{DBS}}{A matrix of \emph{all} (weighted) mean/median DBS values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note} and \code{\link{dbs}}.}
@@ -134,10 +134,10 @@ summary(mod2$gating)
 plot(mod2, "clusters")}
 }
 \references{
-Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
-\code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{I}}
+\code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}
 }
 \author{
 Keefe Murphy - <\email{keefe.murphy@ucd.ie}>

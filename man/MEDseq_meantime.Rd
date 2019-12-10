@@ -33,7 +33,7 @@ MEDseq_meantime(mod)
 MEDseq_meantime(mod, MAP=TRUE, norm=FALSE)}
 }
 \references{
-Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link{MEDseq_control}}

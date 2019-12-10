@@ -56,11 +56,6 @@
     mean(stringdistmatrix(seqs, theta, method="hamming"))
 }
 
-#' @importFrom stringdist "stringdistmatrix"
-.dseq             <- function(seqs, theta) {
-    stringdistmatrix(seqs, theta, method="hamming")
-}
-
 .drop_constants   <- function(dat, formula, sub = NULL) {
   if(!is.data.frame(dat))        stop("'dat' must be a data.frame", call.=FALSE)
   Nseq            <- seq_len(nrow(dat))
@@ -83,6 +78,11 @@
   form            <- if(intercept  == 0) stats::update.formula(form, ~ . -1)        else form
   environment(form)        <- environment(formula)
     form
+}
+
+#' @importFrom stringdist "stringdistmatrix"
+.dseq             <- function(seqs, theta) {
+    stringdistmatrix(seqs, theta, method="hamming")
 }
 
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowSums2"
@@ -363,16 +363,6 @@
     matrix(x, nrow=nrow, ncol=ncol, byrow=any(dim(as.matrix(x)) == 1))
 }
 
-.seq_grid         <- function(length, ncat) {
-  if(!is.numeric(length) ||
-     length(length)      != 1 ||
-     length       <= 0)          stop("'length' must a strictly positive scalar", call.=FALSE)
-  if(!is.numeric(ncat)   ||
-     length(ncat)        != 1 ||
-     ncat         <= 0)          stop("'ncat' must a strictly positive scalar",   call.=FALSE)
-    do.call(expand.grid, replicate(length, list(seq_len(ncat) - 1L)))
-}
-
 .modal            <- function(x) {
   ux              <- unique(x[x != 0])
   tab             <- tabulate(match(x, ux))
@@ -506,12 +496,27 @@
     return(list(crits = stats::setNames(x.val[seq_len(pick)], vapply(seq_len(pick), function(p, b=x.ind[p,]) paste0(b[2L], ",", b[1L]), character(1L))), pick = pick))
 }
 
+.rDirichlet <- function(G) {
+  tmp <- stats::rgamma(G, shape = 1)
+    tmp/sum(tmp)
+}
+
 #' @importFrom matrixStats "rowSums2"
 .renorm_z         <- function(z) z/rowSums2(z)
 
 .replace_levels   <- function(seq, levels = NULL) {
   seq             <- as.numeric(strsplit(seq, "")[[1L]])
     if(is.null(levels)) factor(seq) else factor(seq, levels=seq_along(levels) - any(seq == 0), labels=as.character(levels))
+}
+
+.seq_grid         <- function(length, ncat) {
+  if(!is.numeric(length) ||
+     length(length)      != 1 ||
+     length       <= 0)          stop("'length' must a strictly positive scalar", call.=FALSE)
+  if(!is.numeric(ncat)   ||
+     length(ncat)        != 1 ||
+     ncat         <= 0)          stop("'ncat' must a strictly positive scalar",   call.=FALSE)
+    do.call(expand.grid, replicate(length, list(seq_len(ncat) - 1L)))
 }
 
 .tau_noise        <- function(tau, z0) {

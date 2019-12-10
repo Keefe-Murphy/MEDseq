@@ -19,9 +19,9 @@ knitr::opts_chunk$set(fig.width=7, fig.height=7, fig.align = 'center', fig.show=
 ## Introduction
 __MEDseq__ is an R package which fits a range of models introduced by [Murphy et al. (2019)](https://arxiv.org/abs/1908.07963). These are finite mixtures of exponential-distance models for clustering longitudinal/categorical life-course sequence data. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
 
-The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via the EM or CEM algorithms. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. 
+The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via the EM or CEM algorithms. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. `MEDseq_stderr` is provided for computing the standard errors of the coefficients for the covariates in the gating network.
 
-A dedicated plotting function exists for visualising various aspects of results, using new methods as well as some existing methods from the __TraMineR__ package. Finally, the package also contains two data sets: `biofam` and `mvad`.
+A dedicated plotting function exists for visualising various aspects of the results, using new methods as well as some existing methods from the __TraMineR__ package. Finally, the package also contains two data sets: `biofam` and `mvad`.
 
 If you find bugs or want to suggest new features please visit the __MEDseq__ [GitHub issues page](https://github.com/Keefe-Murphy/MEDseq/issues). 
 
@@ -126,7 +126,7 @@ opt   <- comp$optimal
 suppressMessages(summary(opt))
 ```
 
-Examine the gating network coefficients.
+Examine the estimated gating network coefficients. Note that standard errors can be computed by calling `MEDseq_stderr` on the `opt` object, to better inform the interpretations of the covariate effects.
 
 ```{r}
 coef(opt$gating)
@@ -134,14 +134,22 @@ coef(opt$gating)
 
 Visualise the clusters uncovered by the optimal model. Note that seriation is applied for visual clarity. The legend indicates which colours correspond to which state categories. 
 
-```{r}
+```{r, eval=FALSE}
 plot(opt, type="clusters")
+```
+
+```{r, echo=FALSE}
+knitr::include_graphics("MVAD_Clusters.png")
 ```
 
 Many other plotting options exist, some of which are adapted from the __TraMineR__ package. Use the following code to examine the central sequence parameters. Note that the central sequence of the noise component is not shown as it doesn't contribute to the likelihood.
 
-```{r}
+```{r, eval=FALSE}
 plot(opt, type="mean")
+```
+
+```{r, echo=FALSE}
+knitr::include_graphics("MVAD_Mean.png")
 ```
 
 Use the following code to see the observation-specific (weighted) density-based silhouette values (coloured by cluster). The (weighted) mean within each cluster is also shown. Note that the low average for the noise component is as expected; we do not expect this cluster to be internally coherent, rather it acts as a filter that allows the other clusters to be captured more clearly.
@@ -232,8 +240,8 @@ Other plot types adapted from __TraMineR__ can be produced using `type="d"` (sta
 ---------
 
 ## References
-Murphy, K., Murphy, T. B., Piccarreta, R., & Gormley I. C. (2019).  Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _To appear_. Pre-print available at [arXiv:1908.07963](https://arxiv.org/abs/1908.07963).
+Murphy, K., Murphy, T. B., Piccarreta, R., & Gormley I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _To appear_. Pre-print available at [arXiv:1908.07963](https://arxiv.org/abs/1908.07963).
 
 McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 165(2): 317-334.
 
-Muller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie a l'aide de l'optimal matching. In __XIVe Rencontre de la Societe francophone de classification (SFC 2007)__, Paris, 5 - 7 septembre 2007, pp. 157-160.
+Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007)_, Paris, 5-7 septembre 2007_, pp. 157-160.

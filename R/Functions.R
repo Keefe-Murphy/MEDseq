@@ -53,7 +53,7 @@ dbs               <- function(z, ztol = 1E-100, weights = NULL, summ = c("mean",
    if(!is.numeric(weights) ||
       length(weights)      != N) stop(paste0("'weights' must be a numeric vector of length N=", N), call.=FALSE)
    if(any(weights < 0)     || 
-      any(!is.finite(weights)))  stop("'weights' must be positive and finite", call.=FALSE)
+      any(!is.finite(weights)))  stop("'weights' must be positive and finite",    call.=FALSE)
   }
   if(!missing(summ)        && 
     (length(summ)  > 1     ||
@@ -64,7 +64,7 @@ dbs               <- function(z, ztol = 1E-100, weights = NULL, summ = c("mean",
   l2              <- log(z[,2L])
   zz              <- log(z[,1L])     - l2
   zz.inf          <- is.infinite(zz) | l2 < log(ztol)
-  ds              <- zz/max(abs(zz[!zz.inf]))
+  ds              <- zz/max(1L, abs(zz[!zz.inf]))
   ds[zz.inf]      <- 1L
   ds[is.nan(ds)]  <- 0L
   DS              <- cbind(cluster=MAP, dbs_width=ds)
@@ -264,7 +264,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' @keywords clustering main
 #' @importFrom TraMineR "seqdef"
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}
 #' @usage
 #' MEDseq_compare(...,
@@ -515,7 +515,7 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #' @keywords control
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link[cluster]{agnes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' 
 #' Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing} 21(3): 295-308.
 #' @export
@@ -662,7 +662,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' \item{\code{lambda}}{A matrix of precision parameters. Will contain \code{1} row if the 1st letter of \code{modtype} is "C" and \code{G} columns otherwise. Will contain \code{1} column if the 2nd letter of \code{modtype} is "C" and P columns otherwise, where P is the number of sequence positions. Precision parameter values of zero are reported for the noise component, if any. Note that values of \code{Inf} are also possible, corresponding to zero-variance, which is most likely under the "\code{UU}" or "\code{UUN}" models.}
 #' \item{\code{tau}}{The mixing proportions: either a vector of length \code{G} or, if \code{gating} covariates were supplied, a matrix with an entry for each observation (rows) and component (columns).}}
 #' }
-#' \item{\code{gating}}{An object of class \code{"MEDgating"} and either \code{"multinom"} or \code{"glm"} (for single-component models) giving the \code{\link[nnet]{multinom}} regression coefficients of the \code{gating} network. If \code{gating} covariates were \emph{NOT} supplied (or the best model has just one component), this corresponds to a RHS of \code{~1}, otherwise the supplied \code{gating} formula. As such, a fitted \code{gating} network is always returned even in the absence of supplied covariates. If there is a noise component (and the option \code{noise.gate=TRUE} is invoked), its coefficients are those for the \emph{last} component. \strong{Users are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network}.}
+#' \item{\code{gating}}{An object of class \code{"MEDgating"} and either \code{"multinom"} or \code{"glm"} (for single-component models) giving the \code{\link[nnet]{multinom}} regression coefficients of the \code{gating} network. If \code{gating} covariates were \emph{NOT} supplied (or the best model has just one component), this corresponds to a RHS of \code{~1}, otherwise the supplied \code{gating} formula. As such, a fitted \code{gating} network is always returned even in the absence of supplied covariates. If there is a noise component (and the option \code{noise.gate=TRUE} is invoked), its coefficients are those for the \emph{last} component. \strong{Users are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network. Users are instead advised to use the function \code{\link{MEDseq_stderr}}}.}
 #' \item{\code{z}}{The final responsibility matrix whose \code{[i,k]}-th entry is the probability that observation \emph{i} belonds to the \emph{k}-th component. If there is a noise component, its values are found in the \emph{last} column.}
 #' \item{\code{MAP}}{The vector of cluster labels for the chosen model corresponding to \code{z}, i.e. \code{max.col(z)}. Observations belonging to the noise component, if any, will belong to component \code{0}.}
 #' \item{\code{DBS}}{A matrix of \emph{all} (weighted) mean/median DBS values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note} and \code{\link{dbs}}.}
@@ -704,9 +704,9 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @importFrom WeightedCluster "wcKMedoids" "wcSilhouetteObs"
 #' @export
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @keywords clustering main
-#' @seealso \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{I}}
+#' @seealso \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}
 #' @usage
 #' MEDseq_fit(seqs, 
 #'            G = 1L:9L, 
@@ -1292,7 +1292,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         attr(DBSvals[[h]][[m]], "G")         <- g
         attr(DBSvals[[h]][[m]], "ModelType") <- modtype
       } else dbsx <- NA
-      if(do.asw   && g > 1) {
+      if(do.asw   && g > 1 && length(unique(tmp.MAP)) > 1)   {
         ASWvals[[h]][[m]]  <- ASW <- if(ERR) NA else cbind(tmp.MAP, wcSilhouetteObs(dist.mat2, tmp.MAP, weights=if(ctrl$do.wts) w2, measure=ifelse(ctrl$do.wts, "ASWw", "ASW")))
         colnames(ASWvals[[h]][[m]])          <- 
         colnames(ASW)      <- c("cluster", "asw_width")
@@ -1428,6 +1428,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   if(any(apply(x.lambda == 0, 1L, all))) {
     x.theta                     <- if(G > 1) rbind(do.call(rbind, lapply(x.theta[-G], .char_to_num)), NA) else matrix(NaN, nrow=1L, ncol=P)
   } else x.theta                <- do.call(rbind, lapply(x.theta, .char_to_num))
+  colnames(x.theta)             <- colnames(seqs)
   storage.mode(x.theta)         <- "integer"
   attr(x.theta, "alphabet")     <- levs
   attr(x.theta, "labels")       <- attr(seqs, "labels")
@@ -1633,7 +1634,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
 #' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the "\code{MEDseq}" object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of "\code{clusters}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}".
 #' @note Every \code{type} of plot respects the sampling weights, if any. Those related to \code{\link[TraMineR]{seqdef}} plots from \pkg{TraMineR} may be too wide to display in the preview panel. The same is also true when \code{type} is "\code{dbsvals}" or "\code{aswvals}".
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @usage 
 #' \method{plot}{MEDseq}(x,
 #'        type = c("clusters", "mean", "precision", "gating", 
@@ -1872,7 +1873,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     levels        <- sort(unique(as.vector(cmat)))
     z             <- matrix(unclass(factor(cmat, levels=levels, labels=seq_along(levels))), nrow=P, ncol=G, byrow=TRUE)
     graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Positions", ylab=switch(EXPR=seriate, clusters=, both="Ordered Clusters", "Clusters"), main=paste0("Precision Parameters Plot", ifelse(log.scale, " (Log Scale)",  "")))
-    graphics::axis(1, at=Pseq, tick=FALSE, las=1, cex.axis=0.75, labels=Pseq)
+    graphics::axis(1, at=Pseq, tick=FALSE, las=1, cex.axis=0.75, labels=colnames(x$params$theta))
     graphics::axis(2, at=Gseq, tick=FALSE, las=1, cex.axis=0.75, labels=as.character(perm))
     graphics::box(lwd=2)
     bx            <- graphics::par("usr")
@@ -2005,14 +2006,14 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     noise         <- modtype %in% c("CCN", "UCN", "CUN", "UUN")
     graphics::mtext(substitute(G~modtype~"clusters"~C[g], list(G=G, modtype=modtype)), adj=1)
     if(weighted)   {
-      switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2),
-                          mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", ave[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2))
+      switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", w.med[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2),
+                          mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", w.avg[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2))
       silcl       <- split(sil,  cli)
       meds        <- switch(EXPR=summ, median=sapply(seq_along(silcl), function(i) weightedMedian(silcl[[i]], weights[cli == i])),
                                          mean=sapply(seq_along(silcl), function(i) weightedMean(silcl[[i]],   weights[cli == i])))
     } else         {
       switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2),
-                          mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", ave[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2))
+                          mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", avg[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2))
       meds        <- tapply(sil, cli, switch(EXPR=summ, median=stats::median, mean=mean))
     }
     medy          <- tapply(dat, cli, stats::median)
@@ -2180,7 +2181,7 @@ print.MEDgating    <- function(x, ...) {
   cat(paste("EqualPro:", equalpro, ifelse(equalNoise, "\n", "")))
   if(equalNoise)                 cat(paste("Noise Proportion Estimated:", attr(x, "EqualNoise")))
   if(equalpro)                   message("\n\nCoefficients set to zero as this is an equal mixing proportion model")
-  message("\n\nUsers are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network\n")
+  message("\n\nUsers are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network\nUsers are advised to use the function 'MEDseq_stderr' instead\n")
     invisible(x)
 }
 
@@ -2374,8 +2375,109 @@ print.summaryMEDgate  <- function(x, ...) {
   cat(paste("EqualPro:", equalpro, ifelse(equalNoise, "\n", "")))
   if(equalNoise)   cat(paste("Noise Proportion Estimated:", attr(x, "EqualN")))
   if(equalpro)     message("\n\nCoefficients set to zero as this is an equal mixing proportion model")
-  message("\n\n\nUsers are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network\n")
+  message("\n\n\nUsers are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network\nUsers are advised to use the function 'MEDseq_stderr' instead\n")
     invisible(x)
+}
+
+#' MEDseq gating network standard errors
+#' 
+#' Computes standard errors of the gating network coefficients in a fitted MEDseq model using either the Weighted Likelihood Bootstrap or Jackknife methods.
+#' @param mod A fitted model of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}}.
+#' @param method The method used to compute the standard errors (defaults to \code{"WLBS"}, the Weighted Likelihood Bootstrap).
+#' @param N The number of samples to use when the \code{"WLBS"} \code{method} is employed. Defaults to \code{1000}. Not relevant when \code{method="Jackknife"}, in which case \code{N} is always the number of observations.
+#'
+#' @return A list with the following two elements:
+#' \describe{
+#' \item{\code{Coefficients}}{The original matrix of estimated coefficients (\code{coef(mod$gating)}).}
+#' \item{\code{Std. Errors}}{The matrix of corresponding standard error estimates.}}
+#' @note A progress bar is displayed as the function iterates over the \code{N} samples. The function may take a long time to run for large \code{N}.
+#' @export
+#' @seealso \code{\link{MEDseq_fit}}
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' 
+#' O'Hagan, A., Murphy, T. B., Scrucca, L., and Gormley, I. C. (2019). Investigation of parameter uncertainty in clustering using a Gaussian mixture model via jackknife, bootstrap and weighted likelihood bootstrap. \emph{Computational Statistics} 34(4): 1779-1813.
+#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @keywords clustering main
+#' @usage
+#' MEDseq_stderr(mod,
+#'               method = c("WLBS", "Jackknife"),
+#'               N = 1000L)
+#' @examples
+#' \dontshow{library(TraMineR)}
+#' # Load the MVAD data
+#' data(mvad)
+#' mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
+#'                  which(x == "yes")), labels = colnames(mvad[,5:9]))
+#' mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
+#'                       sequences = mvad[,15L:86L], 
+#'                       weights = mvad[,2])
+#' mvad.cov      <- mvad$covariates
+#' states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
+#' labels        <- c("Employment", "Further Education", "Higher Education", 
+#'                    "Joblessness", "School", "Training")
+#' mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
+#' \donttest{
+#' # Fit a model with weights and gating covariates
+#' # Drop the 1st time point which was used to define the weights
+#' mvad.seq2     <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
+#' mod           <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
+#'                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
+#'                             
+#' # Estimate standard errors using 100 WLBS samples
+#' (std          <- MEDseq_stderr(mod, N=100))}
+MEDseq_stderr <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L) {
+    UseMethod("MEDseq_stderr")
+}
+
+#' @method MEDseq_stderr MEDseq
+#' @export
+MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L) {
+  if(!missing(method)      && 
+     (length(method)  > 1  ||
+      !is.character(method)))       stop("'method' must be a single character string", call.=FALSE)
+  method      <- match.arg(method)
+  if(isFALSE(attr(mod, "Gating")))  warning("No gating covariates in fitted model\n",  call.=FALSE, immediate.=TRUE)
+  n           <- nrow(mod$data)
+  N           <- switch(EXPR=method, WLBS=N, n)
+  if(length(N)       != 1  ||
+     !is.numeric(N)        ||
+     N        <= 0         ||
+     floor(N) != N)                 stop("'N' must be a single positive integer",      call.=FALSE)
+  gating      <- mod$gating
+  coeffs      <- stats::coef(gating)
+  coeff       <- array(NA, c(dim(coeffs), N))
+  gate        <- stats::as.formula(attr(gating, "Formula"))
+  covs        <- mod$covars
+  Z           <- switch(EXPR=method, WLBS=list(mod$z), mod$z)
+  G           <- mod$G
+  modtype     <- mod$modtype
+  seqdat      <- mod$data
+  weights     <- attr(mod, "Weights")
+  pb          <- utils::txtProgressBar(min = 0, max = N, style = 3)
+  switch(EXPR=method, WLBS= {
+    for(i in seq_len(N))    {
+      STD     <- suppressMessages(MEDseq_fit(seqdat, G=mod$G, modtype=modtype, 
+                                             weights=weights * .rDirichlet(n), z.list=Z, 
+                                             gating=gate, covars=covs, verbose=FALSE))
+      coeff[,,i]     <- stats::coef(STD$gating)
+      utils::setTxtProgressBar(pb, i)
+    }
+  },           {
+    for(i in seq_len(N))    {
+      STD     <- suppressMessages(MEDseq_fit(seqdat[-i,], G=G, modtype=modtype, 
+                                             weights=weights[-i], z.list=list(Z[-i,]), 
+                                             gating=gate, covars=covs[-i,], verbose=FALSE))
+      coeff[,,i]     <- stats::coef(STD$gating)
+      utils::setTxtProgressBar(pb, i)
+    }
+  })
+  message("\n\n")
+  std         <- apply(coeff, c(1L, 2L), stats::sd)
+  rownames(std)      <- rownames(coeffs)
+  colnames(std)      <- colnames(coeffs)
+  res         <- list(Coefficients=coeffs, 'Std. Errors'=std)
+  class(res)  <- "listof"
+    res
 }
 
 #' Compute the mean time spent in each sequence category
@@ -2390,7 +2492,7 @@ print.summaryMEDgate  <- function(x, ...) {
 #' @importFrom matrixStats "colSums2"
 #' @importFrom TraMineR "seqdef"
 #' @export
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{MEDseq_control}}
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
 #' @keywords utility

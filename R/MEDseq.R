@@ -12,7 +12,9 @@
 #' 
 #' \code{\link{MEDseq_compare}} is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. 
 #' 
-#' A dedicated plotting function exists for visualising various aspects of results, using new methods as well as some existing methods from the \pkg{TraMineR} package.
+#' \code{\link{MEDseq_stderr}} is provided for computing the standard errors of the coefficients for the covariates in the gating network.
+#' 
+#' A dedicated plotting function exists for visualising various aspects of the results, using new methods as well as some existing methods from the \pkg{TraMineR} package.
 #' 
 #' Finally, the package also contains two data sets: \code{\link{biofam}} and \code{\link{mvad}}.
 #' 
@@ -20,8 +22,8 @@
 #' \itemize{
 #' \item{Type: }{Package}
 #' \item{Package: }{MEDseq}
-#' \item{Version: }{1.0.1}
 #' \item{Date: }{2019-12-10 (this version), 2019-08-24 (original release)}
+#' \item{Version: }{1.1.0}
 #' \item{Licence: }{GPL (>=2)}
 #' }
 #'
@@ -33,7 +35,7 @@
 #' Keefe Murphy [aut, cre], Thomas Brendan Murphy [ctb], Raffaella Piccarreta [ctb], Isobel Claire Gormley [ctb]
 #'
 #' \strong{Maintainer}: Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
-#' @references Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @examples
 #' \dontshow{library(TraMineR)}
 #' # Load the MVAD data

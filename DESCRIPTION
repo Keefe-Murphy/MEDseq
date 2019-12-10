@@ -2,7 +2,7 @@ Package: MEDseq
 Type: Package
 Date: 2019-12-10
 Title: Mixtures of Exponential-Distance Models with Covariates
-Version: 1.0.1
+Version: 1.1.0
 Authors@R: c(person("Keefe", "Murphy", email = "keefe.murphy@ucd.ie", role = c("aut", "cre")),
            person("Thomas Brendan", "Murphy", email = "brendan.murphy@ucd.ie", role = "ctb"),
            person("Raffaella", "Piccarreta", email = "raffaella.piccarreta@unibocconi.it ", role = "ctb"),
