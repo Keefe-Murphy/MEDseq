@@ -53,7 +53,7 @@ Also available are the following options which act as wrappers to types of plots
 
 \item{log.scale}{Logical indicating whether precision parameter heatmaps should be plotted on the log-scale when \code{type="precision"}. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are effected. Heavily imbalanced values are more likely for the "\code{UU}" and "\code{UUN}" model types, thus \code{log.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise.}
 
-\item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}, as well as the \code{x.axis} argument when \code{type="gating"}.}
+\item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used.}
 }
 \value{
 The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
@@ -68,7 +68,7 @@ The \code{type} options related to model selection criteria plot values for \emp
 Every \code{type} of plot respects the sampling weights, if any. Those related to \code{\link[TraMineR]{seqdef}} plots from \pkg{TraMineR} may be too wide to display in the preview panel. The same is also true when \code{type} is "\code{dbsvals}" or "\code{aswvals}".
 }
 \examples{
-\dontshow{library(TraMineR)}
+\dontshow{suppressMessages(require(TraMineR))}
 # Load the MVAD data
 data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
@@ -91,34 +91,34 @@ plot(mod0, type="precision")
 \donttest{
 # Fit a range of unweighted mixture models without covariates
 # Only consider models with a noise component
-mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"))
+# mod1        <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"))
 
 # Plot the DBS values for all fitted models
-plot(mod1, "dbs")
+# plot(mod1, "dbs")
 
 # Plot the clusters of the optimal model
-plot(mod1, "clusters")
+# plot(mod1, "clusters")
 
 # Plot the clusters of the best UUN model
-plot(mod1, "clusters", modtype="UUN")
+# plot(mod1, "clusters", modtype="UUN")
 
 # Fit a model with weights and gating covariates
 # Drop the 1st time point which was used to define the weights
-mvad.seq2     <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
-mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
-                            gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
+# mvad.seq2   <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
+# mod2        <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
+#                           gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
 
 # Plot the central sequences & precision parameters of this model
-plot(mod2, "mean")
-plot(mod2, "precision")
+# plot(mod2, "mean")
+# plot(mod2, "precision")
 
 # Plot the clustering uncertainties in the form of a barplot
-plot(mod2, "uncert.bar")
+# plot(mod2, "uncert.bar")
 
 # Plot the observation-specific DBS values and the sequence frequencies by cluster
 # Note that these plots may not display properly in the preview panel
-plot(mod2, "dbsvals")
-plot(mod2, "Ht")}
+# plot(mod2, "dbsvals")
+# plot(mod2, "Ht")}
 }
 \references{
 Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.

@@ -36,7 +36,13 @@ MEDseq_control(algo = c("EM", "CEM", "cemEM"),
 
 \item{dist.mat}{An optional distance matrix to use for initialisation when \code{init.z} is one of "\code{kmedoids}" or "\code{hc}". Defaults to a Hamming distance matrix. This is an experimental feature and should only be tampered with by expert users.}
 
-\item{unique}{A logical indicating whether the model is fit only to the unique observations (defaults to \code{TRUE}). When there are covariates, this means all unique combinations of covariate and sequence patterns, otherwise only the sequence patterns. When \code{weights} are supplied to \code{\link{MEDseq_fit}}, the weights are multiplied by the occurrence frequency of the corresponding sequence, otherwise weights are given by these occurrence frequencies. Thereafter, the weighted model is fit only to the unique observations if \code{TRUE}. Thus, significant computational gains can be made.}
+\item{unique}{A logical indicating whether the model is fit only to the unique observations (defaults to \code{TRUE}). When there are covariates, this means all unique combinations of covariate and sequence patterns, otherwise only the sequence patterns. 
+
+When \code{weights} \emph{are not} supplied to \code{\link{MEDseq_fit}} and \code{isTRUE(unique)}, weights are given by the occurrence frequency of the corresponding sequences, and the model is then fit to the unique observations only.
+
+When \code{weights} \emph{are} supplied and \code{isTRUE(unique)}, the weights are summed for each set of duplicate observations and assigned to one retained copy of each corresponding unique sequence. Hence, observations with different weights that are otherwise duplicates are treated as duplicates and significant computational gains can be made. 
+
+In both cases, the results will be unchanged, but setting \code{unique} to \code{TRUE} can often be much faster.}
 
 \item{criterion}{When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Note that all criteria will be returned in any case, if possible.}
 
@@ -62,11 +68,11 @@ MEDseq_control(algo = c("EM", "CEM", "cemEM"),
 
 \item{itmax}{A vector of length two giving integer limits on the number of iterations for 1) the EM/CEM algorithm, and 2) the multinomial logistic regression in the gating network, respectively. The default is \code{c(.Machine$integer.max, 100)}.}
 
-\item{opti}{Charactering string indicating how central sequence parameters should be estimated. The default "\code{mode}" is exact and thus this experimental argument should only be tampered with by expert users. The option "\code{medoid}" fixes the central sequence(s) to be one of the observed sequences (like k-medoids). The other options \code{"first"} and \code{"GA"} use the first-improvement and genetic algorithms, respectively, to mutate the medoid. Pre-computation of the Hamming distance matrix for the observed sequences speeds-up computation of all options other than \code{"mode"}.}
+\item{opti}{Character string indicating how central sequence parameters should be estimated. The default "\code{mode}" is exact and thus this experimental argument should only be tampered with by expert users. The option "\code{medoid}" fixes the central sequence(s) to be one of the observed sequences (like k-medoids). The other options \code{"first"} and \code{"GA"} use the first-improvement and genetic algorithms, respectively, to mutate the medoid. Pre-computation of the Hamming distance matrix for the observed sequences speeds-up computation of all options other than \code{"mode"}.}
 
 \item{ordering}{Experimental feature that should only be tampered with by experienced users. Allows sequences to be reordered on the basis of the column-wise entropy when \code{opti} is "\code{first}" or "\code{GA}".}
 
-\item{MaxNWts}{The maximum allowable number of weights in the call to \code{\link[nnet]{multinom}} for the multinomial logistic regression in the gating network. There is no instrinsic limit in the code, but increasing \code{MaxNWts} will probably allow fits that are very slow and time-consuming. It may be necessary to increase \code{MaxNWts} when categorical concomitant variables with many levels are included or the number of components is high.}
+\item{MaxNWts}{The maximum allowable number of weights in the call to \code{\link[nnet]{multinom}} for the multinomial logistic regression in the gating network. There is no intrinsic limit in the code, but increasing \code{MaxNWts} will probably allow fits that are very slow and time-consuming. It may be necessary to increase \code{MaxNWts} when categorical concomitant variables with many levels are included or the number of components is high.}
 
 \item{verbose}{Logical indicating whether to print messages pertaining to progress to the screen during fitting. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise. If \code{FALSE}, warnings and error messages will still be printed to the screen, but everything else will be suppressed.}
 
@@ -82,6 +88,7 @@ Supplies a list of arguments (with defaults) for use with \code{\link{MEDseq_fit
 \code{\link{MEDseq_control}} is provided for assigning values and defaults within \code{\link{MEDseq_fit}}. While the \code{criterion} argument controls the choice of the optimal number of components and MEDseq model type (in terms of the constraints or lack thereof on the precision parameters), \code{\link{MEDseq_compare}} is provided for choosing between fits with different combinations of covariates or different initialisation settings.
 }
 \examples{
+\dontshow{suppressMessages(require(TraMineR))}
 data(mvad)
 
 # The CC MEDseq model is equivalent to k-medoids when the CEM 

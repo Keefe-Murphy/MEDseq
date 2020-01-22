@@ -44,12 +44,13 @@ The arguments \code{rank} and \code{criterion} are invoked when one or more of t
 Arguments to this function can be supplied to \code{\link{plot.MEDseq}} via the \code{...} construct.
 }
 \examples{
+\dontshow{suppressMessages(require(TraMineR))}
 \donttest{data(biofam)
 
-mod <- MEDseq_fit(seqdef(biofam[10:25] + 1L), G=9:10)
+# mod <- MEDseq_fit(seqdef(biofam[10:25] + 1L), G=9:10)
 
 # Extract the MAP clustering of the best 9-cluster model according to the asw criterion
-get_MEDseq_results(mod, what="MAP", G=9, criterion="asw")}
+# get_MEDseq_results(mod, what="MAP", G=9, criterion="asw")}
 }
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}

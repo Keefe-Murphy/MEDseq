@@ -77,26 +77,26 @@ If random starts had been used via \code{init.z="random"} the \code{optimal} mod
 A dedicated \code{print} function exists for objects of class \code{"MEDseqCompare"} and \code{\link{plot.MEDseq}} can also be called on objects of class \code{"MEDseqCompare"}.
 }
 \examples{
-\dontshow{library(TraMineR)}
+\dontshow{suppressMessages(require(TraMineR))}
 data(biofam)
 seqs <- seqdef(biofam[10:25] + 1L)
 covs <- biofam[2:3]
 \donttest{ 
 # Fit a range of models
-m1   <- MEDseq_fit(seqs, G=9:10)
-m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex, covars=covs)
-m3   <- MEDseq_fit(seqs, G=9:10, gating=~birthyr, covars=covs)
-m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + birthyr, covars=covs)
+# m1   <- MEDseq_fit(seqs, G=9:10)
+# m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex, covars=covs)
+# m3   <- MEDseq_fit(seqs, G=9:10, gating=~birthyr, covars=covs)
+# m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + birthyr, covars=covs)
 
 # Rank only the optimal models and examine the best model
-(comp <- MEDseq_compare(m1, m2, m3, m4, optimal.only=TRUE))
-(best <- comp$optimal)
-(summ <- summary(best))
+# (comp <- MEDseq_compare(m1, m2, m3, m4, optimal.only=TRUE))
+# (best <- comp$optimal)
+# (summ <- summary(best))
 
 # Examine all models visited, including those already deemed suboptimal
 # Only print models with gating covariates & 10 components
-comp2 <- MEDseq_compare(m1, m2, m3, m4, pick=Inf)
-print(comp2, comp2$gating != "None" & comp2$G == 10)}
+# comp2 <- MEDseq_compare(m1, m2, m3, m4, pick=Inf)
+# print(comp2, comp2$gating != "None" & comp2$G == 10)}
 }
 \references{
 Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.

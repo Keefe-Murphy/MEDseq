@@ -4,7 +4,9 @@
 \name{biofam}
 \alias{biofam}
 \title{Family life states from the Swiss Household Panel biographical survey}
-\format{A data frame with 2000 rows, 16 state variables, 1 id variable and 7 covariates and 2 weights variables.}
+\format{
+A data frame with 2000 rows, 16 state variables, 1 id variable and 7 covariates and 2 weights variables.
+}
 \source{
 Swiss Household Panel \url{https://forscenter.ch/projects/swiss-household-panel/}
 }

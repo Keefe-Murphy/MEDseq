@@ -305,7 +305,7 @@
                                          CU=,  CUN=rowSums2(dGp),
                                          UU=,  UUN=sweep(dGp, 2L, prop, FUN="/", check.margin=FALSE))
   }
-  lambda          <- ifelse(denom < numer * V1V, lV1 + log(numer - denom) - log(denom), 0L)
+  lambda          <- suppressWarnings(ifelse(denom < (numer * V1V), lV1 + log(numer - denom) - log(denom), 0L))
   lambda          <- matrix(lambda, nrow=switch(EXPR=l.meth, UC=, UU=, UCN=, UUN=G0, 1L), ncol=switch(EXPR=l.meth, CU=, UU=, CUN=, UUN=P, 1L), byrow=is.element(l.meth, c("UU", "UUN")))
   switch(EXPR=l.meth, UC=,  UU=,
                      UCN=, UUN=           {
@@ -496,8 +496,8 @@
     return(list(crits = stats::setNames(x.val[seq_len(pick)], vapply(seq_len(pick), function(p, b=x.ind[p,]) paste0(b[2L], ",", b[1L]), character(1L))), pick = pick))
 }
 
-.rDirichlet <- function(G) {
-  tmp <- stats::rgamma(G, shape = 1)
+.rDirichlet <- function(G, shape = 1L) {
+  tmp       <- if(all(shape == 1)) stats::rexp(G, 1L) else stats::rgamma(G, shape=shape, rate=1L) 
     tmp/sum(tmp)
 }
 

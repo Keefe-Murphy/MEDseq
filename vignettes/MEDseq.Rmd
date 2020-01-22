@@ -229,7 +229,7 @@ As stated above, some plot types are adapted from __TraMineR__. Let's first look
 seqHtplot(biofam.seq)
 ```
 
-Now let's use the plot function from __MEDseq__ to examine the tranversal entropies within each cluster defined by the MAP partition. Here we can see for instance that subjects assigned to Cluster 9, corresponding to those individuals who left the parental home to marry relatively early and had a child on average just one year later, do indeed exhibit greater variability. Conversely, a postponement of the transition to adulthood is evident for subjects in Cluster 5.
+Now let's use the plot function from __MEDseq__ to examine the transversal entropies within each cluster defined by the MAP partition. Here we can see for instance that subjects assigned to Cluster 9, corresponding to those individuals who left the parental home to marry relatively early and had a child on average just one year later, do indeed exhibit greater variability. Conversely, a postponement of the transition to adulthood is evident for subjects in Cluster 5.
 
 ```{r, fig.height=8.5}
 plot(bio, type="Ht")

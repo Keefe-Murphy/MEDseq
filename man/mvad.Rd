@@ -4,7 +4,9 @@
 \name{mvad}
 \alias{mvad}
 \title{MVAD: Transition from school to work}
-\format{A data frame containing 712 rows, 72 state variables, 1 id variable and 13 covariates.}
+\format{
+A data frame containing 712 rows, 72 state variables, 1 id variable and 13 covariates.
+}
 \source{
 McVicar and Anyadike-Danes (2002)
 }

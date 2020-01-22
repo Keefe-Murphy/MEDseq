@@ -22,7 +22,7 @@ The most important function in the \pkg{MEDseq} package is: \code{\link{MEDseq_f
 
 \code{\link{MEDseq_stderr}} is provided for computing the standard errors of the coefficients for the covariates in the gating network.
 
-A dedicated plotting function exists for visualising various aspects of the results, using new methods as well as some existing methods from the \pkg{TraMineR} package.
+A dedicated plotting function \code{\link{plot.MEDseq}} exists for visualising various aspects of the results, using new methods as well as some existing methods from the \pkg{TraMineR} package.
 
 Finally, the package also contains two data sets: \code{\link{biofam}} and \code{\link{mvad}}.
 }
@@ -32,8 +32,8 @@ Finally, the package also contains two data sets: \code{\link{biofam}} and \code
 \itemize{
 \item{Type: }{Package}
 \item{Package: }{MEDseq}
-\item{Date: }{2019-12-10 (this version), 2019-08-24 (original release)}
 \item{Version: }{1.1.0}
+\item{Date: }{2020-03-30 (this version), 2019-08-24 (original release)}
 \item{Licence: }{GPL (>=2)}
 }
 }
@@ -45,7 +45,7 @@ Further details and examples are given in the associated vignette document:\cr
 }
 
 \examples{
-\dontshow{library(TraMineR)}
+\dontshow{suppressMessages(require(TraMineR))}
 # Load the MVAD data
 data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 

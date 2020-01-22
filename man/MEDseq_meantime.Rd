@@ -13,7 +13,7 @@ MEDseq_meantime(x,
 
 \item{MAP}{A logical indicating whether to use the MAP classification in the computation of the averages, or the 'soft' clustering assignments given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}).}
 
-\item{norm}{A logical indicating whether the mean times are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries give the total (weighted) number of times a given sequence category was observered in a given cluster.}
+\item{norm}{A logical indicating whether the mean times are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries give the total (weighted) number of times a given sequence category was observed in a given cluster.}
 }
 \value{
 A matrix with sequence category and cluster-specific mean times, giving clusters on the rows, corresponding cluster sizes in the first column, and sequence categories in the remaining columns.
@@ -25,6 +25,7 @@ Computes the mean time (per cluster) spent in each sequence category (i.e. state
 Models with weights, covariates, &/or a noise component are also accounted for.
 }
 \examples{
+\dontshow{suppressMessages(require(TraMineR))}
 \donttest{data(biofam)
 
 mod <- MEDseq_fit(seqdef(biofam[10:25] + 1L), G=10, modtype="UUN")
