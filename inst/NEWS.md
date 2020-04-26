@@ -1,6 +1,19 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+## MEDseq v1.1.1 - (_4<sup>th</sup> release [patch update]: 2020-05-12_)
+### Bug Fixes & Miscellaneous Edits
+* Maintenance release for compatibility with R 4.0.0 - minor edits.
+* `summary.MEDseq` gains the printing-related arguments  
+  `classification=TRUE`, `parameters=FALSE`, and `gating=FALSE`.
+* `x$params$lambda` now inherits the `MEDlambda` class,  
+  with its own `print` method as per `x$params$theta`.
+* `x$params$tau` now has informative `dimnames`.
+* Minor changes when supplying `x.axis` to `plot.MEDseq(..., type="gating")`.
+* Documentation, vignette, examples, and references improvements.
+* Added `rmarkdown` to `Suggests:`.
+* Reformatted package startup message.
+
 ## MEDseq v1.1.0 - (_3<sup>rd</sup> release [minor update]: 2020-03-30_)
 ### New Features, Improvements, and Bug Fixes
 * Significant efficiency gains when ignoring duplicates in the presence of weights:  

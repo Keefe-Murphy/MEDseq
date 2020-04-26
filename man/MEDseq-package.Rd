@@ -32,8 +32,8 @@ Finally, the package also contains two data sets: \code{\link{biofam}} and \code
 \itemize{
 \item{Type: }{Package}
 \item{Package: }{MEDseq}
-\item{Version: }{1.1.0}
-\item{Date: }{2020-03-30 (this version), 2019-08-24 (original release)}
+\item{Version: }{1.1.1}
+\item{Date: }{2020-05-12 (this version), 2019-08-24 (original release)}
 \item{Licence: }{GPL (>=2)}
 }
 }
@@ -71,7 +71,7 @@ mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights
                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
                             
 # Examine this model in greater detail
-summary(mod2)
+summary(mod2, parameters=TRUE)
 summary(mod2$gating)
 plot(mod2, "clusters")}
 }

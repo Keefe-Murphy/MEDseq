@@ -22,8 +22,8 @@
 #' \itemize{
 #' \item{Type: }{Package}
 #' \item{Package: }{MEDseq}
-#' \item{Version: }{1.1.0}
-#' \item{Date: }{2020-03-30 (this version), 2019-08-24 (original release)}
+#' \item{Version: }{1.1.1}
+#' \item{Date: }{2020-05-12 (this version), 2019-08-24 (original release)}
 #' \item{Licence: }{GPL (>=2)}
 #' }
 #'
@@ -63,7 +63,7 @@
 #'                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
 #'                             
 #' # Examine this model in greater detail
-#' summary(mod2)
+#' summary(mod2, parameters=TRUE)
 #' summary(mod2$gating)
 #' plot(mod2, "clusters")}
 #' @docType package
@@ -73,9 +73,9 @@
 .onAttach <- function(lib, pkg) {
   version <- read.dcf(file.path(lib, pkg, "DESCRIPTION"), "Version")
   if(interactive()) {
-    packageStartupMessage(paste("\nMixtures of Exponential-Distance Models with Covariates\n___  ___ ___________\n|  \\/  ||  ___|  _  \\\n| .  . || |__ | | | |___  ___  __ _\n| |\\/| ||  __|| | | / __|/ _ \\/ _` |\n| |  | || |___| |/ /\\__ \\  __/ (_| |\n\\_|  |_/\\____/|___/ |___/\\___|\\__, |\n                                 | |\n                                 |/       version", version, "\n"))                 
+    packageStartupMessage(paste("\nMixtures of Exponential-Distance Models with Covariates\n___  ___ ___________                      version", version, "\n|  \\/  ||  ___|  _  \\\n| .  . || |__ | | | |___  ___  __ _\n| |\\/| ||  __|| | | / __|/ _ \\/ _` |\n| |  | || |___| |/ /\\__ \\  __/ (_| |\n\\_|  |_/\\____/|___/ |___/\\___|\\__, |\n                                 | |\n                                 |/\n"))                 
   } else   {
     packageStartupMessage("\nPackage ", sQuote("MEDseq"), " version ", version, ".\n")
   }
-    packageStartupMessage(paste("See", sQuote("?MEDseq"), "for a brief guide to how to use this R package.\nSee", sQuote(paste0("citation(", dQuote("MEDseq"),")")) ,"for citing the package in publications.\nSee", sQuote("MEDseq_news()"), "for new features, recent changes, and bug fixes.\n"))
+    packageStartupMessage(paste("See", sQuote("?MEDseq"), "to see a brief guide to how to use this R package.\nSee", sQuote(paste0("citation(", dQuote("MEDseq"),")")) ,"for citing the package in publications.\nSee", sQuote("MEDseq_news()"), "to see new features, changes, and bug fixes.\n"))
 }

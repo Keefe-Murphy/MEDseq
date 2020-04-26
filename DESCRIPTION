@@ -1,14 +1,14 @@
 Package: MEDseq
 Type: Package
-Date: 2020-03-30
+Date: 2020-05-12
 Title: Mixtures of Exponential-Distance Models with Covariates
-Version: 1.1.0
+Version: 1.1.1
 Authors@R: c(person("Keefe", "Murphy", email = "keefe.murphy@ucd.ie", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7709-3159")),
            person("Thomas Brendan", "Murphy", email = "brendan.murphy@ucd.ie", role = "ctb", comment = c(ORCID = "0000-0002-5668-7046")),
            person("Raffaella", "Piccarreta", email = "raffaella.piccarreta@unibocconi.it ", role = "ctb"),
            person("Isobel Claire", "Gormley", email = "claire.gormley@ucd.ie", role = "ctb"))
 Description: Implements a model-based clustering method for categorical life-course sequences relying on mixtures of exponential-distance models introduced by Murphy et al. (2019) <arXiv:1908.07963>. A range of flexible precision parameter settings corresponding to weighted generalisations of the Hamming distance metric are considered, along with the potential inclusion of a noise component. Gating covariates can be supplied in order to relate sequences to baseline characteristics. Sampling weights are also accommodated. The models are fitted using the EM algorithm and tools for visualising the results are also provided.
-Depends: R (>= 3.3.0)
+Depends: R (>= 4.0.0)
 License: GPL (>=2)
 Encoding: UTF-8
 URL: https://cran.r-project.org/package=MEDseq
@@ -23,6 +23,7 @@ Imports:
   TraMineR,
   WeightedCluster
 Suggests:
-  knitr
+  knitr,
+  rmarkdown
 RoxygenNote: 7.1.0
 VignetteBuilder: knitr

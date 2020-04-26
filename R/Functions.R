@@ -287,10 +287,10 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' # m3   <- MEDseq_fit(seqs, G=9:10, gating=~birthyr, covars=covs)
 #' # m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + birthyr, covars=covs)
 #' 
-#' # Rank only the optimal models and examine the best model
+#' # Rank only the optimal models. Examine the best model and its gating network
 #' # (comp <- MEDseq_compare(m1, m2, m3, m4, optimal.only=TRUE))
 #' # (best <- comp$optimal)
-#' # (summ <- summary(best))
+#' # (summ <- summary(best, classification = TRUE, gating=TRUE))
 #' 
 #' # Examine all models visited, including those already deemed suboptimal
 #' # Only print models with gating covariates & 10 components
@@ -660,7 +660,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @param weights Optional numeric vector containing observation-specific sampling weights, which are accounted for in the model fitting and other functions where applicable. See the \code{unique} argument to \code{\link{MEDseq_control}} to see how incorporating weights also yields computational benefits.
 #' @param ctrl A list of control parameters for the EM/CEM and other aspects of the algorithm. The defaults are set by a call to \code{\link{MEDseq_control}}.
 #' @param ... Catches unused arguments (see \code{\link{MEDseq_control}}).
-#' @param x,object,digits Arguments required for the \code{print} and \code{summary} functions: \code{x} and \code{object} are objects of class \code{"MEDseq"} resulting from a call to \code{\link{MEDseq_fit}}, while \code{digits} gives the number of decimal places to round to for printing purposes (defaults to 2).
+#' @param x,object,digits,classification,parameters,network Arguments required for the \code{print} and \code{summary} functions: \code{x} and \code{object} are objects of class \code{"MEDseq"} resulting from a call to \code{\link{MEDseq_fit}}, while \code{digits} gives the number of decimal places to round to for printing purposes (defaults to 3). \code{classification}, \code{parameters}, and \code{network} are logicals which govern whether a table of the MAP classification of observations, the mixture component parameters, and the gating network coefficients are printed, respectively.
 #'
 #' @return A list (of class \code{"MEDseq"}) with the following named entries (of which some may be missing, depending on the \code{criterion} employed), mostly corresponding to the chosen optimal model (as determined by the \code{criterion} within \code{\link{MEDseq_control}}):
 #' \item{\code{call}}{The matched call.}
@@ -761,7 +761,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #'                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
 #'                             
 #' # Examine this model in greater detail
-#' summary(mod2)
+#' summary(mod2, parameters=TRUE)
 #' summary(mod2$gating)
 #' plot(mod2, "clusters")}
 MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
@@ -856,6 +856,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       if(verbose)                message("Not including gating network covariates with only intercept on gating formula RHS\n")
       gate.x      <- FALSE
     }
+    if(gating[[3L]]      == 
+       "1 - 1")                  stop("'gating' formula must include an intercept when it doesn't include covariates", call.=FALSE)
     gate.names    <- stats::terms(gating)
     gate.names    <- labels(gate.names)[attr(gate.names, "order") <= 1]
   } 
@@ -1442,8 +1444,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   }
   
   noise           <- best.mod %in% c("CCN", "UCN", "CUN", "UUN")
+  attr(x.lambda, "G")           <- G
+  attr(x.lambda, "Model")       <- best.mod
   attr(x.lambda, "Nzero")       <- Nzero.x[best.ind]
   attr(x.lambda, "Ninfty")      <- Ninfty.x[best.ind]
+  attr(x.lambda, "P")           <- P
+  class(x.lambda)               <- "MEDlambda"
   attr(DF.x,     "Nzero")       <- Nzero.x
   attr(DF.x,     "Ninfty")      <- Ninfty.x
   attr(DF.x,     "Gate.Pen")    <- x.gp
@@ -1479,7 +1485,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       } else       {
         x.tau     <- if(equalPro   || equalNoise) rep(1/G, G) else fitG$fitted.values[1L,]
       }
-      x.tau       <- stats::setNames(x.tau, paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq))
+      x.tau       <- stats::setNames(x.tau, paste0("Cluster", if(noise) replace(Gseq, G, 0L)    else Gseq))
       if(equalPro) {
         fitG$wts[]              <- 0L
         fitG$fitted.values      <- matrix(x.tau, nrow=nrow(z), ncol=G, byrow=TRUE)
@@ -1489,15 +1495,18 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       fitG        <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial()))
     }
   }     else       {
-    x.tau         <- if(do.uni) x.tau[dis.agg,, drop=FALSE] else x.tau
+    x.tau         <- if(do.uni) x.tau[dis.agg,, drop=FALSE]   else x.tau
   }
+  if(is.matrix(x.tau))           {
+    colnames(x.tau)             <- paste0("Cluster",          if(noise) replace(Gseq, G, 0L)    else Gseq)
+  } else x.tau    <- stats::setNames(x.tau, paste0("Cluster", if(noise) replace(Gseq, G, 0L)    else Gseq))
   fitG$lab        <- if(noise   && noise.gate && G > 1) c(paste0("Cluster", Gseq[-G]), "Noise") else if(noise && G > 1) paste0("Cluster", Gseq[-G]) else paste0("Cluster", Gseq)
   attr(fitG, "EqualNoise")      <- equalNoise
   attr(fitG, "EqualPro")        <- equalPro
   attr(fitG, "Formula")         <- Reduce(paste, deparse(gating[-2L]))
   attr(fitG, "Maxit")           <- ctrl$g.itmax
   attr(fitG, "MaxNWts")         <- ctrl$MaxNWts
-  attr(fitG, "Noise")           <- noise && any(MAP) == 0
+  attr(fitG, "Noise")           <- noise && any(MAP == 0)
   attr(fitG, "NoiseGate")       <- noise.gate
   attr(fitG, "Reltol")          <- ctrl$g.tol
   class(fitG)     <- c("MEDgating", class(fitG))
@@ -1629,7 +1638,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{"\code{clusters}"}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriate}.}
 #' \item{"\code{mean}"}{Visualise the central sequences. See \code{seriate}. The central sequence for the noise component, if any is not shown as it doesn't contribute in any way to the likelihood.}
 #' \item{"\code{precision}"}{Visualise the central sequence parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{grey} and \code{black} respectively (see \code{log.scale}).}
-#' \item{"\code{gating}"}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriate}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted.}
+#' \item{"\code{gating}"}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriate}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
 #' \item{"\code{dbs}"}{Plots all (weighted) mean/median DBS values in a fitted \code{MEDseq} object.}
 #' \item{"\code{asw}"}{Plots all (weighted) mean/median ASW values in a fitted \code{MEDseq} object.}
 #' \item{"\code{bic}"}{Plots all BIC values in a fitted \code{MEDseq} object.}
@@ -1661,6 +1670,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the "\code{MEDseq}" object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of "\code{clusters}", "\code{d}", "\code{f}", "\code{Ht}", "\code{i}", or "\code{I}".
 #' @note Every \code{type} of plot respects the sampling weights, if any. Those related to \code{\link[TraMineR]{seqdef}} plots from \pkg{TraMineR} may be too wide to display in the preview panel. The same is also true when \code{type} is "\code{dbsvals}" or "\code{aswvals}".
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+#' 
+#' Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. \emph{Journal of Statistical Software} 40(4): 1-37.
 #' @usage 
 #' \method{plot}{MEDseq}(x,
 #'        type = c("clusters", "mean", "precision", "gating", 
@@ -1924,7 +1935,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       graphics::polygon(xx, yy, col = cols[i], border = cols[i])
     }
     graphics::par(new=TRUE)
-    graphics::plot(0, 0, type="n", ylim=if(length(dat) > 1) range(dat, na.rm=TRUE) else c(0, 1), yaxt="n", ylab="", xaxt="n", xlab="", frame.plot=FALSE)
+    base::plot(0, 0, type="n", ylim=if(length(dat) > 1) range(dat, na.rm=TRUE) else c(0, 1), yaxt="n", ylab="", xaxt="n", xlab="", frame.plot=FALSE)
     graphics::axis(side=4, las=2, tick=FALSE, line=0.5)
     graphics::par(mar=c(0, 0, 0, 0))
     graphics::plot.new()
@@ -1938,14 +1949,21 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     seriobs    <- isTRUE(seriobs)    && attr(x, "Gating")
     Tau        <- if(isTRUE(sericlus))  Tau[,perm, drop=FALSE]      else Tau
     if(miss.x  <- length(dots) > 0   && any(names(dots) == "x.axis")) {
+      ncovs    <- length(all.vars(stats::as.formula(attr(x$gating, "Formula")))) > 1
+      if(isTRUE(ncovs))          warning("Function may produce undesirable plot when 'x.axis' is supplied for a model with multiple gating network covariates\n", call.=FALSE, immediate.=TRUE)
       x.axis   <- dots$x.axis
+      o.axis   <- order(x.axis, decreasing=FALSE)
+      x.axis   <- x.axis[o.axis]
+      Tau      <- Tau[o.axis,,        drop=FALSE]
+      type     <- ifelse(ncovs, "p", "b")
     } else         {
       Tau      <- if(isTRUE(seriobs))   Tau[glo.order,, drop=FALSE] else Tau
       x.axis   <- seq_len(N)
+      type     <- "b"
     }
-    xlab       <- ifelse(miss.x, "", ifelse(isTRUE(seriobs), "Seriated Observations", ifelse(isTRUE(sericlus), "Observations", "Observation")))
-    type       <- ifelse(miss.x, "p", "l")
-    col        <- if(noise)  replace(seq_len(G), G, "grey65")       else seq_len(G)
+    xlab       <- ifelse(miss.x, ifelse(is.null(dots$xlab), deparse(match.call()$x.axis), dots$xlab), ifelse(isTRUE(seriobs), "Seriated Observations", ifelse(isTRUE(sericlus), "Observations", "Observation")))
+    col        <- if(noise) c(grDevices::rainbow(G - 1L), "grey65") else grDevices::rainbow(G)
+    col        <- col[replace(perm, perm == 0, G)]
     if(length(x.axis) != N)      stop("'x.axis' must be of length N", call.=FALSE)
     if(x.fac   <- is.factor(x.axis)) {
       xlev     <- levels(x.axis)
@@ -1959,7 +1977,8 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     if(x.fac)   {
       graphics::axis(1, at=unique(x.axis), labels=xlev)
     }
-    if(isTRUE(sericlus)) {
+    if(isTRUE(sericlus) &&
+       isFALSE(miss.x))  {
       graphics::abline(v=cum.cl)
       graphics::mtext(perm, at=gcl[-length(gcl)] + diff(gcl)/2, side=1, las=1)
       graphics::mtext("Ordered Clusters", side=1, line=1, las=1)
@@ -2072,14 +2091,14 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
            uncert.bar=         {
              cu   <- cm[seq_len(2L)][(uncX >= oneG) + 1L]
              cu[uncX == 0] <- NA
-             graphics::plot(uncX, type="h", ylim=range(yx), col=cu, yaxt="n", ylab="", xlab="Observations", lend=1)
+             base::plot(uncX, type="h", ylim=range(yx), col=cu, yaxt="n", ylab="", xlab="Observations", lend=1)
              graphics::lines(x=c(0, N), y=c(oneG, oneG), lty=2, col=cm[3L])
              graphics::axis(2, at=yx, labels=replace(yx, length(yx), "1 - 1/G"), las=2, xpd=TRUE)
              graphics::axis(2, at=oneG, labels="1/G", las=2, xpd=TRUE, side=4, xpd=TRUE)
            }, uncert.profile=  {
              ord  <- order(uncX, decreasing=FALSE)
              ucO  <- uncX[ord]
-             graphics::plot(ucO, type="n", ylim=c(-max(uncX)/32, max(yx)), ylab="", xaxt="n", yaxt="n", xlab=paste0("Observations in order of increasing uncertainty"))
+             base::plot(ucO, type="n", ylim=c(-max(uncX)/32, max(yx)), ylab="", xaxt="n", yaxt="n", xlab=paste0("Observations in order of increasing uncertainty"))
              graphics::lines(x=c(0, N), y=c(0, 0), lty=3)
              graphics::lines(ucO)
              graphics::points(ucO, pch=15, cex=0.5, col=1)
@@ -2093,7 +2112,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   }, loglik=       {
     x             <- x$loglik
     if(all(x      != cummax(x))) warning("Log-likelihoods are not strictly increasing\n", call.=FALSE)
-    graphics::plot(x, type=ifelse(length(x) == 1, "p", "l"), xlab="Iterations", ylab=paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), xaxt="n")
+    base::plot(x, type=ifelse(length(x) == 1, "p", "l"), xlab="Iterations", ylab=paste0(ifelse(weighted, "Weighted ", ""), "Log-Likelihood"), xaxt="n")
     seqll         <- seq_along(x)
     llseq         <- pretty(seqll)
     llseq         <- if(any(llseq != floor(llseq))) seqll else llseq
@@ -2112,7 +2131,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
         graphics::par(oma=c(7.5, 0, 0, 0), xpd=TRUE)
         suppressWarnings(do.call(seqplot, dots))
         graphics::par(fig=c(0, 1, 0, 1), oma=c(0.5, 0, 0, 0), mar=c(0.5, 0, 0, 0), new=TRUE)
-        graphics::plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
+        base::plot(0, 0, type='n', bty='n', xaxt='n', yaxt='n')
         graphics::legend("bottom", fill=attr(dat, "cpal"), legend=lab, ncol=l.ncol)
       } else       {
         suppressWarnings(do.call(seqplot, dots))
@@ -2130,10 +2149,19 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
 #' @rdname MEDseq_fit
 #' @usage
 #' \method{summary}{MEDseq}(object,
+#'         classification = TRUE,
+#'         parameters = FALSE,
+#'         network = FALSE,
 #'         ...)
 #' @export
-summary.MEDseq  <- function(object, ...) {
+summary.MEDseq  <- function(object, classification = TRUE, parameters = FALSE, network = FALSE, ...) {
   object        <- if(inherits(object, "MEDseqCompare")) object$optimal else object
+  if(length(classification)  > 1 || 
+    !is.logical(classification)) stop("'classification' must be a single logical indicator", call.=FALSE)
+  if(length(parameters)   > 1    ||
+    !is.logical(parameters))     stop("'parameters' must be a single logical indicator",     call.=FALSE)
+  if(length(network)      > 1    ||
+    !is.logical(network))        stop("'network' must be a single logical indicator",        call.=FALSE)
   G             <- object$G
   attr(G, "range")       <- eval(object$call$G)
   params        <- object$params
@@ -2141,7 +2169,8 @@ summary.MEDseq  <- function(object, ...) {
   equalN        <- attr(object$gating, "EqualNoise") && equalPro
   summ          <- list(data = deparse(object$call$seqs), N = attr(object, "N"), P = attr(object, "T"), V = attr(object, "V"), G = G, modelName = object$modtype, algo=attr(object, "Algo"), loglik = object$loglik[length(object$loglik)], 
                         df = object$df, iters = object$iters, gating = object$gating, dbs = unname(object$dbs), asw = unname(object$asw), nec = unname(object$nec), cv = unname(object$cv), bic=unname(object$bic), icl = unname(object$icl), 
-                        aic = unname(object$aic), tau = params$tau, theta = params$theta, variance = params$lambda, z = object$z, equalPro = equalPro, equalNoise = equalN, classification = object$MAP, criterion = attr(object, "Criterion"), noise.gate = attr(object, "NoiseGate"))
+                        aic = unname(object$aic), tau = params$tau, theta = params$theta, lambda = params$lambda, z = object$z, equalPro = equalPro, equalNoise = equalN, classification = object$MAP, criterion = attr(object, "Criterion"), 
+                        noise.gate = attr(object, "NoiseGate"),  gating = object$gating, printClass = classification, printParams = parameters, printNetwork = network)
   class(summ)   <- "summaryMEDseq"
     summ
 }
@@ -2203,32 +2232,37 @@ print.MEDcriterion       <- function(x, pick = 3L, ...) {
 
 #' @method print MEDgating
 #' @export
-print.MEDgating    <- function(x, ...) {
+print.MEDgating    <- function(x, call = FALSE, ...) {
   noise            <- attr(x, "Noise")
   equalpro         <- attr(x, "EqualPro")
   formula          <- attr(x, "Formula")
   equalNoise       <- noise && equalpro
   gateNoise        <- noise && !equalpro && formula != "~1"
-  class(x)         <- class(x)[class(x) != "MEDgating"]
-  print(x, ...)
-  cat(paste("Formula:", formula, "\n"))
+  class(x)         <- class(x)[class(x)  != "MEDgating"]
+  if(isTRUE(call)  && 
+     !is.null(cl   <- x$call)) {
+    cat("Call:\n")
+    dput(cl, control = NULL)
+  }
+  cat("\nCoefficients:\n")
+  print(stats::coef(x), ...)
+  cat(paste("\nFormula:", formula, "\n"))
   cat(paste("Noise:",     noise,   "\n"))
   if(gateNoise)                  cat(paste("Noise Component Gating:", attr(x, "NoiseGate"), "\n"))
   cat(paste("EqualPro:", equalpro, ifelse(equalNoise, "\n", "")))
   if(equalNoise)                 cat(paste("Noise Proportion Estimated:", attr(x, "EqualNoise")))
   if(equalpro)                   message("\n\nCoefficients set to zero as this is an equal mixing proportion model")
-  message("\n\nUsers are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network\nUsers are advised to use the function 'MEDseq_stderr' instead\n")
-    invisible(x)
+    invisible()
 }
 
 #' @method print MEDseq
 #' @rdname MEDseq_fit
 #' @usage
 #' \method{print}{MEDseq}(x,
-#'       digits = 2L,
+#'       digits = 3L,
 #'       ...)
 #' @export
-print.MEDseq      <- function(x, digits = 2L, ...) {
+print.MEDseq      <- function(x, digits = 3L, ...) {
   cat("Call:\t");  print(x$call)
   if(length(digits)  > 1    || !is.numeric(digits) ||
      digits       <= 0)          stop("Invalid 'digits'", call.=FALSE)
@@ -2242,7 +2276,7 @@ print.MEDseq      <- function(x, digits = 2L, ...) {
   crit            <- round(c(DBS = x$dbs, ASW = x$asw, NEC=x$nex, BIC = x$bic, ICL=x$icl, AIC=x$aic), digits)
   cat(paste0("\nBest Model", ifelse(length(x$BIC)  > 1, paste0(" (according to ", toupper(attr(x, "Criterion")), "): "), ": "), name, ", with ",
              G, " component",      ifelse(G > 1, "s ", " "),
-             paste0("and ", ifelse(attr(x, "Weighted"), "", "no "), "weights"),
+             paste0("and ",  ifelse(attr(x, "Weighted"), "", "no "), "weights"),
              ifelse(gate.x,        " (no covariates)\n", " (incl. gating network covariates)\n"),
              ifelse(!equalP ||
                      G == 1, "",   paste0("Equal Mixing Proportions", ifelse(equalN | G == 1 | !noise, "\n", " (with estimated noise component mixing proportion)\n"))),
@@ -2320,6 +2354,23 @@ print.MEDseqCompare    <- function(x, index=seq_len(x$pick), digits = 3L, ...) {
     invisible()
 }
 
+#' @method print MEDlambda
+#' @export
+print.MEDlambda   <- function(x, ...) {
+  mod             <- attr(x, "Model")
+  G               <- seq_len(attr(x, "G"))
+  gnames          <- paste0("Cluster", G)
+  pnames          <- paste0("Pos",     seq_len(attr(x, "P")))
+  attributes(x)[-1L]   <- NULL
+  class(x)        <- NULL
+  gnames          <- switch(EXPR=mod, CC=,  CU="C",              UC=,  UU=gnames, 
+                                      CCN=, CUN=c("C", "Noise"), UCN=, UUN=replace(gnames, G, "Noise"))
+  pnames          <- switch(EXPR=mod, CC=, UC=, CCN=, UCN="C", pnames)
+  dimnames(x)     <- list(gnames, pnames)
+    print(x, ...)
+}
+
+
 #' @method print MEDtheta
 #' @export
 print.MEDtheta    <- function(x, preczero = TRUE, ...) {
@@ -2379,7 +2430,6 @@ print.summaryMEDseq      <- function(x, digits = 2L, ...) {
   gate.x        <- gating == "~1"
   equalP        <- x$equalPro && gate.x
   equalN        <- noise  && x$equalNoise && equalP
-  zs            <- table(x$classification)
   title         <- "Mixture of Exponential-Distance Models with Covariates"
   cat(paste0("------------------------------------------------------\n", title, "\nData: ",
              x$data,"\n", "------------------------------------------------------\n\n",
@@ -2390,8 +2440,26 @@ print.summaryMEDseq      <- function(x, digits = 2L, ...) {
              ifelse(G  > 1  && !gate.x && noise,  paste0("\nNoise Component Gating:     ", x$noise.gate), ""),
              ifelse(G  > 1  && noise   && equalP, paste0("\nNoise Proportion Estimated: ", !equalN, "\n\n"), "\n\n")))
   print(tmp, row.names = FALSE)
-  cat("\nClustering table:")
-  print(zs,  row.names = FALSE)
+  if(isTRUE(x$printClass))   {
+    cat("\nClustering table :")
+    print(table(x$classification), row.names   = FALSE)  
+  }
+  if(isTRUE(x$printParams))  {
+    params      <- list("Mixing proportions"   = x$tau,
+                        "Component means"      = x$theta,
+                        "Component precisions" = x$lambda)
+    class(params)     <- "listof"
+    cat("\n")
+    print(params)
+  } else cat("\n")
+  if(isTRUE(x$printNetwork)) {
+    if(isFALSE(gate.x))      {
+      gating    <- list("Gating Network"       = x$gating)
+      class(gating)   <- "listof"
+      print(gating, call = FALSE)
+      cat("\n")
+    } else                                      message("No gating network to display\n")
+  }
     invisible()
 }
 
@@ -2403,17 +2471,14 @@ print.summaryMEDgate  <- function(x, ...) {
   equalpro         <- attr(x, "EqualPro")
   equalNoise       <- noise && equalpro
   gateNoise        <- noise && !equalpro && formula != "~1"
-  class(x)         <- switch(EXPR=attr(x, "Class"), glm="summary.glm", "summary.multinom")
+  class(x)         <- "MEDgating"
   print(x, ...)
-  cat("\nOddsRatios:\n")
+  cat("\n\nOddsRatios:\n")
   print(x$OddsRatios)
-  cat(paste("\nFormula:", formula, "\n"))
-  cat(paste("Noise:",     noise,   "\n"))
-  if(gateNoise)    cat(paste("Noise Component Gating:", attr(x, "NoiseG"), "\n"))
-  cat(paste("EqualPro:", equalpro, ifelse(equalNoise, "\n", "")))
-  if(equalNoise)   cat(paste("Noise Proportion Estimated:", attr(x, "EqualN")))
-  if(equalpro)     message("\n\nCoefficients set to zero as this is an equal mixing proportion model")
+  cat("\nStd. Errors:\n")
+  print(x$standard.errors)
   message("\n\n\nUsers are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network\nUsers are advised to use the function 'MEDseq_stderr' instead\n")
+  class(x)         <- "summaryMEDgate"
     invisible(x)
 }
 
@@ -2422,7 +2487,7 @@ print.summaryMEDgate  <- function(x, ...) {
 #' Computes standard errors of the gating network coefficients in a fitted MEDseq model using either the Weighted Likelihood Bootstrap or Jackknife methods.
 #' @param mod A fitted model of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}}.
 #' @param method The method used to compute the standard errors (defaults to \code{"WLBS"}, the Weighted Likelihood Bootstrap).
-#' @param N The number of samples to use when the \code{"WLBS"} \code{method} is employed. Defaults to \code{1000}. Not relevant when \code{method="Jackknife"}, in which case \code{N} is always the number of observations.
+#' @param N The (integer) number of samples to use when the \code{"WLBS"} \code{method} is employed. Defaults to \code{1000L}. Not relevant when \code{method="Jackknife"}, in which case \code{N} is always the number of observations. Must be > 1.
 #' @param symmetric A logical indicating whether symmetric draws from the uniform Dirichlet distribution are used for the \code{WLBS} method in the presence of existing sampling weights. Defaults to \code{TRUE}; when \code{FALSE}, the concentration parameters of the Dirichlet distribution are given by the sampling weights. Only relevant when \code{method="WLBS"} for models with existing sampling weights.
 #'
 #' @return A list with the following two elements:
@@ -2482,8 +2547,8 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
   N           <- switch(EXPR=method, WLBS=N, n)
   if(length(N)       != 1  ||
      !is.numeric(N)        ||
-     N        <= 0         ||
-     floor(N) != N)                 stop("'N' must be a single positive integer",      call.=FALSE)
+     N        <= 1         ||
+     floor(N) != N)                 stop("'N' must be a single integer > 1",           call.=FALSE)
   gating      <- mod$gating
   coeffs      <- stats::coef(gating)
   if((mod$G   -> G)  == 1)  {       message("No clustering in fitted model (G=1)\n")

@@ -117,7 +117,7 @@ Confirm that the first model is indeed optimal according to the (weighted) mean 
 ```{r, eval=FALSE}
 (comp <- MEDseq_compare(mod1, mod2, mod3, criterion="dbs"))
 opt   <- comp$optimal
-summary(opt)
+summary(opt, classification = TRUE, parameters = FALSE, network = FALSE)
 ```
 
 ```{r, echo=FALSE}
@@ -128,8 +128,8 @@ suppressMessages(summary(opt))
 
 Examine the estimated gating network coefficients. Note that standard errors can be computed by calling `MEDseq_stderr` on the `opt` object, to better inform the interpretations of the covariate effects.
 
-```{r}
-coef(opt$gating)
+```{r, eval=FALSE}
+print(opt$gating)
 ```
 
 Visualise the clusters uncovered by the optimal model. Note that seriation is applied for visual clarity. The legend indicates which colours correspond to which state categories. 
@@ -244,4 +244,6 @@ Murphy, K., Murphy, T. B., Piccarreta, R., & Gormley I. C. (2019). Clustering lo
 
 McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 165(2): 317-334.
 
-Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007)_, Paris, 5-7 septembre 2007_, pp. 157-160.
+Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007), Paris, 5-7 septembre 2007_, pp. 157-160.
+
+Gabadinho, A., Ritschard, G., Müller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. _Journal of Statistical Software_, 40(4): 1-37.

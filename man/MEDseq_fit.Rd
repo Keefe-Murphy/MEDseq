@@ -17,10 +17,13 @@ MEDseq_fit(seqs,
            ...)
 
 \method{summary}{MEDseq}(object,
+        classification = TRUE,
+        parameters = FALSE,
+        network = FALSE,
         ...)
 
 \method{print}{MEDseq}(x,
-      digits = 2L,
+      digits = 3L,
       ...)
 }
 \arguments{
@@ -41,7 +44,7 @@ The models are named "\code{CC}", "\code{CU}", "\code{UC}", "\code{UU}", \code{C
 
 \item{...}{Catches unused arguments (see \code{\link{MEDseq_control}}).}
 
-\item{x, object, digits}{Arguments required for the \code{print} and \code{summary} functions: \code{x} and \code{object} are objects of class \code{"MEDseq"} resulting from a call to \code{\link{MEDseq_fit}}, while \code{digits} gives the number of decimal places to round to for printing purposes (defaults to 2).}
+\item{x, object, digits, classification, parameters, network}{Arguments required for the \code{print} and \code{summary} functions: \code{x} and \code{object} are objects of class \code{"MEDseq"} resulting from a call to \code{\link{MEDseq_fit}}, while \code{digits} gives the number of decimal places to round to for printing purposes (defaults to 3). \code{classification}, \code{parameters}, and \code{network} are logicals which govern whether a table of the MAP classification of observations, the mixture component parameters, and the gating network coefficients are printed, respectively.}
 }
 \value{
 A list (of class \code{"MEDseq"}) with the following named entries (of which some may be missing, depending on the \code{criterion} employed), mostly corresponding to the chosen optimal model (as determined by the \code{criterion} within \code{\link{MEDseq_control}}):
@@ -129,7 +132,7 @@ mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights
                             gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
                             
 # Examine this model in greater detail
-summary(mod2)
+summary(mod2, parameters=TRUE)
 summary(mod2$gating)
 plot(mod2, "clusters")}
 }

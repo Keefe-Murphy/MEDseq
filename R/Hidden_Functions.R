@@ -53,7 +53,7 @@
 
 #' @importFrom stringdist "stringdistmatrix"
 .dbar             <- function(seqs, theta) {
-    mean(stringdistmatrix(seqs, theta, method="hamming"))
+    mean(.dseq(seqs, theta))
 }
 
 .drop_constants   <- function(dat, formula, sub = NULL) {

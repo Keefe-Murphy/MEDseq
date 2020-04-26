@@ -88,10 +88,10 @@ covs <- biofam[2:3]
 # m3   <- MEDseq_fit(seqs, G=9:10, gating=~birthyr, covars=covs)
 # m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + birthyr, covars=covs)
 
-# Rank only the optimal models and examine the best model
+# Rank only the optimal models. Examine the best model and its gating network
 # (comp <- MEDseq_compare(m1, m2, m3, m4, optimal.only=TRUE))
 # (best <- comp$optimal)
-# (summ <- summary(best))
+# (summ <- summary(best, classification = TRUE, gating=TRUE))
 
 # Examine all models visited, including those already deemed suboptimal
 # Only print models with gating covariates & 10 components

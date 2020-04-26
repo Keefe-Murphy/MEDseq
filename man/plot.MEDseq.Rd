@@ -23,7 +23,7 @@
 \item{"\code{clusters}"}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriate}.}
 \item{"\code{mean}"}{Visualise the central sequences. See \code{seriate}. The central sequence for the noise component, if any is not shown as it doesn't contribute in any way to the likelihood.}
 \item{"\code{precision}"}{Visualise the central sequence parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{grey} and \code{black} respectively (see \code{log.scale}).}
-\item{"\code{gating}"}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriate}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted.}
+\item{"\code{gating}"}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriate}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
 \item{"\code{dbs}"}{Plots all (weighted) mean/median DBS values in a fitted \code{MEDseq} object.}
 \item{"\code{asw}"}{Plots all (weighted) mean/median ASW values in a fitted \code{MEDseq} object.}
 \item{"\code{bic}"}{Plots all BIC values in a fitted \code{MEDseq} object.}
@@ -122,6 +122,8 @@ plot(mod0, type="precision")
 }
 \references{
 Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+
+Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. \emph{Journal of Statistical Software} 40(4): 1-37.
 }
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}
