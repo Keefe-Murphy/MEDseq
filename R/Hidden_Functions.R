@@ -583,6 +583,10 @@
     return(z)
 }
 
+.version_above    <- function(pkg, than) {
+    as.logical(utils::compareVersion(as.character(utils::packageVersion(pkg)), than))
+}
+
 .weighted_mode    <- function(numseq, z) {
     sapply(seq_len(attr(numseq, "G")), function(g)
     sapply(seq_len(attr(numseq, "T")), function(p, x=tapply(z[,g], numseq[p,], sum)) names(which(x == max(x)))))

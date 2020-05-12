@@ -641,9 +641,10 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
   itmax[1L]   <- ifelse(itmax[1L] == .Machine$integer.max, itmax[1L], itmax[1L] + 2L)
   if(length(verbose)   > 1 ||
      !is.logical(verbose))       stop("'verbose' must be a single logical indicator",       call.=FALSE)
+  pamonce     <- ifelse(.version_above("cluster", "2.0.8"), 5, ifelse(.version_above("cluster", "1.14.2"), 2, 0))
   control                  <- list(algo = match.arg(algo), init.z = init.z, dist.mat = dist.mat, nstarts = nstarts, criterion = match.arg(criterion), nfolds = nfolds, do.cv = do.cv, do.nec = do.nec, 
                                    MaxNWts = MaxNWts, stopping = match.arg(stopping), tau0 = tau0, opti = match.arg(opti), ordering = match.arg(ordering), noise.gate = noise.gate, unique = unique,
-                                   equalPro = equalPro, equalNoise = equalNoise, tol = tol[1L], g.tol = tol[2L], itmax = itmax[1L], g.itmax = itmax[2L], verbose = verbose, z.list = z.list)
+                                   equalPro = equalPro, equalNoise = equalNoise, tol = tol[1L], g.tol = tol[2L], itmax = itmax[1L], g.itmax = itmax[2L], verbose = verbose, z.list = z.list, pamonce = pamonce)
   attr(control, "missing") <- miss.args
     return(control)
 }
@@ -800,6 +801,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   equalNoise      <- ctrl$equalNoise
   noise.gate      <- ctrl$noise.gate
   verbose         <- ctrl$verbose
+  pamonce         <- ctrl$pamonce
   ctrl$warn       <- TRUE
   x.ctrl          <- list(equalPro=equalPro, noise.gate=noise.gate, equalNoise=equalNoise)
   ctrl$ordering   <- ifelse(ctrl$opti == "first", ctrl$ordering, "none")
@@ -1148,7 +1150,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
                                    kmedoids= if(do.wts) {
                                      zz <- wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
                                        as.numeric(factor(zz, labels=seq_along(unique(zz))))
-                                     } else pam(dist.mat2, k=g, cluster.only=TRUE)[uni.ind], 
+                                     } else pam(dist.mat2, k=g, cluster.only=TRUE, pamonce=pamonce)[uni.ind], 
                                    hc=stats::cutree(hcZ, k=g)[uni.ind]), groups=seq_len(g))
           })
         }
@@ -1163,7 +1165,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
                                    kmedoids= if(do.wts) {
                                      zz <- wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
                                        as.numeric(factor(zz, labels=seq_along(unique(zz))))
-                                     } else pam(dist.mat2, k=g0, cluster.only=TRUE)[uni.ind],  
+                                     } else pam(dist.mat2, k=g0, cluster.only=TRUE, pamonce=pamonce)[uni.ind],  
                                    hc=stats::cutree(hcZ, k=g0)[uni.ind]), groups=seq_len(g0))
             zg0   <- cbind(zg0 * (1 - tau0), tau0)
           } else   {

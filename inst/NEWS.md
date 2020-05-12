@@ -1,6 +1,12 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+### Bug Fixes & Miscellaneous Edits
+* Sped-up `"kmedoids"` initialisation via `pam` for _unweighted_ sequences  
+  by using the _highest available_ value for the `pamonce` option,  
+  based on the version number of the loaded `cluster` package.
+* Ensured `matrixStats (>= 0.53.1)` and `TraMineR (>= 1.6)` in `Imports:`.
+
 ## MEDseq v1.1.1 - (_4<sup>th</sup> release [patch update]: 2020-05-12_)
 ### Bug Fixes & Miscellaneous Edits
 * Maintenance release for compatibility with R 4.0.0 - minor edits.
