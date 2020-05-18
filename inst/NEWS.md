@@ -5,7 +5,15 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Sped-up `"kmedoids"` initialisation via `pam` for _unweighted_ sequences  
   by using the _highest available_ value for the `pamonce` option,  
   based on the version number of the loaded `cluster` package.
+* Significant speed-ups to computation of central sequences for all `opti` settings (esp. `"mode"`).
+* `dbs` gains the optional/experimental arg. `clusters` - no change to default.
+* Fixes to `print` & `summary` methods for `MEDgating` objects if `equalPro=TRUE`.
+* Minor fixes to `print` methods for `MEDtheta` & `MEDlambda` objects also.
+* Additional minor edits to `plot.MEDseq(..., type="gating")`.
+* `print.MEDseqCompare` gains the args. `maxi` & `rerank=FALSE`.
 * Ensured `matrixStats (>= 0.53.1)` and `TraMineR (>= 1.6)` in `Imports:`.
+* Package startup message now checks if newer version of package is available from CRAN.
+* Minor documentation & examples edits.
 
 ## MEDseq v1.1.1 - (_4<sup>th</sup> release [patch update]: 2020-05-12_)
 ### Bug Fixes & Miscellaneous Edits

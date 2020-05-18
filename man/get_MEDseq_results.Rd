@@ -21,7 +21,7 @@ get_MEDseq_results(x,
 
 \item{rank}{A number indicating what \code{rank} model results should be extracted from, where the \code{rank} is determined by \code{criterion}. Defaults to \code{1}, i.e. the best model.}
 
-\item{criterion}{The \code{criterion} used to determine the ranking. Defaults to "\code{dbs}".}
+\item{criterion}{The \code{criterion} used to determine the ranking. Defaults to \code{"dbs"}.}
 
 \item{G}{Optional argument giving the number of components in the model for which results are desired.}
 
@@ -35,7 +35,7 @@ get_MEDseq_results(x,
 The desired results extracted from the \code{MEDseq} model.
 }
 \description{
-Utility function for extracting results of submodels from "\code{MEDseq}" object when a range of models were run via \code{\link{MEDseq_fit}}.
+Utility function for extracting results of submodels from \code{"MEDseq"} objects when a range of models were run via \code{\link{MEDseq_fit}}.
 }
 \details{
 The arguments \code{rank} and \code{criterion} are invoked when one or more of the arguments \code{G} and \code{modtype} are missing. Thus, supplying \code{G} and \code{modtype} allows \code{rank} and \code{criterion} to be bypassed entirely.

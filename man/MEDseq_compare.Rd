@@ -13,7 +13,9 @@ MEDseq_compare(...,
 
 \method{print}{MEDseqCompare}(x,
       index = seq_len(x$pick),
+      rerank = FALSE,
       digits = 3L,
+      maxi = length(index),
       ...)
 }
 \arguments{
@@ -27,11 +29,13 @@ This argument is only relevant for the \code{\link{MEDseq_compare}} function and
 
 \item{optimal.only}{Logical indicating whether to only rank models already deemed optimal within each \code{"MEDeq"} object (\code{TRUE}), or to allow models which were deemed suboptimal enter the final ranking (\code{FALSE}, the default). See \code{details}.}
 
-\item{x, index, digits, }{Arguments required for the associated \code{print} function:
+\item{x, index, rerank, digits, maxi}{Arguments required for the associated \code{print} function:
 \describe{
 \item{\code{x}}{An object of class \code{"MEDseqCompare"} resulting from a call to \code{\link{MEDseq_compare}}.}
-\item{\code{index}}{A logical or numeric vector giving the indices of the rows of the table of ranked models to print. This defaults to the full set of ranked models. It can be useful when the table of ranked models is large to examine a subset via this \code{index} argument, for display purposes.}
-\item{\code{digits}}{The number of decimal places to round model selection criteria to (defaults to 3).}}}
+\item{\code{index}}{A logical or numeric vector giving the indices of the rows of the table of ranked models to print. This defaults to the full set of ranked models. It can be useful when the table of ranked models is large to examine a subset via this \code{index} argument, for display purposes. See \code{rerank}.}
+\item{\code{rerank}}{A logical indicating whether the ranks should be recomputed when subsetting using \code{index}. Defaults to \code{FALSE}.}
+\item{\code{digits}}{The number of decimal places to round model selection criteria to (defaults to 3).}
+\item{\code{maxi}}{A number specifying the maximum number of rows/models to print. Defaults to \code{length(index)}.}}}
 }
 \value{
 A list of class \code{"MEDseqCompare"}, for which a dedicated print function exists, containing the following elements (each of length \code{pick}, and ranked according to \code{criterion}, where appropriate):
@@ -60,7 +64,7 @@ A list of class \code{"MEDseqCompare"}, for which a dedicated print function exi
 \item{\code{equalNoise}}{Logical indicating whether the mixing proportion of the noise component for \code{equalPro} models is also equal (\code{TRUE}) or estimated (\code{FALSE}).}
 }
 \description{
-Takes one or more sets of "\code{MEDseq}" models fitted by \code{\link{MEDseq_fit}} and ranks them according to a specified model selection criterion. It's possible to respect the internal ranking within each set of models, or to discard models within each set which were already deemed sub-optimal. This function can help with model selection via exhaustive or stepwise searches.
+Takes one or more sets of \code{"MEDseq"} models fitted by \code{\link{MEDseq_fit}} and ranks them according to a specified model selection criterion. It's possible to respect the internal ranking within each set of models, or to discard models within each set which were already deemed sub-optimal. This function can help with model selection via exhaustive or stepwise searches.
 }
 \details{
 The purpose of this function is to conduct model selection on \code{"MEDseq"} objects, fit to the same data set, with different combinations of gating network covariates or different initialisation settings.
@@ -96,7 +100,7 @@ covs <- biofam[2:3]
 # Examine all models visited, including those already deemed suboptimal
 # Only print models with gating covariates & 10 components
 # comp2 <- MEDseq_compare(m1, m2, m3, m4, pick=Inf)
-# print(comp2, comp2$gating != "None" & comp2$G == 10)}
+# print(comp2, index=comp2$gating != "None" & comp2$G == 10)}
 }
 \references{
 Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.

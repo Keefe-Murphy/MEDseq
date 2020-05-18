@@ -71,11 +71,17 @@
 "_PACKAGE"
 
 .onAttach <- function(lib, pkg) {
-  version <- read.dcf(file.path(lib, pkg, "DESCRIPTION"), "Version")
+  path    <- file.path(lib, pkg, "DESCRIPTION")
+  version <- read.dcf(path, "Version")
+  name    <- read.dcf(path, "Package")
   if(interactive()) {
     packageStartupMessage(paste("\nMixtures of Exponential-Distance Models with Covariates\n___  ___ ___________                      version", version, "\n|  \\/  ||  ___|  _  \\\n| .  . || |__ | | | |___  ___  __ _\n| |\\/| ||  __|| | | / __|/ _ \\/ _` |\n| |  | || |___| |/ /\\__ \\  __/ (_| |\n\\_|  |_/\\____/|___/ |___/\\___|\\__, |\n                                 | |\n                                 |/\n"))                 
   } else   {
-    packageStartupMessage("\nPackage ", sQuote("MEDseq"), " version ", version, ".\n")
+    packageStartupMessage("\nPackage ", sQuote(name), " version ", version, ".\n")
   }
-    packageStartupMessage(paste("See", sQuote("?MEDseq"), "to see a brief guide to how to use this R package.\nSee", sQuote(paste0("citation(", dQuote("MEDseq"),")")) ,"for citing the package in publications.\nSee", sQuote("MEDseq_news()"), "to see new features, changes, and bug fixes.\n"))
+    packageStartupMessage(paste("See", sQuote("?MEDseq"), "to see a brief guide to how to use this R package.\nSee", sQuote(paste0("citation(", dQuote(name),")")) ,"for citing the package in publications.\nSee", sQuote("MEDseq_news()"), "to see new features, changes, and bug fixes.\n"))
+  if(interactive() &&
+     name %in% utils::old.packages()[,1L]) {
+    packageStartupMessage("\n !!! A newer version of this package is available from CRAN !!!")
+  }
 }
