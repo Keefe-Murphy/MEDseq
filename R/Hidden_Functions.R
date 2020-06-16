@@ -21,7 +21,7 @@
 
 #' @importFrom matrixStats "rowMaxs"
 .choice_crit      <- function(ll, seqs, z, gate.pen, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), nonzero = NULL) {
-  G               <- attr(seqs, ifelse((noise <- is.element(modtype, c("CCN", "UCN", "CUN", "UUN"))), "G0", "G"))
+  G               <- attr(seqs, ifelse(is.element(modtype, c("CCN", "UCN", "CUN", "UUN")), "G0", "G"))
   P               <- attr(seqs, "T")
   kpar            <- ifelse(is.null(nonzero),
                             switch(EXPR= modtype,
@@ -204,11 +204,11 @@
 
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowMeans2" "rowSums2"
 .EM_algorithm     <- function(SEQ, numseq, g, modtype, z, ctrl, gating = NULL, covars = NULL, HAM.mat = NULL, ll = NULL) {
-  algo            <- ctrl$algo
   itmax           <- ctrl$itmax
   st.ait          <- ctrl$stopping == "aitken"
   tol             <- ctrl$tol
   if(!(runEM      <- g > 1))   {
+    ctrl$ties     <- TRUE
     Mstep         <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, HAM.mat=HAM.mat)
     ll            <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
     j             <- 1L
@@ -217,9 +217,11 @@
     ll            <- if(is.null(ll)) c(-Inf, -sqrt(.Machine$double.xmax)) else ll
     j             <- 2L
     emptywarn     <- TRUE
+    ctrl$ties     <- FALSE
     while(isTRUE(runEM))       {
       j           <- j + 1L
       Mstep       <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z, HAM.mat=HAM.mat)
+      ctrl$ties   <- ifelse(j == 2, TRUE, !any(attr(Mstep$theta, "NonUnique")))
       Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
       z           <- Estep$z
       ERR         <- any(is.nan(z))
@@ -365,7 +367,7 @@
 
 #' @importFrom matrixStats "rowMaxs"
 .misclass         <- function(classification, class) {
-  q               <- function(map, len, x)     {
+  .q              <- function(map, len, x)     {
     x             <- as.character(x)
     map           <- lapply(map, as.character)
     y             <- sapply(map, "[", 1L)
@@ -392,7 +394,7 @@
     }
       return(best)
   }
-  mapClass        <- function(a, b)  {
+  .mapClass       <- function(a, b)  {
     l             <- length(a)
     x             <- y <- rep(NA, l)
     if(length(b)  != l) {        warning("unequal lengths")
@@ -431,7 +433,7 @@
     if(is.numeric(b)) aTOb <- lapply(aTOb, as.numeric)
     k             <- ncol(Tab)
     Map           <- rep(0L, k)
-    Max           <- apply(Tab, 2, max)
+    Max           <- apply(Tab, 2L, max)
     for(j in (1L:k))    {
       J           <- match(Max[j], Tab[, j])
       bTOa[[j]]   <- Ua[J] 
@@ -445,14 +447,14 @@
     nachar        <- paste(unique(classification[!isNA]), collapse = "")
     classification[isNA]            <- nachar
   }
-  MAP             <- mapClass(classification, class)
+  MAP             <- .mapClass(classification, class)
   len             <- sapply(MAP[[1L]], length)
   if(all(len)     == 1) {
     CT            <- unlist(MAP[[1L]])
     I             <- match(as.character(classification), names(CT), nomatch = 0)
     one           <- CT[I] != class
   } else           {
-    one           <- q(MAP[[1L]], len, class)
+    one           <- .q(MAP[[1L]], len, class)
   }
   len             <- sapply(MAP[[2L]], length)
   if(all(len)     == 1) {
@@ -460,10 +462,10 @@
     I             <- match(as.character(class), names(TC), nomatch = 0)
     two           <- TC[I] != classification
   } else           {
-    two           <- q(MAP[[2L]], len, classification)
+    two           <- .q(MAP[[2L]], len, classification)
   }
   err             <- as.vector(if(sum(as.numeric(one)) > sum(as.numeric(two))) one else two)
-  bad             <- seq(along = classification)[err]
+  bad             <- seq_along(classification)[err]
     return(list(misclassified = bad, errorRate = length(bad)/length(class)))
 }
 
@@ -502,14 +504,27 @@
       if(G > 1    || ctrl$do.wts)    {
         theta     <- .weighted_mode(numseq=numseq, z=if(G == 1) as.matrix(attr(seqs, "Weights")) else if(nmeth) z[,Gseq, drop=FALSE] else z)
         if(is.list(theta)   && 
-           any(nonu         <- apply(theta, 2L, function(x) any(nchar(x) > 1)))) {
-          theta[,nonu]      <- lapply(theta[,nonu], "[[", 1L)
+           any(t_ties       <- apply(theta, c(1L, 2L), function(x) any(nchar(x) > 1)))) {
+          t_ties  <- which(t_ties, arr.ind=TRUE)
+          nonu    <- replace(rep(FALSE, G), unique(t_ties[,2L]), TRUE)
+          theta[t_ties]     <- if(ctrl$random) lapply(theta[t_ties], function(x) sample(x, 1L))  else lapply(theta[t_ties], "[[", 1L)
+          if(ctrl$ties      &&
+             ctrl$verbose)   {
+            if(ctrl$random)  {   message("\tTie for modal sequence position broken at random\n")
+            } else               message("\tTie found for modal sequence position\n")
+          }
         } else       nonu   <- rep(FALSE, G)
         theta     <- apply(theta,  2L, .num_to_char)
       }   else     {
         theta     <- apply(numseq, 1L, .modal)
-        if(nonu   <- is.list(theta)) {
-          theta   <- lapply(theta, "[[",   1L)
+        if(nonu   <- is.list(theta)) {  
+          unon    <- which(lengths(theta) > 1)
+          theta[unon]       <- if(ctrl$random) lapply(theta[unon],   function(x) sample(x, 1L))  else lapply(theta[unon],   "[[", 1L)
+          if(ctrl$ties      &&
+             ctrl$verbose)   {
+            if(ctrl$random)  {   message("\tTie for modal sequence position broken at random\n")
+            } else               message("\tTie found for modal sequence position\n")
+          }
         }
         theta     <- .num_to_char(theta)
       }
@@ -627,7 +642,7 @@
 }
 
 .tau_noise        <- function(tau, z0)  {
-  t0              <- mean(z0)
+  t0              <- ifelse(length(z0) == 1, z0, mean(z0))
     cbind(tau * (1 - t0), unname(t0))
 }
 

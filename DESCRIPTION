@@ -23,7 +23,8 @@ Imports:
   TraMineR (>= 1.6),
   WeightedCluster
 Suggests:
+  klaR (>= 0.6-13),
   knitr,
   rmarkdown
-RoxygenNote: 7.1.0
+RoxygenNote: 7.1.1
 VignetteBuilder: knitr

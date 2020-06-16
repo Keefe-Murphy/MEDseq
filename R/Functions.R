@@ -16,7 +16,7 @@
 #' @note When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the DBS and ASW criteria.
 #' @importFrom matrixStats "rowSums2" "weightedMedian" "weightedMean"
 #' @importFrom TraMineR "seqdef"
-#' @references Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing} 21(3): 295-308.
+#' @references Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
 #' @export 
 #' @seealso \code{\link{MEDseq_fit}}
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
@@ -516,7 +516,9 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #'
 #' Supplies a list of arguments (with defaults) for use with \code{\link{MEDseq_fit}}.
 #' @param algo Switch controlling whether models are fit using the \code{"EM"} (the default) or \code{"CEM"} algorithm. The option \code{"cemEM"} allows running the EM algorithm starting from convergence of the CEM algorithm.
-#' @param init.z The method used to initialise the cluster labels. Defaults to \code{"kmedoids"}. Other options include Ward hierarchical clustering (\code{"hc"}), \code{"random"} initialisation, and a user-supplied \code{"list"}.
+#' @param init.z The method used to initialise the cluster labels. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward hierarchical clustering (\code{"hc"}), \code{"random"} initialisation, and a user-supplied \code{"list"}.
+#' 
+#' The \code{"kmodes"} and \code{"kmodes2"} options require loading the suggested \pkg{klaR} package (>= 0.6-13). They are currently only available for \strong{unweighted} sequences. Under \code{"kmodes"}, the algorithm is itself initialised via the medoids of a call to \code{\link[cluster]{pam}}. The option \code{"kmodes2"} is slightly faster, by virtue of using random initial modes. Final results are thus also subject to randomness (unless \code{\link{set.seed}} is invoked).
 #' @param z.list A user supplied list of initial cluster allocation matrices, with number of rows given by the number of observations, and numbers of columns given by the range of component numbers being considered. Only relevant if \code{init.z == "z.list"}. These matrices are allowed correspond to both soft or hard clusterings, and will be internally normalised so that the rows sum to 1.
 #' @param dist.mat An optional distance matrix to use for initialisation when \code{init.z} is one of \code{"kmedoids"} or \code{"hc"}. Defaults to a Hamming distance matrix. This is an experimental feature and should only be tampered with by expert users.
 #' @param unique A logical indicating whether the model is fit only to the unique observations (defaults to \code{TRUE}). When there are covariates, this means all unique combinations of covariate and sequence patterns, otherwise only the sequence patterns. 
@@ -529,6 +531,7 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #' @param criterion When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Note that all criteria will be returned in any case, if possible.
 #' @param tau0 Prior mixing proportion for the noise component. If supplied, a noise component will be added to the model in the estimation, with \code{tau0} giving the prior probability of belonging to the noise component for \emph{all} observations. Typically supplied as a scalar in the interval (0, 1), e.g. \code{0.1}. Can be supplied as a vector when gating covariates are present and \code{noise.gate} is \code{TRUE}.
 #' @param noise.gate A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component; only effects estimation in the presence of gating covariates.
+#' @param random A logical governing how ties for modal sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. Only relevant when \code{opti="mode"}.
 #' @param do.nec A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.
 #' @param do.cv A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.
 #' @param nfolds The number of folds to use when \code{isTRUE{do.cv}}.
@@ -551,20 +554,21 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #' @importFrom WeightedCluster "wcKMedoids"
 #' @keywords control
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
-#' @seealso \code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link[cluster]{agnes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
+#' @seealso \code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link[cluster]{agnes}}, \code{\link[klaR]{kmodes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' 
-#' Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing} 21(3): 295-308.
+#' Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
 #' @export
 #' @usage 
 #' MEDseq_control(algo = c("EM", "CEM", "cemEM"), 
-#'                init.z = c("kmedoids", "hc", "random", "list"), 
+#'                init.z = c("kmedoids", "kmodes", "kmodes2", "hc", "random", "list"), 
 #'                z.list = NULL, 
 #'                dist.mat = NULL, 
 #'                unique = TRUE, 
 #'                criterion = c("dbs", "asw", "bic", "icl", "aic", "cv", "nec"), 
 #'                tau0 = NULL, 
 #'                noise.gate = TRUE, 
+#'                random = TRUE,
 #'                do.nec = FALSE, 
 #'                do.cv = FALSE, 
 #'                nfolds = 10L, 
@@ -597,8 +601,8 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #' 
 #' # Note that supplying control arguments via a mix of the ... construct and the named argument 
 #' # 'control' or supplying MEDseq_control output without naming it 'control' can throw an error}
-MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "hc", "random", "list"), z.list = NULL, dist.mat = NULL, unique = TRUE, 
-                              criterion = c("dbs", "asw", "bic", "icl", "aic", "cv", "nec"), tau0 = NULL, noise.gate = TRUE, do.nec = FALSE, do.cv = FALSE, nfolds = 10L, 
+MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "kmodes", "kmodes2", "hc", "random", "list"), z.list = NULL, dist.mat = NULL, unique = TRUE, 
+                              criterion = c("dbs", "asw", "bic", "icl", "aic", "cv", "nec"), tau0 = NULL, noise.gate = TRUE, random = TRUE, do.nec = FALSE, do.cv = FALSE, nfolds = 10L, 
                               nstarts = 1L, stopping = c("aitken", "relative"), equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 100L), 
                               opti = c("mode", "medoid", "first", "GA"), ordering = c("none", "decreasing", "increasing"), MaxNWts = 1000L, verbose = TRUE, ...) {
   miss.args                <- list(tau0=missing(tau0), init.z = missing(init.z), z.list = missing(z.list))
@@ -622,13 +626,20 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
        floor(nstarts) !=
        nstarts))                 stop(paste0("'nstarts' must be a single integer >= 1 if when 'init.z'=", init.z), call.=FALSE)
   }
+  if(is.element(init.z, 
+   c("kmodes", "kmodes2")) &&
+    (isFALSE(suppressMessages(requireNamespace("klaR", quietly=TRUE))) ||
+     isFALSE(.version_above("klaR", 
+             "0.6-13"))))        stop(paste0("The 'klaR' package must be loaded when init.z=\"", init.z, "\""), call.=FALSE)
   if(!missing(criterion)   &&
     (length(criterion) > 1 ||
      !is.character(criterion)))  stop("'criterion' must be a character vector of length 1", call.=FALSE)
-  if(length(do.cv)     > 1 ||
-     !is.logical(do.cv))         stop("'do.cv' must be a single logical indicator",         call.=FALSE)
+  if(length(random)    > 1 ||
+     !is.logical(random))        stop("'random' must be a single logical indicator",        call.=FALSE)
   if(length(do.nec)    > 1 ||
      !is.logical(do.nec))        stop("'do.nec' must be a single logical indicator",        call.=FALSE)
+  if(length(do.cv)     > 1 ||
+     !is.logical(do.cv))         stop("'do.cv' must be a single logical indicator",         call.=FALSE)
   if(!missing(stopping)    &&
     (length(stopping)  > 1 ||
      !is.character(stopping)))   stop("'stopping' must be a character vector of length 1",  call.=FALSE)
@@ -670,8 +681,8 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
   if(length(verbose)   > 1 ||
      !is.logical(verbose))       stop("'verbose' must be a single logical indicator",       call.=FALSE)
   pamonce     <- ifelse(.version_above("cluster", "2.0.8"), 5, ifelse(.version_above("cluster", "1.14.2"), 2, 0))
-  control                  <- list(algo = match.arg(algo), init.z = init.z, dist.mat = dist.mat, nstarts = nstarts, criterion = match.arg(criterion), nfolds = nfolds, do.cv = do.cv, do.nec = do.nec, 
-                                   MaxNWts = MaxNWts, stopping = match.arg(stopping), tau0 = tau0, opti = match.arg(opti), ordering = match.arg(ordering), noise.gate = noise.gate, unique = unique,
+  control                  <- list(algo = match.arg(algo), init.z = init.z, dist.mat = dist.mat, nstarts = nstarts, criterion = match.arg(criterion), nfolds = nfolds, random = random, do.nec = do.nec, 
+                                   do.cv = do.cv, MaxNWts = MaxNWts, stopping = match.arg(stopping), tau0 = tau0, opti = match.arg(opti), ordering = match.arg(ordering), noise.gate = noise.gate, unique = unique,
                                    equalPro = equalPro, equalNoise = equalNoise, tol = tol[1L], g.tol = tol[2L], itmax = itmax[1L], g.itmax = itmax[2L], verbose = verbose, z.list = z.list, pamonce = pamonce)
   attr(control, "missing") <- miss.args
     return(control)
@@ -977,6 +988,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     dist.mat2     <- dist.mat
     HAM.mat2      <- HAM.mat
   }
+  if(do.wts       && 
+     is.element(init.z, 
+   c("kmodes", "kmodes2")))      stop(paste0("init.z=\"", init.z, "\" not allowed when 'weights' are supplied"), call.=FALSE)
   
   if(any(floor(G) != G)       &&
      any(G         < 1))         stop("'G' must be strictly positive", call.=FALSE)
@@ -1163,7 +1177,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         if(isTRUE(noise))   {
           if(g0    > 1)     {
             zg0   <- replicate(nstarts, list(.unMAP(sample(seq_len(g0), size=N, replace=TRUE), groups=seq_len(g0))))
-            zg0   <- lapply(zg0, function(x) cbind(x * (1 - tau0), tau0))
+            zg0   <- lapply(zg0, function(x) .tau_noise(x, tau0))
           } else   {
             zg0   <- matrix(tau0, nrow=N, ncol=2L)
           }
@@ -1176,6 +1190,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
           },       {
           zg      <- .unMAP(switch(EXPR=init.z, 
                                    random=sample(seq_len(g),  size=N, replace=TRUE),
+                                   kmodes=suppressWarnings(klaR::kmodes(seqX, modes=seqX[pam(dist.mat2, k=g,  pamonce=pamonce)$medoids,, drop=FALSE], 
+                                                                        iter.max=.Machine$integer.max, weighted=FALSE, fast=TRUE)$cluster[uni.ind]),
+                                   kmodes2=suppressWarnings(klaR::kmodes(seqX, modes=g, iter.max=.Machine$integer.max, weighted=FALSE, fast=TRUE)$cluster[uni.ind]),
                                    kmedoids= if(do.wts) {
                                      zz <- wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
                                        as.numeric(factor(zz, labels=seq_along(unique(zz))))
@@ -1191,12 +1208,15 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
           if(g0    > 1)     {
             zg0   <- .unMAP(switch(EXPR=init.z, 
                                    random=sample(seq_len(g0), size=N, replace=TRUE),
+                                   kmodes=suppressWarnings(klaR::kmodes(seqX, modes=seqX[pam(dist.mat2, k=g0, pamonce=pamonce)$medoids,, drop=FALSE], 
+                                                                        iter.max=.Machine$integer.max, weighted=FALSE, fast=TRUE)$cluster[uni.ind]),
+                                   kmodes2=suppressWarnings(klaR::kmodes(seqX, modes=g0, iter.max=.Machine$integer.max, weighted=FALSE, fast=TRUE)$cluster[uni.ind]),
                                    kmedoids= if(do.wts) {
                                      zz <- wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
                                        as.numeric(factor(zz, labels=seq_along(unique(zz))))
                                      } else pam(dist.mat2, k=g0, cluster.only=TRUE, pamonce=pamonce)[uni.ind],  
                                    hc=stats::cutree(hcZ, k=g0)[uni.ind]), groups=seq_len(g0))
-            zg0   <- cbind(zg0 * (1 - tau0), tau0)
+            zg0   <- .tau_noise(zg0, tau0)
           } else   {
             zg0   <- matrix(tau0, nrow=N, ncol=2L)
           }
@@ -1355,7 +1375,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         aswx      <- ifelse(ERR, NA, ifelse(ctrl$do.wts, 
                                             switch(EXPR=summ, median=weightedMedian(ASW[,2L], w=w2),
                                                                 mean=weightedMean(ASW[,2L],   w=w2)), 
-                                            switch(EXPR=summ, medians=stats::median(ASW[,2L]), mean=mean(ASW[,2L]))))
+                                            switch(EXPR=summ, median=stats::median(ASW[,2L]), mean=mean(ASW[,2L]))))
         attr(ASWvals[[h]][[m]], "G")         <- g
         attr(ASWvals[[h]][[m]], "ModelType") <- modtype
       } else aswx <- NA
@@ -1486,6 +1506,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(DF.x,     "Nzero")       <- Nzero.x
   attr(DF.x,     "Ninfty")      <- Ninfty.x
   attr(DF.x,     "Gate.Pen")    <- x.gp
+  nonunique                     <- attr(x.theta, "NonUnique")
   if(any(apply(x.lambda == 0, 1L, all))) {
     x.theta                     <- if(G > 1) rbind(do.call(rbind, lapply(x.theta[-G], .char_to_num)), NA) else matrix(NaN, nrow=1L, ncol=P)
   } else x.theta                <- do.call(rbind, lapply(x.theta, .char_to_num))
@@ -1495,6 +1516,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(x.theta, "labels")       <- attr(seqs, "labels")
   attr(x.theta, "lambda")       <- switch(EXPR=best.mod, CCN=, CUN=rbind(matrix(x.lambda[1L,], nrow=G - 1L, ncol=P, byrow=best.mod == "CUN"), 0L), matrix(x.lambda, nrow=G, ncol=P, byrow=best.mod == "CU"))
   attr(x.theta, "Model")        <- best.mod
+  attr(x.theta, "NonUnique")    <- nonunique
   class(x.theta)                <- "MEDtheta"
   Gseq            <- seq_len(G)
   colnames(x.z)   <- if(G == 1  && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq)
@@ -1705,7 +1727,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @note Every \code{type} of plot respects the sampling weights, if any. Those related to \code{\link[TraMineR]{seqdef}} plots from \pkg{TraMineR} may be too wide to display in the preview panel. The same is also true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}.
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' 
-#' Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. \emph{Journal of Statistical Software} 40(4): 1-37.
+#' Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. \emph{Journal of Statistical Software}, 40(4): 1-37.
 #' @usage 
 #' \method{plot}{MEDseq}(x,
 #'      type = c("clusters", "mean", "precision", "gating", 
@@ -1847,7 +1869,8 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
         srows     <- Nseq[MAP == g]
         meds      <- c(meds, srows[which.min(rowSums2(dmat[srows,srows, drop=FALSE]))])
       }
-      perm        <- c(get_order(seriate(stats::as.dist(dmat[meds,meds]), method="TSP")), G)
+      perm        <- get_order(seriate(stats::as.dist(dmat[meds,meds]), method="TSP"))
+      perm        <- if(isTRUE(noise)) c(perm, G) else perm
     }
     switch(EXPR=type,
              mean= {
@@ -1857,7 +1880,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     })
   }
   Gseq            <- seq_len(G)
-  perm            <- if(isTRUE(sericlus)) perm else Gseq
+  perm            <- if(isTRUE(sericlus)) perm    else Gseq
   perm            <- if(isTRUE(noise))    replace(perm, G, ifelse(is.element(type, c("clusters", "gating")), 0L, "Noise")) else perm
 
   if(type == "clusters" || 
@@ -2423,6 +2446,7 @@ print.MEDtheta    <- function(x, preczero = TRUE, ...) {
   lab.x           <- attr(x, "labels")
   lambda          <- attr(x, "lambda")
   noise           <- attr(x, "Model") %in% c("CCN", "CUN", "UCN", "UUN")
+  if(any(attr(x, "NonUnique")))  message("Solution contains at least one non-unique modal central sequence position\n")
   G               <- nrow(x)
   gnames          <- paste0("Cluster", seq_len(G))
   V               <- length(alpha)
@@ -2541,12 +2565,13 @@ print.summaryMEDgate  <- function(x, ...) {
 #' \item{\code{Coefficients}}{The original matrix of estimated coefficients (\code{coef(mod$gating)}).}
 #' \item{\code{Std. Errors}}{The matrix of corresponding standard error estimates.}}
 #' @note A progress bar is displayed as the function iterates over the \code{N} samples. The function may take a long time to run for large \code{N}. The function terminates immediately if \code{mod$G == 1}.
+#' @importFrom matrixStats "colSums2"
 #' @importFrom TraMineR "seqdef"
 #' @export
 #' @seealso \code{\link{MEDseq_fit}}
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' 
-#' O'Hagan, A., Murphy, T. B., Scrucca, L., and Gormley, I. C. (2019). Investigation of parameter uncertainty in clustering using a Gaussian mixture model via jackknife, bootstrap and weighted likelihood bootstrap. \emph{Computational Statistics} 34(4): 1779-1813.
+#' O'Hagan, A., Murphy, T. B., Scrucca, L., and Gormley, I. C. (2019). Investigation of parameter uncertainty in clustering using a Gaussian mixture model via jackknife, bootstrap and weighted likelihood bootstrap. \emph{Computational Statistics}, 34(4): 1779-1813.
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
 #' @keywords clustering main
 #' @usage
@@ -2698,8 +2723,8 @@ MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, norm = TRUE) {
   if(isTRUE(MAP))  {
     temp          <- do.call(rbind, by(x$data, class,  function(x) tabulate(do.call(base::c, x), V)))
   } else           {
-    x$data        <- .fac_to_num(x$data)
-    temp          <- do.call(rbind, lapply(seq_len(G), function(g) tapply(rep(x$z[,g], P), do.call(base::c, x$data), sum)))
+    x$data        <- do.call(base::c, .fac_to_num(x$data))
+    temp          <- do.call(rbind, lapply(seq_len(G), function(g) tapply(rep(x$z[,g], P), x$data, sum)))
   }
   temp            <- if(isTRUE(norm))  temp/tabMAP                   else temp
   temp            <- cbind(tabMAP, temp)

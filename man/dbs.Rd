@@ -54,7 +54,7 @@ mod <- MEDseq_fit(seqdef(mvad[,15:86]), G=10, modtype="UCN", weights=mvad$weight
 dbs(mod$z, weights=mvad$weight)}
 }
 \references{
-Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing} 21(3): 295-308.
+Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
 }
 \seealso{
 \code{\link{MEDseq_fit}}
