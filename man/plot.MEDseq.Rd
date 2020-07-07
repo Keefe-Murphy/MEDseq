@@ -11,7 +11,6 @@
               "uncert.bar", "uncert.profile", "loglik", 
               "d", "f", "Ht", "i", "I"), 
      seriate = c("observations", "both", "clusters", "none"), 
-     preczero = TRUE,
      log.scale = FALSE, 
      ...)
 }
@@ -48,8 +47,6 @@ Also available are the following options which act as wrappers to types of plots
 }}
 
 \item{seriate}{Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The options \code{"clusters"} and \code{"both"} are only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}. Additionally, the options \code{"observations"} and \code{"both"} are only invoked when \code{type} is one of \code{"clusters"} or \code{"gating"}.}
-
-\item{preczero}{Logical indicating whether central sequence parameter positions corresponding to zero-valued precision parameters (if any!) should also be suppressed for the non-noise components. Defaults to \code{TRUE}; noise-component means are never shown regardless of the value of \code{preczero}.}
 
 \item{log.scale}{Logical indicating whether precision parameter heatmaps should be plotted on the log-scale when \code{type="precision"}. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are effected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{log.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise.}
 

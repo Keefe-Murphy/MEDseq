@@ -31,7 +31,7 @@ MEDseq_control(algo = c("EM", "CEM", "cemEM"),
 \arguments{
 \item{algo}{Switch controlling whether models are fit using the \code{"EM"} (the default) or \code{"CEM"} algorithm. The option \code{"cemEM"} allows running the EM algorithm starting from convergence of the CEM algorithm.}
 
-\item{init.z}{The method used to initialise the cluster labels. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward hierarchical clustering (\code{"hc"}), \code{"random"} initialisation, and a user-supplied \code{"list"}.
+\item{init.z}{The method used to initialise the cluster labels. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward's hierarchical clustering (\code{"hc"}), \code{"random"} initialisation, and a user-supplied \code{"list"}. For weighted sequences, \code{"kmedoids"} is itself initialised using Ward's hierarchical clustering.
 
 The \code{"kmodes"} and \code{"kmodes2"} options require loading the suggested \pkg{klaR} package (>= 0.6-13). They are currently only available for \strong{unweighted} sequences. Under \code{"kmodes"}, the algorithm is itself initialised via the medoids of a call to \code{\link[cluster]{pam}}. The option \code{"kmodes2"} is slightly faster, by virtue of using random initial modes. Final results are thus also subject to randomness (unless \code{\link{set.seed}} is invoked).}
 

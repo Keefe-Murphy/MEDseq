@@ -516,7 +516,7 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #'
 #' Supplies a list of arguments (with defaults) for use with \code{\link{MEDseq_fit}}.
 #' @param algo Switch controlling whether models are fit using the \code{"EM"} (the default) or \code{"CEM"} algorithm. The option \code{"cemEM"} allows running the EM algorithm starting from convergence of the CEM algorithm.
-#' @param init.z The method used to initialise the cluster labels. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward hierarchical clustering (\code{"hc"}), \code{"random"} initialisation, and a user-supplied \code{"list"}.
+#' @param init.z The method used to initialise the cluster labels. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward's hierarchical clustering (\code{"hc"}), \code{"random"} initialisation, and a user-supplied \code{"list"}. For weighted sequences, \code{"kmedoids"} is itself initialised using Ward's hierarchical clustering.
 #' 
 #' The \code{"kmodes"} and \code{"kmodes2"} options require loading the suggested \pkg{klaR} package (>= 0.6-13). They are currently only available for \strong{unweighted} sequences. Under \code{"kmodes"}, the algorithm is itself initialised via the medoids of a call to \code{\link[cluster]{pam}}. The option \code{"kmodes2"} is slightly faster, by virtue of using random initial modes. Final results are thus also subject to randomness (unless \code{\link{set.seed}} is invoked).
 #' @param z.list A user supplied list of initial cluster allocation matrices, with number of rows given by the number of observations, and numbers of columns given by the range of component numbers being considered. Only relevant if \code{init.z == "z.list"}. These matrices are allowed correspond to both soft or hard clusterings, and will be internally normalised so that the rows sum to 1.
@@ -1046,7 +1046,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     GG            <- any(G  > 2L)
     all.mod       <- if(all(G1, G2, GG)) unique(c(mtg, mt2, mt1)) else if(all(G1, G2)) unique(c(mt2, mt1)) else if(all(G1, GG)) unique(c(mtg, mt1)) else if(all(G2, GG)) unique(c(mtg, mt2)) else if(G2) mt2 else mtg
     all.mod       <- l.meths[l.meths %in% all.mod]
-    if(init.z     == "hc")     {
+    if(init.z     == "hc"  ||
+      (do.wts     &&
+       init.z     == "kmedoids"))    {
       hcZ         <- if(do.wts) stats::hclust(dist.mat2, method="ward.D2", members=w2) else agnes(dist.mat2, diss=TRUE, method="ward")
     }
     if(!zli.miss)  {
@@ -1194,7 +1196,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
                                                                         iter.max=.Machine$integer.max, weighted=FALSE, fast=TRUE)$cluster[uni.ind]),
                                    kmodes2=suppressWarnings(klaR::kmodes(seqX, modes=g, iter.max=.Machine$integer.max, weighted=FALSE, fast=TRUE)$cluster[uni.ind]),
                                    kmedoids= if(do.wts) {
-                                     zz <- wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE)
+                                     zz <- wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE, initialclust=stats::cutree(hcZ, k=g)[uni.ind])
                                        as.numeric(factor(zz, labels=seq_along(unique(zz))))
                                      } else pam(dist.mat2, k=g, cluster.only=TRUE, pamonce=pamonce)[uni.ind], 
                                    hc=stats::cutree(hcZ, k=g)[uni.ind]), groups=seq_len(g))
@@ -1212,7 +1214,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
                                                                         iter.max=.Machine$integer.max, weighted=FALSE, fast=TRUE)$cluster[uni.ind]),
                                    kmodes2=suppressWarnings(klaR::kmodes(seqX, modes=g0, iter.max=.Machine$integer.max, weighted=FALSE, fast=TRUE)$cluster[uni.ind]),
                                    kmedoids= if(do.wts) {
-                                     zz <- wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE)
+                                     zz <- wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE, initialclust=stats::cutree(hcZ, k=g0)[uni.ind])
                                        as.numeric(factor(zz, labels=seq_along(unique(zz))))
                                      } else pam(dist.mat2, k=g0, cluster.only=TRUE, pamonce=pamonce)[uni.ind],  
                                    hc=stats::cutree(hcZ, k=g0)[uni.ind]), groups=seq_len(g0))
@@ -1514,7 +1516,6 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   storage.mode(x.theta)         <- "integer"
   attr(x.theta, "alphabet")     <- levs
   attr(x.theta, "labels")       <- attr(seqs, "labels")
-  attr(x.theta, "lambda")       <- switch(EXPR=best.mod, CCN=, CUN=rbind(matrix(x.lambda[1L,], nrow=G - 1L, ncol=P, byrow=best.mod == "CUN"), 0L), matrix(x.lambda, nrow=G, ncol=P, byrow=best.mod == "CU"))
   attr(x.theta, "Model")        <- best.mod
   attr(x.theta, "NonUnique")    <- nonunique
   class(x.theta)                <- "MEDtheta"
@@ -1718,7 +1719,6 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"I"}}{Whole set index plots (by cluster).}
 #' }
 #' @param seriate Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The options \code{"clusters"} and \code{"both"} are only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}. Additionally, the options \code{"observations"} and \code{"both"} are only invoked when \code{type} is one of \code{"clusters"} or \code{"gating"}.
-#' @param preczero Logical indicating whether central sequence parameter positions corresponding to zero-valued precision parameters (if any!) should also be suppressed for the non-noise components. Defaults to \code{TRUE}; noise-component means are never shown regardless of the value of \code{preczero}.
 #' @param log.scale Logical indicating whether precision parameter heatmaps should be plotted on the log-scale when \code{type="precision"}. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are effected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{log.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise.
 #' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used.
 #'
@@ -1736,7 +1736,6 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #'               "uncert.bar", "uncert.profile", "loglik", 
 #'               "d", "f", "Ht", "i", "I"), 
 #'      seriate = c("observations", "both", "clusters", "none"), 
-#'      preczero = TRUE,
 #'      log.scale = FALSE, 
 #'      ...)
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
@@ -1800,7 +1799,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' # plot(mod2, "dbsvals")
 #' # plot(mod2, "Ht")}
 plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gating", "dbs", "asw", "bic", "icl", "aic", "nec", "cv", "LOGLIK", "dbsvals", "aswvals", "uncert.bar", "uncert.profile", 
-                                          "loglik", "d", "f", "Ht", "i", "I"), seriate = c("observations", "both", "clusters", "none"), preczero = TRUE, log.scale = FALSE, ...) {
+                                          "loglik", "d", "f", "Ht", "i", "I"), seriate = c("observations", "both", "clusters", "none"), log.scale = FALSE, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(type)           &&
      (length(type)       > 1  ||
@@ -1832,11 +1831,14 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   alpha.x         <- attr(dat, "alphabet")
   cpal.x          <- attr(dat, "cpal")
   label.x <- lab  <- attr(dat, "labels")
-  if(is.element(type,
-     c("mean", "precision")))  {
+  if(type == "mean")           {
     theta         <- x$params$theta
-    lambda        <- attr(theta, "lambda")
     class(theta)  <- NULL
+  }
+  if(type == "precision")      {
+    lambda        <- x$params$lambda
+    lambda        <- switch(EXPR=modtype, CCN=, CUN=rbind(matrix(lambda[1L,], nrow=G - 1L, ncol=P, byrow=modtype == "CUN"), 0L), 
+                                          matrix(lambda, nrow=G, ncol=P, byrow=modtype == "CU"))
   }
   dots            <- list(...)
   dots            <- dots[unique(names(dots))]
@@ -1923,37 +1925,20 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     graphics::layout(1)
       invisible()
   }, mean=         {
-    miss.prec     <- missing(preczero)
-    if(length(preczero)  > 1  ||
-       !is.logical(preczero))    stop("'preczero' must be a single logical indicator", call.=FALSE)
-    lmiss         <- lambda   == 0
-    if(indmiss    <- 
-       any(lmiss))       {
+    if(noise      <- is.element(modtype, c("CCN", "UCN", "CUN", "UUN"))) {
       lab         <- c(label.x, expression(paste(lambda, " = 0")))
       mV          <- V   + 1L
-      if(any(gmiss      <- apply(lmiss, 1L, all))) {
-        if(G      == 1L) {       message("The single central sequence is entirely missing\n")
-        } else                   message(paste0("One or more central sequences (", paste(shQuote(ifelse(noise && which(gmiss) == G, "Noise", which(gmiss))), collapse=" & "), ") are entirely missing\n"))
-      }   else                   message("Discarding sequence positions corresponding to zero-valued precision parameters:\nSupply 'preczero'=FALSE to change this behaviour\n")
-    }     else if(!miss.prec)    message("No missing values to discard\n")
-    if(isTRUE(preczero)) {
-      missind           <- which(tabulate(theta[!lmiss], nbins=V) == 0)
-      theta[lmiss]      <- NA
-    } else if(indmiss)   {
-      missind           <- which(tabulate(theta,         nbins=V) == 0)
-      theta[gmiss,]     <- NA
+      theta[G,]   <- NA
     }
     l.ncol        <- ceiling(mV/ifelse(mV > 6, 3, 2))
-    if(vmiss      <-
-       any(missind))             message(paste0("One or more sequence categories (", paste(shQuote(label.x[missind]), collapse=" & "), ") are entirely missing\n"))
-    dat           <- suppressMessages(seqdef(as.data.frame(theta), states=alpha.x, labels=label.x, cpal=if(vmiss) c(cpal.x[-missind], rep(NA, length(missind))) else cpal.x))
+    dat           <- suppressMessages(seqdef(as.data.frame(theta), states=alpha.x, labels=label.x, cpal=cpal.x))
     attr(dat, "names")  <- attr(x$data, "names")
     graphics::layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
     seqplot(dat, type="I", with.legend=FALSE, main="Central Sequences Plot", border=NA, missing.color=graphics::par()$bg, yaxis=FALSE, cex.axis=0.75, ylab=switch(EXPR=seriate, clusters=, both="Ordered Clusters", "Clusters"), xlab="Time")
     if(G > 1) graphics::axis(2, at=seq_len(G) - 0.5, labels=as.character(perm), tick=FALSE, las=2, line=-0.5, cex.axis=0.75)
     graphics::par(mar=c(1, 1, 0.5, 1) + 0.1, xpd=FALSE)
     graphics::plot.new()
-    graphics::legend("bottom", fill=if(indmiss) c(cpal.x, graphics::par()$bg) else cpal.x, legend=lab, ncol=l.ncol, cex=0.75)
+    graphics::legend("bottom", fill=if(isTRUE(noise)) c(cpal.x, graphics::par()$bg) else cpal.x, legend=lab, ncol=l.ncol, cex=0.75)
     graphics::layout(1)
       invisible()
   }, precision=    {
@@ -2440,38 +2425,31 @@ print.MEDlambda   <- function(x, ...) {
 }
 
 #' @method print MEDtheta
+#' @importFrom TraMineR "seqconc" "seqformat"
 #' @export
-print.MEDtheta    <- function(x, preczero = TRUE, ...) {
+print.MEDtheta    <- function(x, SPS = FALSE, ...) {
+  if(length(SPS)   > 1 ||
+     !is.logical(SPS))           stop("'SPS' must be a single logical indicator", call.=FALSE)
   alpha           <- attr(x, "alphabet")
-  lab.x           <- attr(x, "labels")
-  lambda          <- attr(x, "lambda")
-  noise           <- attr(x, "Model") %in% c("CCN", "CUN", "UCN", "UUN")
   if(any(attr(x, "NonUnique")))  message("Solution contains at least one non-unique modal central sequence position\n")
   G               <- nrow(x)
   gnames          <- paste0("Cluster", seq_len(G))
-  V               <- length(alpha)
   class(x)        <- NULL
-  miss.prec       <- missing(preczero)
-  if(length(preczero)  > 1  ||
-     !is.logical(preczero))      stop("'preczero' must be a single logical indicator", call.=FALSE)
-  if(any(lam0     <- lambda == 0)) {
+  if(is.element(attr(x, "Model"), 
+                c("CCN", "UCN", "CUN", "UUN")))    {
     alpha         <- c(alpha, "*")
-    if(any(gm0    <- apply(lam0, 1L, all))) {
-      if(G        == 1L)     {   message("The single central sequence is entirely missing\n")
-      } else                     message(paste0("One or more central sequences (", paste(shQuote(ifelse(noise && which(gm0) == G, "Noise", which(gm0))), collapse=" & "), ") are entirely missing\n"))
-    }   else                     message("Discarding sequence positions corresponding to zero-valued precision parameters:\nSupply 'preczero'=FALSE to change this behaviour\n")
-  }     else if(!miss.prec)      message("No missing values to discard\n")
-  if(isTRUE(preczero))       {
-    missind       <- which(tabulate(x[!lam0], nbins=V) == 0)
-    x[lam0]       <- V + 1L
-  }     else if(any(lam0))   {
-    missind       <- which(tabulate(x,        nbins=V) == 0)  
-    x[gm0,]       <- V + 1L
+    gnames        <- replace(gnames, G, "Noise")
+    x[G,]         <- length(alpha)
   }
-  if(any(missind))               message(paste0("One or more sequence categories (", paste(shQuote(lab.x[missind]), collapse=" & "), ") are entirely missing\n"))
-  theta           <- as.data.frame(lapply(as.data.frame(x), function(theta) .replace_levels(.num_to_char(theta), alpha)))
-  rownames(theta) <- if(isTRUE(noise)) replace(gnames, G, "Noise") else gnames
-    print(theta, ...)
+  x               <- as.data.frame(lapply(as.data.frame(x), function(theta) .replace_levels(.num_to_char(theta), alpha)))
+  if(isTRUE(SPS))  {
+    x             <- provideDimnames(matrix(suppressMessages(seqformat(seqconc(x), from="STS", to="SPS", compress=TRUE, right=NA, ...)), 
+                                            nrow=G, ncol=1L), base=list(gnames, "Sequence"))
+      print(x, quote=FALSE, ...)
+  } else           {
+    rownames(x)   <- gnames
+      print(x, ...)
+  }
 }
 
 #' @method print summaryMEDseq
@@ -2557,7 +2535,7 @@ print.summaryMEDgate  <- function(x, ...) {
 #' Computes standard errors of the gating network coefficients in a fitted MEDseq model using either the Weighted Likelihood Bootstrap or Jackknife methods.
 #' @param mod A fitted model of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}}.
 #' @param method The method used to compute the standard errors (defaults to \code{"WLBS"}, the Weighted Likelihood Bootstrap).
-#' @param N The (integer) number of samples to use when the \code{"WLBS"} \code{method} is employed. Defaults to \code{1000L}. Not relevant when \code{method="Jackknife"}, in which case \code{N} is always the number of observations. Must be > 1.
+#' @param N The (integer) number of samples to use when the \code{"WLBS"} \code{method} is employed. Defaults to \code{1000L}. Not relevant when \code{method="Jackknife"}, in which case \code{N} is always the number of observations. Must be > 1, though \code{N} being greater than or equal to the sample size is recommended under \code{method="WLBS"}.
 #' @param symmetric A logical indicating whether symmetric draws from the uniform Dirichlet distribution are used for the \code{WLBS} method in the presence of existing sampling weights. Defaults to \code{TRUE}; when \code{FALSE}, the concentration parameters of the Dirichlet distribution are given by the sampling weights. Only relevant when \code{method="WLBS"} for models with existing sampling weights.
 #'
 #' @return A list with the following two elements:
@@ -2635,10 +2613,12 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
   modtype     <- mod$modtype
   seqdat      <- mod$data
   weights     <- attr(mod, "Weights")
+  if(method   == "WLBS"       &&
+     n         > N)                 warning("It is recommended that N match or exceed the sample size\n", call.=FALSE, immediate.=TRUE)
   pb          <- utils::txtProgressBar(min = 0, max = N, style = 3)
   switch(EXPR=method, WLBS= {
     if(length(symmetric)  > 1 ||
-       !is.logical(symmetric))      stop("'symmetric' must be a single logical indicator", call.=FALSE)
+       !is.logical(symmetric))      stop("'symmetric' must be a single logical indicator",                call.=FALSE)
     if(isFALSE(symmetric)     &&
        all(weights   == 1))         message("'symmetric=FALSE' has no effect as the fitted model does not use sampling weights\n")
     wts       <- if(isTRUE(symmetric)) replicate(N, weights * .rDirichlet(n)) else replicate(N, .rDirichlet(n, shape=weights))

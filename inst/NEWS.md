@@ -1,19 +1,27 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
-### Bug Fixes & Miscellaneous Edits
-* Sped-up `init.z="kmedoids"` initialisation via `pam` for _unweighted_ sequences,  
-  by using the _highest available_ value for the `pamonce` option,  
-  based on the version number of the loaded `cluster` package.
-* `init.z` gains the options `"kmodes"` & `"kmodes2"`, though only for _unweighted_ sequences:  
-  both require the newly _suggested_ `klaR (>= 0.6-13)` package.
+### Significant user-visible changes
+* Non-noise components' central sequence positions associated with precision parameters of zero  
+  are now printed (`print.MEDseqtheta`) & plotted (`plot.MEDseq(..., type="mean")`) always:  
+  the `preczero` argument has thus been removed from both functions.
+  
+### New Features & Improvements
 * `MEDseq_control` gains the arg. `random=TRUE`, governing modal sequence position tie-breaking:  
   old behaviour (always choosing the first candidate state) recoverable via `random=FALSE`.
+* Sped-up `init.z="kmedoids"` initialisation via `pam` for _unweighted_ sequences, by using the  
+  _highest available_ value for the `pamonce` option,  based on the `cluster` package's version number.
+* `init.z` gains the options `"kmodes"` & `"kmodes2"`, though only for _unweighted_ sequences:  
+  both require the newly _suggested_ `klaR (>= 0.6-13)` package.
+* For weighted sequenes, `init.z="kmedoids"` is now itself initialised by Ward's hierarchical clustering.
 * Significant speed-ups to computation of central sequences for all `opti` settings (esp. `"mode"`).
-* Fixed `seriate` options `"clusters"`/`"both"` in `plot.MEDseq` for models with no noise component.
+* Added `SPS` arg. (default=`FALSE`) to `print` method for `MEDtheta` objects.
 * `dbs` gains the optional/experimental arg. `clusters` - no change to default.
+  
+### Bug Fixes & Miscellaneous Edits
+* Fixed `seriate` options `"clusters"`/`"both"` in `plot.MEDseq` for models with no noise component.
 * Fixes to `print` & `summary` methods for `MEDgating` objects if `equalPro=TRUE`.
-* Minor fixes to `print` methods for `MEDtheta` & `MEDlambda` objects also.
+* Minor fixes to `print` method for `MEDlambda` objects also.
 * Additional minor edits to `plot.MEDseq(..., type="gating")`.
 * `print.MEDseqCompare` gains the args. `maxi` & `rerank=FALSE`.
 * Ensured `matrixStats (>= 0.53.1)` and `TraMineR (>= 1.6)` in `Imports:`.
