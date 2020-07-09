@@ -6,7 +6,7 @@
 \alias{MEDseq-package}
 \title{MEDseq: Mixtures of Exponential-Distance Models with Covariates}
 \description{
-Fits MEDseq models: mixtures of Exponential-Distance models with gating covariates and sampling weights. Typically used for clustering categorical/longitudinal life-course sequences
+Fits MEDseq models: mixtures of Exponential-Distance models with gating covariates and sampling weights. Typically used for clustering categorical/longitudinal life-course sequences.
 }
 \section{Usage}{
 
@@ -62,7 +62,7 @@ mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
 # Only consider models with a noise component
 # Supply some MEDseq_control() arguments
 mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"),
-                            algo="CEM", init.z="hc", criterion="asw")
+                            algo="CEM", init.z="kmodes", criterion="icl")
 
 # Fit a model with weights and gating covariates
 # Drop the 1st time point which was used to define the weights

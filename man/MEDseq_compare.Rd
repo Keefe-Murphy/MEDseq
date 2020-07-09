@@ -27,7 +27,7 @@ This argument is only relevant for the \code{\link{MEDseq_compare}} function and
 
 \item{pick}{The (integer) number of models to be ranked and compared. Defaults to \code{10L}. Will be constrained by the number of models within the \code{"MEDseq"} objects supplied via \code{...} if \code{optimal.only} is \code{FALSE}, otherwise constrained simply by the number of \code{"MEDseq"} objects supplied. Setting \code{pick=Inf} is a valid way to select all models.}
 
-\item{optimal.only}{Logical indicating whether to only rank models already deemed optimal within each \code{"MEDeq"} object (\code{TRUE}), or to allow models which were deemed suboptimal enter the final ranking (\code{FALSE}, the default). See \code{details}.}
+\item{optimal.only}{Logical indicating whether to only rank models already deemed optimal within each \code{"MEDeq"} object (\code{TRUE}), or to allow models which were deemed suboptimal enter the final ranking (\code{FALSE}, the default). See \code{Details}.}
 
 \item{x, index, rerank, digits, maxi}{Arguments required for the associated \code{print} function:
 \describe{

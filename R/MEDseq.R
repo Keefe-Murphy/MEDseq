@@ -1,6 +1,6 @@
 #' MEDseq: Mixtures of Exponential-Distance Models with Covariates
 #'
-#' Fits MEDseq models: mixtures of Exponential-Distance models with gating covariates and sampling weights. Typically used for clustering categorical/longitudinal life-course sequences
+#' Fits MEDseq models: mixtures of Exponential-Distance models with gating covariates and sampling weights. Typically used for clustering categorical/longitudinal life-course sequences.
 #' @section Usage:
 #' Fits _MEDseq_ models introduced by Murphy et al. (2019) <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>, i.e. fits mixtures of exponential-distance models for clustering longitudinal life-course sequence data via the EM/CEM algorithm. 
 #' 
@@ -54,7 +54,7 @@
 #' # Only consider models with a noise component
 #' # Supply some MEDseq_control() arguments
 #' mod1          <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"),
-#'                             algo="CEM", init.z="hc", criterion="asw")
+#'                             algo="CEM", init.z="kmodes", criterion="icl")
 #' 
 #' # Fit a model with weights and gating covariates
 #' # Drop the 1st time point which was used to define the weights

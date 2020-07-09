@@ -13,7 +13,7 @@
 #' \item{\code{silvals}}{A matrix where each row contains the cluster to which each observation belongs in the first column and the observation-specific DBS width in the second column.}
 #' \item{\code{msw}}{Depending on the value of \code{summ}, either the mean or median DBS width.}
 #' \item{\code{wmsw}}{Depending on the value of \code{summ}, either the weighted mean or weighted median DBS width.}}
-#' @note When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the DBS and ASW criteria.
+#' @note When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the \code{dbs} and \code{asw} criteria.
 #' @importFrom matrixStats "rowSums2" "weightedMedian" "weightedMean"
 #' @importFrom TraMineR "seqdef"
 #' @references Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
@@ -40,7 +40,7 @@
 #' # For real sequence data
 #' data(mvad)
 #' \donttest{
-#' mod <- MEDseq_fit(seqdef(mvad[,15:86]), G=10, modtype="UCN", weights=mvad$weight)
+#' mod <- MEDseq_fit(seqdef(mvad[,17:86]), G=11, modtype="UUN", weights=mvad$weight)
 #' 
 #' dbs(mod$z, weights=mvad$weight)}
 dbs               <- function(z, ztol = 1E-100, weights = NULL, summ = c("mean", "median"), clusters = NULL, ...) {
@@ -51,7 +51,7 @@ dbs               <- function(z, ztol = 1E-100, weights = NULL, summ = c("mean",
   if(length(ztol)  > 1     ||
      !is.numeric(ztol)     ||
      ztol          < 0)          stop("Invalid 'ztol'", call.=FALSE)
-  if(!missing(weights))     {
+  if(!is.null(weights))     {
     N             <- nrow(z)
    if(!is.numeric(weights) ||
       length(weights)      != N) stop(paste0("'weights' must be a numeric vector of length N=", N), call.=FALSE)
@@ -108,8 +108,8 @@ dbs               <- function(z, ztol = 1E-100, weights = NULL, summ = c("mean",
 #' @param what A character string indicating the desired results to extract.
 #' @param rank A number indicating what \code{rank} model results should be extracted from, where the \code{rank} is determined by \code{criterion}. Defaults to \code{1}, i.e. the best model.
 #' @param criterion The \code{criterion} used to determine the ranking. Defaults to \code{"dbs"}.
-#' @param G Optional argument giving the number of components in the model for which results are desired.
-#' @param modtype Optional argument the desired model type for which results are desired.
+#' @param G Optional argument giving the number of components in the model for which results are desired. Can be supplied with or without also specifying \code{modtype}.
+#' @param modtype Optional argument giving the desired model type for which results are desired. Can be supplied with or without also specifying \code{G}.
 #' @param noise A logical indicating whether models with a noise component should be considered. Defaults to \code{TRUE}.
 #' @param ... Catches unused arguments.
 #'
@@ -149,7 +149,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(what)           && 
      (length(what) > 1        ||
-     !is.character(what)))       stop("'what' must be a single character string",    call.=FALSE)
+     !is.character(what)))       stop("'what' must be a single character string",      call.=FALSE)
   what            <- match.arg(what)
   minG            <- 1L  + is.element(what, c("DBS", "ASW"))
   if(!(missing(G) -> m.G)     &&
@@ -158,14 +158,14 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
      (G < minG    || floor(G) != G))) {
     if(is.element(what, 
        c("dbs", "asw"))) {       stop(paste0("'G' must be a single integer > 1 when 'what'=", what), call.=FALSE)
-    } else                       stop("'G' must be a single integer >= 1",           call.=FALSE)
+    } else                       stop("'G' must be a single integer >= 1",             call.=FALSE)
   }  
   if(!(missing(modtype) ->
        m.M) &&
     (length(modtype) > 1      ||
-     !is.character(modtype)))    stop("'modtype' must be a single character string", call.=FALSE)
+     !is.character(modtype)))    stop("'modtype' must be a single character string",   call.=FALSE)
   if(length(noise) > 1        ||
-     !is.logical(noise))         stop("'noise' must be a single logical indicator",  call.=FALSE)
+     !is.logical(noise))         stop("'noise' must be a single logical indicator",    call.=FALSE)
   if(!missing(criterion)      ||
      !missing(rank)           ||
      any(m.G, m.M))            {
@@ -182,6 +182,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
     if(criterion  == "cv"     &&
        !attr(x, "CV"))           stop("Can't select based on the CV criterion as cross-validated likelihood wasn't performed", call.=FALSE)
     tmp           <- switch(EXPR=criterion, bic=x$BIC, icl=x$ICL, aic=x$AIC, cv=x$CV, nec=x$NEC, dbs=x$DBS, asw=x$ASW, loglik=x$LOGLIK)
+    if(is.null(tmp))             stop(paste0("Can't select based on the ", toupper(criterion), " criterion when all models contain only 1 component"),       call.=FALSE)
     if(!noise)     {
       tmp         <- tmp[,colnames(tmp) %in% c("CC", "UC", "CU", "UU"), drop=FALSE]
     }
@@ -247,7 +248,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' This argument is only relevant for the \code{\link{MEDseq_compare}} function and will be ignored for the associated \code{print} function.
 #' @param criterion The criterion used to determine the ranking. Defaults to \code{"dbs"}, the density-based silhouette.
 #' @param pick The (integer) number of models to be ranked and compared. Defaults to \code{10L}. Will be constrained by the number of models within the \code{"MEDseq"} objects supplied via \code{...} if \code{optimal.only} is \code{FALSE}, otherwise constrained simply by the number of \code{"MEDseq"} objects supplied. Setting \code{pick=Inf} is a valid way to select all models.
-#' @param optimal.only Logical indicating whether to only rank models already deemed optimal within each \code{"MEDeq"} object (\code{TRUE}), or to allow models which were deemed suboptimal enter the final ranking (\code{FALSE}, the default). See \code{details}.
+#' @param optimal.only Logical indicating whether to only rank models already deemed optimal within each \code{"MEDeq"} object (\code{TRUE}), or to allow models which were deemed suboptimal enter the final ranking (\code{FALSE}, the default). See \code{Details}.
 #' @param x,index,rerank,digits,maxi Arguments required for the associated \code{print} function:
 #' \describe{
 #' \item{\code{x}}{An object of class \code{"MEDseqCompare"} resulting from a call to \code{\link{MEDseq_compare}}.}
@@ -367,6 +368,7 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
   dat.name        <- if(is.null(dat.name)) deparse(MEDs[[1L]]$call$seqs) else dat.name
   gate.x          <- lapply(MEDs,   "[[", "gating")
   algo            <- sapply(MEDs,   attr, "Algo")
+  opti            <- sapply(MEDs,   attr, "Opti")
   equalNoise      <- sapply(MEDs,   attr, "EqualNoise")
   equalPro        <- sapply(MEDs,   attr, "EqualPro")
   noise.gate      <- sapply(MEDs,   attr, "NoiseGate")
@@ -391,7 +393,7 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
   if(all(necnull) &&             
      criterion    == "nec")      stop("'criterion' cannot be 'nec' when all models being compared contain only 1 component", call.=FALSE)
   if(all(dbsnull) &&             
-     criterion    == "dbs")      stop("'criterion' cannot be 'dbs' when all models being compared contain only 1 component", call.=FALSE)
+     criterion    == "dbs")      stop(paste0("'criterion' cannot be 'dbs' when all models being compared ", ifelse(all(algo == "CEM"), "were fitted via CEM", "contain only 1 component")), call.=FALSE)
   if(all(aswnull) &&             
      criterion    == "asw")      stop("'criterion' cannot be 'asw' when all models being compared contain only 1 component", call.=FALSE)
   choice          <- max(lengths(BICs))
@@ -501,8 +503,8 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
   comp          <- list(data = dat.name, optimal = best.model, pick = pick, MEDNames = crit.names, modelNames = modelNames, G = as.integer(G), df = as.integer(unname(dfxs[max.names])), 
                         iters = as.integer(unname(itxs[max.names])), bic = unname(bics[max.names]), icl = unname(icls[max.names]), aic = unname(aics[max.names]), cv = unname(cvs[max.names]), 
                         nec = replace(unname(necs[max.names]), G == 1, NA), dbs = replace(unname(dbss[max.names]), G == 1, NA), asw = replace(unname(asws[max.names]), G == 1, NA), 
-                        loglik = unname(llxs[max.names]), gating = gating, algo = unname(algo[crit.names]), weights = unname(weights[crit.names]), equalPro = equalPro, noise = unname(noise), 
-                        noise.gate = unname(replace(noise.gate, gating == "None" | G <= 2, NA)), equalNoise = unname(replace(equalNoise, !equalPro | is.na(equalPro), NA)))
+                        loglik = unname(llxs[max.names]), gating = gating, algo = unname(algo[crit.names]), opti = unname(opti[crit.names]), weights = unname(weights[crit.names]), equalPro = equalPro, 
+                        noise = unname(noise), noise.gate = unname(replace(noise.gate, gating == "None" | G <= 2, NA)), equalNoise = unname(replace(equalNoise, !equalPro | is.na(equalPro), NA)))
   class(comp)   <- c("MEDseqCompare", "MEDseq")
   bic.tmp       <- sapply(BICs, as.vector)
   attr(comp, "Crit")   <- criterion
@@ -531,7 +533,7 @@ MEDseq_compare    <- function(..., criterion = c("dbs", "asw", "bic", "icl", "ai
 #' @param criterion When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Note that all criteria will be returned in any case, if possible.
 #' @param tau0 Prior mixing proportion for the noise component. If supplied, a noise component will be added to the model in the estimation, with \code{tau0} giving the prior probability of belonging to the noise component for \emph{all} observations. Typically supplied as a scalar in the interval (0, 1), e.g. \code{0.1}. Can be supplied as a vector when gating covariates are present and \code{noise.gate} is \code{TRUE}.
 #' @param noise.gate A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component; only effects estimation in the presence of gating covariates.
-#' @param random A logical governing how ties for modal sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. Only relevant when \code{opti="mode"}.
+#' @param random A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. 
 #' @param do.nec A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.
 #' @param do.cv A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.
 #' @param nfolds The number of folds to use when \code{isTRUE{do.cv}}.
@@ -693,7 +695,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' Fits MEDseq models: mixtures of Exponential-Distance models with gating covariates and sampling weights. Typically used for clustering categorical/longitudinal life-course sequences. Additional arguments are available via the function \code{\link{MEDseq_control}}.
 #' @param seqs A state-sequence object of class \code{"stslist"} as created by the \code{\link[TraMineR]{seqdef}} function in the \pkg{TraMineR} package.
 #' @param G A positive integer vector specifying the numbers of mixture components (clusters) to fit. Defaults to \code{G=1:9}.
-#' @param modtype A vector of character strings indicating the type of MEDseq models to be fitted, in terms of the constraints or lack thereof on the precision parameters. By default, all valid model types are fitted (except some only where \code{G > 1} or \code{G > 2}, see \code{note}). 
+#' @param modtype A vector of character strings indicating the type of MEDseq models to be fitted, in terms of the constraints or lack thereof on the precision parameters. By default, all valid model types are fitted (except some only where \code{G > 1} or \code{G > 2}, see \code{Note}). 
 #' The models are named \code{"CC"}, \code{"CU"}, \code{"UC"}, \code{"UU"}, \code{"CCN"}, \code{"CUN"}, \code{"UCN"}, and \code{"UUN"}. The first letter denotes whether the precision parameters are constrained/unconstrained across clusters. The second letter denotes whether the precision parameters are constrained/unconstrained across sequence positions (i.e. time points). The third letter denotes whether one of the components is constrained to have zero-precision/infinite variance. Such a noise component assumes sequences in that cluster follow a uniform distribution.
 #' @param gating A \code{\link[stats]{formula}} for determining the model matrix for the multinomial logistic regression in the gating network when fixed covariates enter the mixing proportions. Defaults to \code{~1}, i.e. no covariates. This will be ignored where \code{G=1}. Continuous, categorical, and/or ordinal covariates are allowed. Logical covariates will be coerced to factors. Interactions, transformations, and higher order terms are permitted: the latter \strong{must} be specified explicitly using the \code{AsIs} operator (\code{\link{I}}). The specification of the LHS of the formula is ignored. Intercept terms are included by default.
 #' @param covars An optional data frame (or a matrix with named columns) in which to look for the covariates in the \code{gating} network formula, if any. If not found in \code{covars}, any supplied \code{gating} covariates are taken from the environment from which \code{MEDseq_fit} is called. Try to ensure the names of variables in \code{covars} do not match any of those in \code{seqs}.
@@ -709,29 +711,29 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' \item{\code{G}}{The optimal number of mixture components according to \code{criterion}.}
 #' \item{\code{params}}{A list with the following named components:
 #' \describe{
-#' \item{\code{theta}}{A matrix with \code{G} rows and P columns, where P is the number of sequence positions, giving the central sequences of each cluster. The mean of the noise component is not reported, as it does not contribute in any way to the likelihood.}
-#' \item{\code{lambda}}{A matrix of precision parameters. Will contain \code{1} row if the 1st letter of \code{modtype} is "C" and \code{G} columns otherwise. Will contain \code{1} column if the 2nd letter of \code{modtype} is "C" and P columns otherwise, where P is the number of sequence positions. Precision parameter values of zero are reported for the noise component, if any. Note that values of \code{Inf} are also possible, corresponding to zero-variance, which is most likely under the \code{"UU"} or \code{"UUN"} models.}
+#' \item{\code{theta}}{A matrix with \code{G} rows and P columns, where P is the number of sequence positions, giving the central sequences of each cluster. The mean of the noise component is not reported, as it does not contribute in any way to the likelihood. A dedicated \code{print} function is provided.}
+#' \item{\code{lambda}}{A matrix of precision parameters. Will contain \code{1} row if the 1st letter of \code{modtype} is "C" and \code{G} columns otherwise. Will contain \code{1} column if the 2nd letter of \code{modtype} is "C" and P columns otherwise, where P is the number of sequence positions. Precision parameter values of zero are reported for the noise component, if any. Note that values of \code{Inf} are also possible, corresponding to zero-variance, which is most likely under the \code{"UU"} or \code{"UUN"} models. A dedicated \code{print} function is provided.}
 #' \item{\code{tau}}{The mixing proportions: either a vector of length \code{G} or, if \code{gating} covariates were supplied, a matrix with an entry for each observation (rows) and component (columns).}}
 #' }
 #' \item{\code{gating}}{An object of class \code{"MEDgating"} and either \code{"multinom"} or \code{"glm"} (only for single-component models) giving the \code{\link[nnet]{multinom}} regression coefficients of the \code{gating} network. If \code{gating} covariates were \emph{NOT} supplied (or the best model has just one component), this corresponds to a RHS of \code{~1}, otherwise the supplied \code{gating} formula. As such, a fitted \code{gating} network is always returned even in the absence of supplied covariates or clusters. If there is a noise component (and the option \code{noise.gate=TRUE} is invoked), its coefficients are those for the \emph{last} component. \strong{Users are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network. Users are instead advised to use the function \code{\link{MEDseq_stderr}}}.}
 #' \item{\code{z}}{The final responsibility matrix whose \code{[i,k]}-th entry is the probability that observation \emph{i} belongs to the \emph{k}-th component. If there is a noise component, its values are found in the \emph{last} column.}
 #' \item{\code{MAP}}{The vector of cluster labels for the chosen model corresponding to \code{z}, i.e. \code{max.col(z)}. Observations belonging to the noise component, if any, will belong to component \code{0}.}
-#' \item{\code{DBS}}{A matrix of \emph{all} (weighted) mean/median DBS values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note} and \code{\link{dbs}}.}
+#' \item{\code{BIC}}{A matrix of \emph{all} BIC values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note}.}
+#' \item{\code{ICL}}{A matrix of \emph{all} ICL values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note}.}
+#' \item{\code{AIC}}{A matrix of \emph{all} AIC values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note}.}
+#' \item{\code{DBS}}{A matrix of \emph{all} (weighted) mean/median DBS values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note} and \code{\link{dbs}}.}
 #' \item{\code{DBSvals}}{A list of lists giving the observation-specific DBS values for \emph{all} fitted models. The first level of the list corresponds to numbers of components, the second to the MEDseq model types.}
 #' \item{\code{dbs}}{The (weighted) mean/median DBS value corresponding to the optimal model. May not necessarily be the optimal DBS.}
 #' \item{\code{dbsvals}}{Observation-specific DBS values corresponding to the optimum model, which may not be optimal in terms of DBS.}
-#' \item{\code{ASW}}{A matrix of \emph{all} (weighted) mean/median ASW values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note}.}
+#' \item{\code{ASW}}{A matrix of \emph{all} (weighted) mean/median ASW values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note}.}
 #' \item{\code{ASWvals}}{A list of lists giving the observation-specific ASW values for \emph{all} fitted models. The first level of the list corresponds to numbers of components, the second to the MEDseq model types.}
 #' \item{\code{asw}}{The (weighted) mean/median ASW value corresponding to the optimal model. May not necessarily be the optimal ASW.}
 #' \item{\code{aswvals}}{Observation-specific ASW values corresponding to the optimum model, which may not be optimal in terms of ASW.}
-#' \item{\code{BIC}}{A matrix of \emph{all} BIC values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note}.}
-#' \item{\code{ICL}}{A matrix of \emph{all} ICL values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note}.}
-#' \item{\code{AIC}}{A matrix of \emph{all} AIC values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note}.}
-#' \item{\code{LOGLIK}}{A matrix of \emph{all} maximal log-likelihood values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note}.}
-#' \item{\code{DF}}{A matrix giving the numbers of estimated parameters (i.e. the number of 'used' degrees of freedom) for \emph{all} visited models, with \code{length{G}} rows and \code{length(modtype)} columns. Subtract these numbers from the sample size to get the degrees of freedom. See \code{note}.}
-#' \item{\code{ITERS}}{A matrix giving the total number of EM/CEM iterations for \emph{all} visited models, with \code{length{G}} rows and \code{length(modtype)} columns. See \code{note}.}
-#' \item{\code{NEC}}{A matrix of \emph{all} NEC values with \code{length{G}} rows and \code{length(modtype)} columns, if available. See \code{note} and the argument \code{do.nec} to \code{\link{MEDseq_control}}.}
-#' \item{\code{CV}}{A matrix of \emph{all} cross-validated log-likelihood values with \code{length{G}} rows and \code{length(modtype)} columns, if available. See \code{note} and the arguments \code{do.cv} and \code{nfolds} to \code{\link{MEDseq_control}}.}
+#' \item{\code{LOGLIK}}{A matrix of \emph{all} maximal log-likelihood values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note}.}
+#' \item{\code{DF}}{A matrix giving the numbers of estimated parameters (i.e. the number of 'used' degrees of freedom) for \emph{all} visited models, with \code{length{G}} rows and \code{length(modtype)} columns. Subtract these numbers from the sample size to get the degrees of freedom. See \code{Note}.}
+#' \item{\code{ITERS}}{A matrix giving the total number of EM/CEM iterations for \emph{all} visited models, with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note}.}
+#' \item{\code{CV}}{A matrix of \emph{all} cross-validated log-likelihood values with \code{length{G}} rows and \code{length(modtype)} columns, if available. See \code{Note} and the arguments \code{do.cv} and \code{nfolds} to \code{\link{MEDseq_control}}.}
+#' \item{\code{NEC}}{A matrix of \emph{all} NEC values with \code{length{G}} rows and \code{length(modtype)} columns, if available. See \code{Note} and the argument \code{do.nec} to \code{\link{MEDseq_control}}.}
 #' \item{\code{bic}}{The BIC value corresponding to the optimal model. May not necessarily be the optimal BIC.}
 #' \item{\code{icl}}{The ICL value corresponding to the optimal model. May not necessarily be the optimal ICL.}
 #' \item{\code{aic}}{The AIC value corresponding to the optimal model. May not necessarily be the optimal AIC.}
@@ -823,13 +825,14 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the sequence vocabulary must all be > 1", call.=FALSE)
   if(!is.null(modtype)   &&
      !is.character(modtype))     stop("'modtype' must be a character vector", call.=FALSE)
-  modtype         <- if(is.null(modtype)) c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") else modtype
+  modtype         <- if(is.null(modtype)) c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") else toupper(modtype)
   l.meth          <- match.arg(modtype, several.ok=TRUE)
   dots            <- list(...)
   if(!missing(ctrl)      &&
      length(dots[names(dots) %in%
      names(ctrl)]) > 0)          stop("Arguments cannot be supplied via the '...' construct when the named argument 'ctrl' is supplied", call.=FALSE) 
   algo            <- ctrl$algo
+  opti            <- ctrl$opti
   criterion       <- ctrl$criterion
   init.z          <- ctrl$init.z
   z.list          <- ctrl$z.list
@@ -843,7 +846,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   pamonce         <- ctrl$pamonce
   ctrl$warn       <- TRUE
   x.ctrl          <- list(equalPro=equalPro, noise.gate=noise.gate, equalNoise=equalNoise)
-  ctrl$ordering   <- ifelse(ctrl$opti == "first", ctrl$ordering, "none")
+  ctrl$ordering   <- ifelse(opti == "first", ctrl$ordering, "none")
   miss.args       <- attr(ctrl, "missing")
   zin.miss        <- miss.args$init.z
   zli.miss        <- miss.args$z.list
@@ -1070,7 +1073,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     if(verbose)                  message("Forcing 'do.cv' to TRUE as criterion='cv'\n")
     cvsel         <- TRUE
   }
-  if(ctrl$numseq  <- any(c("CU", "UU", "CUN", "UUN") %in% all.mod, ctrl$opti == "mode", ctrl$ordering != "none")) {
+  if(ctrl$numseq  <- any(c("CU", "UU", "CUN", "UUN") %in% all.mod, opti == "mode", ctrl$ordering != "none")) {
     numseq        <- sapply(SEQ, .char_to_num)
     attr(numseq, "T")    <- P
     attr(numseq, "V")    <- V
@@ -1321,7 +1324,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
            attr(CVS, "W")  <- sum(attr(CVS, "Weights"))
            attr(SCV, "W")  <- sum(attr(SCV, "Weights"))
           }
-          if(any(modtype %in% c("CU", "UU", "CUN", "UUN"), ctrl$opti == "mode", ctrl$ordering != "none")) {
+          if(any(modtype %in% c("CU", "UU", "CUN", "UUN"), opti == "mode", ctrl$ordering != "none")) {
             nCV            <- cv.numseq[,-testX, drop=FALSE]
             CVn            <- cv.numseq[,testX,  drop=FALSE]
             attr(nCV, "G") <- attr(numseq, "G")
@@ -1331,7 +1334,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
             nCV   <-
             CVn   <- NULL
           }
-          EMX     <- .EM_algorithm(SEQ=SCV, numseq=nCV, g=g, modtype=modtype, z=CVz, ctrl=ctrl, gating=gating, covars=CVg, HAM.mat = if(ctrl$opti != "mode") hmCV[-testX,-testX, drop=FALSE])
+          EMX     <- .EM_algorithm(SEQ=SCV, numseq=nCV, g=g, modtype=modtype, z=CVz, ctrl=ctrl, gating=gating, covars=CVg, HAM.mat = if(opti != "mode") hmCV[-testX,-testX, drop=FALSE])
           MCV     <- EMX$Mstep
           if(is.matrix(MCV$tau)) {
             tau.tmp        <- stats::predict(MCV$fitG, newdata=gCV[testX,, drop=FALSE], type="probs")
@@ -1355,15 +1358,19 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       ninfty      <- sum(is.infinite(lambda))
       Gfit        <- if(ctrl$gate.g) Mstep$fitG
       gate.pen    <- ifelse(ctrl$gate.g, length(stats::coef(Gfit)) + !ctrl$noise.gate, 
-                     ifelse(ctrl$equalPro, as.integer(ctrl$nmeth && !ctrl$equalNoise), g - 1L))
       choice      <- .choice_crit(ll=log.lik, seqs=SEQ, z=z, modtype=modtype, nonzero=sum(lambda != 0), gate.pen=gate.pen)
+                     ifelse(ctrl$equalPro, as.integer(ctrl$nmeth  && !ctrl$equalNoise), g - 1L))
       bicx        <- choice$bic
       iclx        <- choice$icl
       aicx        <- choice$aic
       dfx         <- choice$df
       tmp.MAP     <- if(g > 1) max.col(z)
       if(do.dbs   && g > 1) {
-        DBS       <- if(ctrl$do.wts) dbs(z, weights=w2, MAP=tmp.MAP, ...) else dbs(z, MAP=tmp.MAP, ...)
+        dots      <- list(...)
+        if(any(names(dots) == "clusters"))   dots$clusters  <- NULL
+        ztol      <- ifelse(any(names(dots)  == "ztol"), dots$ztol, 1E-100)
+        summ      <- ifelse(any(names(dots)  == "summ")     && dots$summ == "median", "median", "mean")
+        DBS       <- dbs(z, ztol=ztol, weights=if(ctrl$do.wts) w2, MAP=tmp.MAP, summ=summ, clusters=NULL, dots)
         dbsx      <- DBS$wmsw
         DBSvals[[h]][[m]]  <- if(ERR)   NA else DBS$silvals
         attr(DBSvals[[h]][[m]], "G")         <- g
@@ -1496,6 +1503,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     if(G          == min(rG))    message("Best model occurs at the min of the number of components considered\n")
     if(G          == max(rG))    message("Best model occurs at the max of the number of components considered\n")
   }
+  Gseq            <- seq_len(G)
   
   noise           <- best.mod %in% c("CCN", "UCN", "CUN", "UUN")
   attr(x.lambda, "G")           <- G
@@ -1512,14 +1520,13 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   if(any(apply(x.lambda == 0, 1L, all))) {
     x.theta                     <- if(G > 1) rbind(do.call(rbind, lapply(x.theta[-G], .char_to_num)), NA) else matrix(NaN, nrow=1L, ncol=P)
   } else x.theta                <- do.call(rbind, lapply(x.theta, .char_to_num))
-  colnames(x.theta)             <- colnames(seqs)
+  dimnames(x.theta)             <- list(if(G == 1  && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq), colnames(seqs))
   storage.mode(x.theta)         <- "integer"
   attr(x.theta, "alphabet")     <- levs
   attr(x.theta, "labels")       <- attr(seqs, "labels")
   attr(x.theta, "Model")        <- best.mod
   attr(x.theta, "NonUnique")    <- nonunique
   class(x.theta)                <- "MEDtheta"
-  Gseq            <- seq_len(G)
   colnames(x.z)   <- if(G == 1  && noise) "Cluster0" else paste0("Cluster", if(noise) replace(Gseq, G, 0L) else Gseq)
   MAP             <- max.col(x.z)
   MAP             <- if(noise) replace(MAP, MAP == G, 0L) else MAP
@@ -1677,6 +1684,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(results, "NEC")          <- do.nec
   attr(results, "Noise")        <- noise && any(MAP == 0)
   attr(results, "NoiseGate")    <- x.ctrl$noise.gate
+  attr(results, "Opti")         <- opti
   attr(results, "T")            <- P
   attr(results, "Unique")       <- do.uni
   attr(results, "V")            <- V
@@ -2400,7 +2408,7 @@ print.MEDseqCompare    <- function(x, index=seq_len(x$pick), rerank = FALSE, dig
   cat(paste0("---------------------------------------------------------------------\n", 
              title, "\nData: ", x$data, "\nRanking Criterion: ", toupper(crit), "\nOptimal Only: ", opt,
              "\n---------------------------------------------------------------------\n\n"))
-  compX           <- data.frame(do.call(cbind, x[-seq_len(3L)]))[index,, drop=FALSE]
+  compX           <- data.frame(do.call(cbind, x[-seq_len(3L)]))[index,,           drop=FALSE]
   compX           <- compX[,!vapply(compX, function(x) all(x == ""), logical(1L)), drop=FALSE]
   compX           <- cbind(rank = if(isTRUE(rerank)) seq_along(index) else index, compX)
   rownames(compX) <- NULL
@@ -2613,6 +2621,9 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
   modtype     <- mod$modtype
   seqdat      <- mod$data
   weights     <- attr(mod, "Weights")
+  algo        <- attr(mod, "Algo")
+  opti        <- attr(mod, "Opti")
+  noise.gate  <- attr(mod$gating, "NoiseGate")
   if(method   == "WLBS"       &&
      n         > N)                 warning("It is recommended that N match or exceed the sample size\n", call.=FALSE, immediate.=TRUE)
   pb          <- utils::txtProgressBar(min = 0, max = N, style = 3)
@@ -2625,7 +2636,8 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
    #wts       <- if(isTRUE(symmetric)) sweep(wts, 2L, colSums2(wts), FUN="/", check.margin=FALSE) else wts
     for(i in seq_len(N))    {
       STD     <- suppressMessages(MEDseq_fit(seqdat, G=G, modtype=modtype, weights=wts[,i], 
-                                             z.list=Z, gating=gate, covars=covs, verbose=FALSE))
+                                             z.list=Z, gating=gate, covars=covs, 
+                                             algo=algo, opti=opti, noise.gate=noise.gate, verbose=FALSE))
       coeff[,,i]     <- stats::coef(STD$gating)
       utils::setTxtProgressBar(pb, i)
     }
@@ -2633,7 +2645,8 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
     for(i in seq_len(N))    {
       STD     <- suppressMessages(MEDseq_fit(seqdat[-i,], G=G, modtype=modtype, 
                                              weights=weights[-i], z.list=list(Z[-i,]), 
-                                             gating=gate, covars=covs[-i,, drop=FALSE], verbose=FALSE))
+                                             gating=gate, covars=covs[-i,, drop=FALSE], 
+                                             algo=algo, opti=opti, noise.gate=noise.gate, verbose=FALSE))
       coeff[,,i]     <- stats::coef(STD$gating)
       utils::setTxtProgressBar(pb, i)
     }

@@ -21,11 +21,11 @@ States are:\cr
 
 \tabular{ll}{
  \code{employment}  \tab (EM) \cr
- \code{FE}          \tab further education (FE)\cr
+ \code{FE}          \tab further education (FE) \cr
  \code{HE}          \tab higher education (HE) \cr
  \code{joblessness} \tab (JL) \cr
  \code{school}      \tab (SC) \cr
- \code{training}    \tab (TR)\cr
+ \code{training}    \tab (TR) \cr
 }
 The data set contains also ids (\code{id}) and sample weights (\code{weights}) as well as the following binary covariates:\cr
 \cr

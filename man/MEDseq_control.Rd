@@ -53,7 +53,7 @@ In both cases, the results will be unchanged, but setting \code{unique} to \code
 
 \item{noise.gate}{A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component; only effects estimation in the presence of gating covariates.}
 
-\item{random}{A logical governing how ties for modal sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. Only relevant when \code{opti="mode"}.}
+\item{random}{A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options.}
 
 \item{do.nec}{A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.}
 

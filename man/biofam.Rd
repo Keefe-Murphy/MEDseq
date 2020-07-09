@@ -34,18 +34,18 @@ The states numbered from 0 to 7 are defined from the combination of five basic s
 
 The covariates are: \cr
 \tabular{ll}{
-\code{sex} \tab \cr
-\code{birthyr }  \tab (birth year)\cr
-\code{nat_1_02}  \tab (first nationality) \cr
-\code{plingu02}  \tab (language of questionnaire) \cr
-\code{p02r01 }   \tab (religion)\cr
-\code{p02r04 }   \tab (religious participation) \cr
-\code{cspfaj }   \tab (father's social status) \cr
-\code{cspmoj }   \tab (mother's social status) \cr
+\code{sex}      \tab \cr
+\code{birthyr}  \tab (birth year) \cr
+\code{nat_1_02} \tab (first nationality) \cr
+\code{plingu02} \tab (language of questionnaire) \cr
+\code{p02r01}   \tab (religion) \cr
+\code{p02r04}   \tab (religious participation) \cr
+\code{cspfaj}   \tab (father's social status) \cr
+\code{cspmoj}   \tab (mother's social status) \cr
 }
 Two additional weights variables are inserted for illustrative purpose ONLY (since \code{biofam} is a subsample of the original data, these weights are not adapted to the actual data): \cr
 \tabular{ll}{
-\code{wp00tbgp} \tab (weights inflating to the Swiss population)\cr
+\code{wp00tbgp} \tab (weights inflating to the Swiss population) \cr
 \code{wp00tbgs} \tab (weights respecting sample size) \cr
 }
 }

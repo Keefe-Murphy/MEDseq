@@ -35,7 +35,7 @@ A list with the following elements:
 Computes the Density-based Silhouette for a 'soft' clustering assignment matrix.
 }
 \note{
-When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the DBS and ASW criteria.
+When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the \code{dbs} and \code{asw} criteria.
 }
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}
@@ -49,7 +49,7 @@ dbs(z, summ="median")$msw
 # For real sequence data
 data(mvad)
 \donttest{
-mod <- MEDseq_fit(seqdef(mvad[,15:86]), G=10, modtype="UCN", weights=mvad$weight)
+mod <- MEDseq_fit(seqdef(mvad[,17:86]), G=11, modtype="UUN", weights=mvad$weight)
 
 dbs(mod$z, weights=mvad$weight)}
 }

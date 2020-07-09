@@ -7,8 +7,8 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
   the `preczero` argument has thus been removed from both functions.
   
 ### New Features & Improvements
-* `MEDseq_control` gains the arg. `random=TRUE`, governing modal sequence position tie-breaking:  
-  old behaviour (always choosing the first candidate state) recoverable via `random=FALSE`.
+* `MEDseq_control` gains the arg. `random=TRUE`, governing tie-breaking of estimated central sequence  
+  positions: old behaviour (always choosing the first candidate state) recoverable via `random=FALSE`.
 * Sped-up `init.z="kmedoids"` initialisation via `pam` for _unweighted_ sequences, by using the  
   _highest available_ value for the `pamonce` option,  based on the `cluster` package's version number.
 * `init.z` gains the options `"kmodes"` & `"kmodes2"`, though only for _unweighted_ sequences:  
@@ -17,8 +17,10 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Significant speed-ups to computation of central sequences for all `opti` settings (esp. `"mode"`).
 * Added `SPS` arg. (default=`FALSE`) to `print` method for `MEDtheta` objects.
 * `dbs` gains the optional/experimental arg. `clusters` - no change to default.
+* `MEDseq_compare` now returns & prints `opti` info.
   
 ### Bug Fixes & Miscellaneous Edits
+* `MEDseq_stderr` now respects the `algo`, `opti`, & `noise.gate` settings of the original model.
 * Fixed `seriate` options `"clusters"`/`"both"` in `plot.MEDseq` for models with no noise component.
 * Fixes to `print` & `summary` methods for `MEDgating` objects if `equalPro=TRUE`.
 * Minor fixes to `print` method for `MEDlambda` objects also.

@@ -23,9 +23,9 @@ get_MEDseq_results(x,
 
 \item{criterion}{The \code{criterion} used to determine the ranking. Defaults to \code{"dbs"}.}
 
-\item{G}{Optional argument giving the number of components in the model for which results are desired.}
+\item{G}{Optional argument giving the number of components in the model for which results are desired. Can be supplied with or without also specifying \code{modtype}.}
 
-\item{modtype}{Optional argument the desired model type for which results are desired.}
+\item{modtype}{Optional argument giving the desired model type for which results are desired. Can be supplied with or without also specifying \code{G}.}
 
 \item{noise}{A logical indicating whether models with a noise component should be considered. Defaults to \code{TRUE}.}
 

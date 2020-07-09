@@ -218,10 +218,14 @@
     j             <- 2L
     emptywarn     <- TRUE
     ctrl$ties     <- FALSE
-    while(isTRUE(runEM))       {
+    noty          <- TRUE
+    while(isTRUE(runEM))    {
       j           <- j + 1L
       Mstep       <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z, HAM.mat=HAM.mat)
-      ctrl$ties   <- ifelse(j == 2, TRUE, !any(attr(Mstep$theta, "NonUnique")))
+      check       <- any(attr(Mstep$theta, "NonUnique")) || isFALSE(attr(Mstep$theta, "NoTies"))
+      ctrl$ties   <- j < 4 || 
+                     (noty && check)
+      noty        <- noty  && !check
       Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
       z           <- Estep$z
       ERR         <- any(is.nan(z))
@@ -232,7 +236,7 @@
         emptywarn <- FALSE
       }
       ll          <- c(ll, Estep$loglike)
-      if(isTRUE(st.ait))       {
+      if(isTRUE(st.ait))    {
         ait       <- .aitken(ll[seq(j - 2L, j, 1L)])
         dX        <- ifelse(is.numeric(ait$a)  && ait$a < 0, 0L, abs(ait$linf - ll[j - 1L]))
         dX[is.nan(dX)]     <- Inf
@@ -489,6 +493,7 @@
   nmeth           <- ctrl$nmeth
   G               <- attr(seqs, "G") - nmeth
   Gseq            <- seq_len(G)
+  noties          <- TRUE
   if(G == 0)       {
       return(rep(NA, P))
   }
@@ -505,6 +510,7 @@
         theta     <- .weighted_mode(numseq=numseq, z=if(G == 1) as.matrix(attr(seqs, "Weights")) else if(nmeth) z[,Gseq, drop=FALSE] else z)
         if(is.list(theta)   && 
            any(t_ties       <- apply(theta, c(1L, 2L), function(x) any(nchar(x) > 1)))) {
+          noties  <- FALSE
           t_ties  <- which(t_ties, arr.ind=TRUE)
           nonu    <- replace(rep(FALSE, G), unique(t_ties[,2L]), TRUE)
           theta[t_ties]     <- if(ctrl$random) lapply(theta[t_ties], function(x) sample(x, 1L))  else lapply(theta[t_ties], "[[", 1L)
@@ -518,6 +524,7 @@
       }   else     {
         theta     <- apply(numseq, 1L, .modal)
         if(nonu   <- is.list(theta)) {  
+          noties  <- FALSE
           unon    <- which(lengths(theta) > 1)
           theta[unon]       <- if(ctrl$random) lapply(theta[unon],   function(x) sample(x, 1L))  else lapply(theta[unon],   "[[", 1L)
           if(ctrl$ties      &&
@@ -530,13 +537,19 @@
       }
       theta       <- if(nmeth) c(theta, NA) else theta
       attr(theta, "NonUnique")   <- nonu
+      attr(theta, "NoTies")      <- noties
         return(theta)
     }
   }
   
   theta.opt       <- .theta_data(seqs=seqs, z=z, ctrl=ctrl, HAM.mat=HAM.mat)
+  nonu            <- attr(theta.opt$theta, "NonUnique")
+  noties          <- attr(theta.opt$theta, "NoTies")
   if(opti == "medoid")       {
-      return(if(nmeth) c(theta.opt$theta, NA) else theta.opt$theta)
+    theta         <- if(nmeth) c(theta.opt$theta, NA) else theta.opt$theta
+    attr(theta,   "NonUnique")   <- nonu
+    attr(theta,   "NoTies")      <- noties
+      return(theta)
   }
   pseq            <- seq_len(P)
   vseq            <- seq_len(V)
@@ -564,11 +577,19 @@
                for(p    in pseq)         {
                  vdiff  <- setdiff(vseq, theta[[g]][p])
                  for(v in vdiff)         {
-                   opts[v]              <- sum(z[,g] * .dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
+                   opts[v]              <- sum(z[,g]  * .dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
                  }
                  opts[theta[[g]][p]]    <- opt[g]
                  opt[g] <- min(opts)
-                 theta[[g]][p]          <- which.min(opts)
+                 ind    <- which(opts   == opt[g])
+                 if((nonu[g]     <- length(ind) > 1)) {
+                   ind  <- ifelse(ctrl$random, sample(ind, 1L), ind)  
+                 }
+                 if(nonu[g]      && 
+                    noties)              {
+                   noties        <- FALSE
+                 }
+                 theta[[g]][p]          <- ind
                }
              }
            }, GA   =     {
@@ -578,17 +599,30 @@
                for(p   in pseq)          {
                  vdiff  <- setdiff(vseq, theta[[g]][p])
                  for(v in vdiff)         {
-                   opts[p, v]           <- sum(z[,g] * .dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
+                   opts[p, v]           <- sum(z[,g]  * .dseq(seqs[[g]], paste(replace(theta[[g]], p, v), collapse="")))
                  }
                  opts[p, theta[[g]][p]] <- opt[g]
                }
                opt[g]   <- min(opts)
                if(p.opt  > opt[g])       {
-                 oi     <- which(opts == opt[g], arr.ind=TRUE)[1L,]
+                 oi     <- which(opts == opt[g], arr.ind=TRUE)
+                 if((nonu[g]     <- NROW(oi) > 1))    {
+                   oi   <- if(ctrl$random) oi[sample(nrow(oi), 1L),] else oi[1L,]
+                 }
+                 if(nonu[g]      && 
+                    noties)              {
+                   noties        <- FALSE
+                 }
                  theta[[g]][oi[1L]]     <- oi[2L]
                }
              }
            })
+  }
+  if(!noties      && 
+     ctrl$ties    &&
+     ctrl$verbose) {
+   if(ctrl$random) {             message("\tTie for estimated sequence position broken at random\n")
+   } else                        message("\tTie found for estimated sequence position\n")
   }
   
   theta           <- switch(EXPR=ordering,
@@ -598,7 +632,10 @@
                             if(G > 1)       {
                               do.call(base::c, lapply(Gseq, function(g) .num_to_char(theta[[g]][match(pseq, sorder[[g]])])))
                             } else .num_to_char(theta[[1L]][match(pseq, sorder[[1L]])]))
-    return(if(nmeth) c(theta, NA) else theta)
+  theta           <- if(nmeth) c(theta, NA) else theta
+  attr(theta, "NonUnique")       <- nonu
+  attr(theta, "NoTies")          <- noties
+    return(theta)
 } 
 
 .pick_MEDCrit     <- function(x, pick = 3L) {
@@ -656,13 +693,29 @@
     if(is.null(z))               stop("'z' must be supplied if 'G'>1",     call.=FALSE)
     if(is.null(ctrl$nmeth))      stop("'nmeth' must be supplied if 'G'>1", call.=FALSE)
     theta         <- dsum     <- list()
-    for(g in seq_len(G - ctrl$nmeth)) {
-      sumdist     <- colSums2(HAM.mat * z[,g])
-      theta[[g]]  <- seqs[which.min(sumdist)]
+    noties        <- TRUE
+    G0            <- G - ctrl$nmeth
+    nonu          <- rep(FALSE, G0)
+    for(g in seq_len(G0))      {
+      sumdist     <- colSums2(HAM.mat  * z[,g])
+      ind         <- which(sumdist == min(sumdist))
+      if((nonu[g] <- length(ind) > 1)) {
+        ind       <- ifelse(ctrl$random, sample(ind, 1L), ind)  
+      }
+      if(nonu[g]  && noties   &&
+         ctrl$ties            &&
+         ctrl$verbose)         {
+        noties    <- FALSE
+        if(ctrl$random)        { message("\tTie for medoid sequence position broken at random\n")
+        } else                   message("\tTie found for medoid sequence position\n")
+      }
+      theta[[g]]  <- seqs[ind]
       dsum[[g]]   <- min(sumdist)
     }
-      return(list(theta = do.call(base::c, theta), 
-                  dsum  = do.call(base::c, dsum)))
+    theta         <- do.call(base::c, theta)
+    attr(theta, "NonUnique")  <- nonu
+    attr(theta, "NoTies")     <- noties
+      return(list(theta = theta, dsum  = do.call(base::c, dsum)))
   }
 }
 
