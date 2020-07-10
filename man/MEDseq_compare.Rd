@@ -6,8 +6,8 @@
 \title{Choose the best MEDseq model}
 \usage{
 MEDseq_compare(...,
-               criterion = c("dbs", "asw", "bic", 
-                             "icl", "aic", "cv", "nec"),
+               criterion = c("bic", "icl", "aic", 
+                             "dbs", "asw", "cv", "nec"),
                pick = 10L,
                optimal.only = FALSE)
 
@@ -23,7 +23,7 @@ MEDseq_compare(...,
 
 This argument is only relevant for the \code{\link{MEDseq_compare}} function and will be ignored for the associated \code{print} function.}
 
-\item{criterion}{The criterion used to determine the ranking. Defaults to \code{"dbs"}, the density-based silhouette.}
+\item{criterion}{The criterion used to determine the ranking. Defaults to \code{"bic"}.}
 
 \item{pick}{The (integer) number of models to be ranked and compared. Defaults to \code{10L}. Will be constrained by the number of models within the \code{"MEDseq"} objects supplied via \code{...} if \code{optimal.only} is \code{FALSE}, otherwise constrained simply by the number of \code{"MEDseq"} objects supplied. Setting \code{pick=Inf} is a valid way to select all models.}
 
@@ -83,23 +83,26 @@ A dedicated \code{print} function exists for objects of class \code{"MEDseqCompa
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}
 data(biofam)
-seqs <- seqdef(biofam[10:25] + 1L)
+seqs <- seqdef(biofam[10:25] + 1L,
+               states = c("P", "L", "M", "L+M", "C", 
+                          "L+C", "L+M+C", "D"))
 covs <- biofam[2:3]
 \donttest{ 
 # Fit a range of models
 # m1   <- MEDseq_fit(seqs, G=9:10)
-# m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex, covars=covs)
-# m3   <- MEDseq_fit(seqs, G=9:10, gating=~birthyr, covars=covs)
-# m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + birthyr, covars=covs)
+# m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex, covars=covs, noise.gate=FALSE)
+# m3   <- MEDseq_fit(seqs, G=9:10, gating=~birthyr, covars=covs, noise.gate=FALSE)
+# m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + birthyr, covars=covs, noise.gate=FALSE)
 
-# Rank only the optimal models. Examine the best model and its gating network
-# (comp <- MEDseq_compare(m1, m2, m3, m4, optimal.only=TRUE))
+# Rank only the optimal models (according to the dbs criterion)
+# Examine the best model in more detail
+# (comp <- MEDseq_compare(m1, m2, m3, m4, criterion="dbs", optimal.only=TRUE))
 # (best <- comp$optimal)
-# (summ <- summary(best, classification = TRUE, gating=TRUE))
+# (summ <- summary(best, parameters=TRUE))
 
 # Examine all models visited, including those already deemed suboptimal
 # Only print models with gating covariates & 10 components
-# comp2 <- MEDseq_compare(m1, m2, m3, m4, pick=Inf)
+# comp2 <- MEDseq_compare(comp, m1, m2, m3, m4, criterion="dbs", pick=Inf)
 # print(comp2, index=comp2$gating != "None" & comp2$G == 10)}
 }
 \references{

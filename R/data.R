@@ -26,8 +26,22 @@
 #' @references McVicar, D. (2000). Status 0 four years on: young people and social exclusion in Northern Ireland. \emph{Labour Market Bulletin}, 14, 114-119.
 #' 
 #' McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 165(2): 317-334.
+#' @note The first two months of the observation period coincide with summer holidays from school. Hence, documented examples throughout this package extract only the states in columns 17 to 86; i.e. sequences of length 70 from \code{Sep.93} to \code{Jun.99}.
 #' @examples
 #' data(mvad, package="MEDseq")
+#' 
+#' mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
+#'                  which(x == "yes")), labels = colnames(mvad[,5:9]))
+#' mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
+#'                       sequences = mvad[,15:86], 
+#'                       weights = mvad[,2])
+#' mvad.cov      <- mvad$covariates
+#' 
+#' # Create a state sequence object with the first two (summer) time points removed
+#' states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
+#' labels        <- c("Employment", "Further Education", "Higher Education", 
+#'                    "Joblessness", "School", "Training")
+#' mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
 #' @docType data
 #' @source McVicar and Anyadike-Danes (2002)
 #' @keywords datasets
@@ -72,6 +86,13 @@
 #' @references Mueller, N. S., Studer, M. and Ritschard, G. (2007). Classification de parcours de vie a l'aide de l'optimal matching. In \emph{XIVe Rencontre de la Societe francophone de classification (SFC 2007), Paris, 5-7 septembre 2007}, pp. 157-160.
 #' @examples
 #' data(biofam, package="MEDseq")
+#' 
+#' biofam        <- list(covariates = biofam[2L:9L], sequences = biofam[10L:25L] + 1L)
+#' biofam.cov    <- biofam$covariates[,colSums(is.na(biofam$covariates)) == 0]
+#' biofam.seq    <- seqdef(biofam$sequences,
+#'                         states = c("P", "L", "M", "L+M", "C", "L+C", "L+M+C", "D"),
+#'                         labels = c("Parent", "Left", "Married", "Left+Marr", "Child", 
+#'                                    "Left+Child", "Left+Marr+Child", "Divorced"))
 #' @docType data
 #' @source Swiss Household Panel \url{https://forscenter.ch/projects/swiss-household-panel/}
 #' @keywords datasets

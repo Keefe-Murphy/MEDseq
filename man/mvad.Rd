@@ -38,8 +38,24 @@ The data set contains also ids (\code{id}) and sample weights (\code{weights}) a
 \code{fmpr} (SOC code of father's current or most recent job at time of survey, 1=SOC1 (professional, managerial or related))\cr
 \code{livboth} (living arrangements at time of first sweep of survey (June 1995), 1=living with both parents)
 }
+\note{
+The first two months of the observation period coincide with summer holidays from school. Hence, documented examples throughout this package extract only the states in columns 17 to 86; i.e. sequences of length 70 from \code{Sep.93} to \code{Jun.99}.
+}
 \examples{
 data(mvad, package="MEDseq")
+
+mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
+                 which(x == "yes")), labels = colnames(mvad[,5:9]))
+mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
+                      sequences = mvad[,15:86], 
+                      weights = mvad[,2])
+mvad.cov      <- mvad$covariates
+
+# Create a state sequence object with the first two (summer) time points removed
+states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
+labels        <- c("Employment", "Further Education", "Higher Education", 
+                   "Joblessness", "School", "Training")
+mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
 }
 \references{
 McVicar, D. (2000). Status 0 four years on: young people and social exclusion in Northern Ireland. \emph{Labour Market Bulletin}, 14, 114-119.

@@ -37,19 +37,20 @@ data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
                  which(x == "yes")), labels = colnames(mvad[,5:9]))
 mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
-                      sequences = mvad[,15L:86L], 
+                      sequences = mvad[,15:86], 
                       weights = mvad[,2])
 mvad.cov      <- mvad$covariates
+
+# Create a state sequence object with the first two (summer) time points removed
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
 labels        <- c("Employment", "Further Education", "Higher Education", 
                    "Joblessness", "School", "Training")
-mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
+mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
 \donttest{
-# Fit a model with weights and gating covariates
-# Drop the 1st time point which was used to define the weights
-# mvad.seq2   <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
-# mod         <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
-#                           gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
+# Fit a model with weights and a gating covariate
+# Have the probability of noise-component membership be constant
+# mod         <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights, 
+#                           gating=~ gcse5eq, covars=mvad.cov, noise.gate=FALSE)
                             
 # Estimate standard errors using 100 WLBS samples
 # (std        <- MEDseq_stderr(mod, N=100))}

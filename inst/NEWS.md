@@ -2,6 +2,10 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 ===================================================================
 
 ### Significant user-visible changes
+* Corrected the parameter count penalty for the BIC, ICL, and AIC model selection criteria,  
+  specifically, the count is now greater for the central sequence position estimates.
+* Hence, `criterion="bic"` is now the default for `MEDseq_control`, `MEDseq_compare`, and  
+  `get_MEDseq_results` (previously `"dbs"`), with modifications to `print` & `summary` functions.
 * Non-noise components' central sequence positions associated with precision parameters of zero  
   are now printed (`print.MEDseqtheta`) & plotted (`plot.MEDseq(..., type="mean")`) always:  
   the `preczero` argument has thus been removed from both functions.
@@ -13,15 +17,17 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
   _highest available_ value for the `pamonce` option,  based on the `cluster` package's version number.
 * `init.z` gains the options `"kmodes"` & `"kmodes2"`, though only for _unweighted_ sequences:  
   both require the newly _suggested_ `klaR (>= 0.6-13)` package.
-* For weighted sequenes, `init.z="kmedoids"` is now itself initialised by Ward's hierarchical clustering.
+* For weighted sequences, `init.z="kmedoids"` is now itself initialised by Ward's hierarchical clustering.
 * Significant speed-ups to computation of central sequences for all `opti` settings (esp. `"mode"`).
-* Added `SPS` arg. (default=`FALSE`) to `print` method for `MEDtheta` objects.
+* Added `SPS` arg. (default=`FALSE`) to `print.MEDtheta` & `summary.MEDseq`.
 * `dbs` gains the optional/experimental arg. `clusters` - no change to default.
-* `MEDseq_compare` now returns & prints `opti` info.
   
 ### Bug Fixes & Miscellaneous Edits
-* `MEDseq_stderr` now respects the `algo`, `opti`, & `noise.gate` settings of the original model.
+* `MEDseq_fit` now always internally normalises the `weights` to sum to the sample size.
+* Minor fixes to properly account for weighted sequences &/or duplicates when `noise.gate=FALSE`.
 * Fixed `seriate` options `"clusters"`/`"both"` in `plot.MEDseq` for models with no noise component.
+* `MEDseq_stderr` now respects the `algo`, `opti`, & `noise.gate` settings of the original model.
+* `MEDseq_compare` now returns & prints `opti` info where relevant.
 * Fixes to `print` & `summary` methods for `MEDgating` objects if `equalPro=TRUE`.
 * Minor fixes to `print` method for `MEDlambda` objects also.
 * Additional minor edits to `plot.MEDseq(..., type="gating")`.

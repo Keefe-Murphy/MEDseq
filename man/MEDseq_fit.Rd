@@ -20,6 +20,7 @@ MEDseq_fit(seqs,
         classification = TRUE,
         parameters = FALSE,
         network = FALSE,
+        SPS = FALSE,
         ...)
 
 \method{print}{MEDseq}(x,
@@ -27,7 +28,7 @@ MEDseq_fit(seqs,
       ...)
 }
 \arguments{
-\item{seqs}{A state-sequence object of class \code{"stslist"} as created by the \code{\link[TraMineR]{seqdef}} function in the \pkg{TraMineR} package.}
+\item{seqs}{A state-sequence object of class \code{"stslist"} as created by the \code{\link[TraMineR]{seqdef}} function in the \pkg{TraMineR} package. Note that the data set must have equal sequence lengths, the intervals are assumed to be evenly spaced, and missingness is not allowed.}
 
 \item{G}{A positive integer vector specifying the numbers of mixture components (clusters) to fit. Defaults to \code{G=1:9}.}
 
@@ -36,7 +37,7 @@ The models are named \code{"CC"}, \code{"CU"}, \code{"UC"}, \code{"UU"}, \code{"
 
 \item{gating}{A \code{\link[stats]{formula}} for determining the model matrix for the multinomial logistic regression in the gating network when fixed covariates enter the mixing proportions. Defaults to \code{~1}, i.e. no covariates. This will be ignored where \code{G=1}. Continuous, categorical, and/or ordinal covariates are allowed. Logical covariates will be coerced to factors. Interactions, transformations, and higher order terms are permitted: the latter \strong{must} be specified explicitly using the \code{AsIs} operator (\code{\link{I}}). The specification of the LHS of the formula is ignored. Intercept terms are included by default.}
 
-\item{weights}{Optional numeric vector containing observation-specific sampling weights, which are accounted for in the model fitting and other functions where applicable. See the \code{unique} argument to \code{\link{MEDseq_control}} to see how incorporating weights also yields computational benefits.}
+\item{weights}{Optional numeric vector containing observation-specific sampling weights, which are accounted for in the model fitting and other functions where applicable. \code{weights} are always internally normalised to sum to the sample size. See the \code{unique} argument to \code{\link{MEDseq_control}} to see how incorporating weights also yields computational benefits. Note that \code{weights} must be explicitly supplied here; it is not enough to use weights when constructing the state sequence object via \code{\link[TraMineR]{seqdef}}.}
 
 \item{ctrl}{A list of control parameters for the EM/CEM and other aspects of the algorithm. The defaults are set by a call to \code{\link{MEDseq_control}}.}
 
@@ -44,7 +45,7 @@ The models are named \code{"CC"}, \code{"CU"}, \code{"UC"}, \code{"UU"}, \code{"
 
 \item{...}{Catches unused arguments (see \code{\link{MEDseq_control}}).}
 
-\item{x, object, digits, classification, parameters, network}{Arguments required for the \code{print} and \code{summary} functions: \code{x} and \code{object} are objects of class \code{"MEDseq"} resulting from a call to \code{\link{MEDseq_fit}}, while \code{digits} gives the number of decimal places to round to for printing purposes (defaults to 3). \code{classification}, \code{parameters}, and \code{network} are logicals which govern whether a table of the MAP classification of observations, the mixture component parameters, and the gating network coefficients are printed, respectively.}
+\item{x, object, digits, classification, parameters, network, SPS}{Arguments required for the \code{print} and \code{summary} functions: \code{x} and \code{object} are objects of class \code{"MEDseq"} resulting from a call to \code{\link{MEDseq_fit}}, while \code{digits} gives the number of decimal places to round to for printing purposes (defaults to 3). \code{classification}, \code{parameters}, and \code{network} are logicals which govern whether a table of the MAP classification of observations, the mixture component parameters, and the gating network coefficients are printed, respectively. \code{SPS} governs the printing of the central sequence(s) only when \code{parameters} is \code{TRUE} (see \code{\link[TraMineR]{seqformat}}).}
 }
 \value{
 A list (of class \code{"MEDseq"}) with the following named entries (of which some may be missing, depending on the \code{criterion} employed), mostly corresponding to the chosen optimal model (as determined by the \code{criterion} within \code{\link{MEDseq_control}}):
@@ -98,7 +99,7 @@ The function effectively allows 8 different MEDseq precision parameter settings 
 While model selection in terms of choosing the optimal number of components and the MEDseq model type is performed within \code{\link{MEDseq_fit}}, using one of the \code{criterion} options within \code{\link{MEDseq_control}}, choosing between multiple fits with different combinations of covariates or different initialisation settings can be done by supplying objects of class \code{"MEDseq"} to \code{\link{MEDseq_compare}}.
 }
 \note{
-Where \code{DBS}, \code{ASW}, \code{BIC}, \code{ICL}, \code{AIC}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{NEC}, and \code{CV} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which a dedicated printing functions exists.
+Where \code{BIC}, \code{ICL}, \code{AIC}, \code{DBS}, \code{ASW}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{CV}, and \code{NEC} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which a dedicated printing functions exists.
 }
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}
@@ -107,13 +108,15 @@ data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
                  which(x == "yes")), labels = colnames(mvad[,5:9]))
 mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
-                      sequences = mvad[,15L:86L], 
+                      sequences = mvad[,15:86], 
                       weights = mvad[,2])
 mvad.cov      <- mvad$covariates
+
+# Create a state sequence object with the first two (summer) time points removed
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
 labels        <- c("Employment", "Further Education", "Higher Education", 
                    "Joblessness", "School", "Training")
-mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
+mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
 
 # Fit a range of exponential-distance models without clustering
 mod0          <- MEDseq_fit(mvad.seq, G=1)
@@ -123,17 +126,17 @@ mod0          <- MEDseq_fit(mvad.seq, G=1)
 # Supply some MEDseq_control() arguments
 \donttest{
 # mod1        <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"),
-#                           algo="CEM", init.z="hc", criterion="asw")
+#                           algo="CEM", init.z="kmodes", criterion="icl")
 
-# Fit a model with weights and gating covariates
-# Drop the 1st time point which was used to define the weights
-mvad.seq2     <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
-mod2          <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
-                            gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
+# Fit a model with weights and a gating covariate
+# Have the probability of noise-component membership be constant
+mod2          <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights, 
+                            gating=~ gcse5eq, covars=mvad.cov, noise.gate=FALSE)
                             
 # Examine this model in greater detail
 summary(mod2, classification=TRUE, parameters=TRUE)
 summary(mod2$gating)
+print(mod2$params$theta, SPS=TRUE)
 plot(mod2, "clusters")}
 }
 \references{

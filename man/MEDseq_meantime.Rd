@@ -28,7 +28,10 @@ Models with weights, covariates, &/or a noise component are also accounted for.
 \dontshow{suppressMessages(require(TraMineR))}
 \donttest{data(biofam)
 
-mod <- MEDseq_fit(seqdef(biofam[10:25] + 1L), G=10, modtype="UUN")
+seqs <- seqdef(biofam[10:25] + 1L,
+               states = c("P", "L", "M", "L+M", "C", 
+                          "L+C", "L+M+C", "D"))
+mod <- MEDseq_fit(seqs, G=10, modtype="UUN")
 
 MEDseq_meantime(mod)
 MEDseq_meantime(mod, MAP=TRUE, norm=FALSE)}

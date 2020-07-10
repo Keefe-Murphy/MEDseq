@@ -9,12 +9,12 @@ MEDseq_control(algo = c("EM", "CEM", "cemEM"),
                z.list = NULL, 
                dist.mat = NULL, 
                unique = TRUE, 
-               criterion = c("dbs", "asw", "bic", "icl", "aic", "cv", "nec"), 
+               criterion = c("bic", "icl", "aic", "dbs", "asw", "cv", "nec"), 
                tau0 = NULL, 
                noise.gate = TRUE, 
                random = TRUE,
-               do.nec = FALSE, 
                do.cv = FALSE, 
+               do.nec = FALSE, 
                nfolds = 10L, 
                nstarts = 1L, 
                stopping = c("aitken", "relative"), 
@@ -47,17 +47,17 @@ When \code{weights} \emph{are} supplied and \code{isTRUE(unique)}, the weights a
 
 In both cases, the results will be unchanged, but setting \code{unique} to \code{TRUE} can often be much faster.}
 
-\item{criterion}{When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Note that all criteria will be returned in any case, if possible.}
+\item{criterion}{When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.}
 
 \item{tau0}{Prior mixing proportion for the noise component. If supplied, a noise component will be added to the model in the estimation, with \code{tau0} giving the prior probability of belonging to the noise component for \emph{all} observations. Typically supplied as a scalar in the interval (0, 1), e.g. \code{0.1}. Can be supplied as a vector when gating covariates are present and \code{noise.gate} is \code{TRUE}.}
 
-\item{noise.gate}{A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component; only effects estimation in the presence of gating covariates.}
+\item{noise.gate}{A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component (i.e. the \code{"CCN"}, \code{"UCN"}, \code{"CUN"}, and \code{"UUN"} models); only effects estimation in the presence of gating covariates.}
 
-\item{random}{A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options.}
-
-\item{do.nec}{A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.}
+\item{random}{A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations.}
 
 \item{do.cv}{A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.}
+
+\item{do.nec}{A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.}
 
 \item{nfolds}{The number of folds to use when \code{isTRUE{do.cv}}.}
 
@@ -96,16 +96,16 @@ Supplies a list of arguments (with defaults) for use with \code{\link{MEDseq_fit
 \dontshow{suppressMessages(require(TraMineR))}
 data(mvad)
 
-# The CC MEDseq model is equivalent to k-medoids when the CEM 
-# algorithm is employed, mixing proportions are constrained,
+# The CC MEDseq model is almost equivalent to k-medoids when the
+# CEM algorithm is employed, mixing proportions are constrained,
 # and the central sequences are restricted to the observed sequences
 ctrl   <- MEDseq_control(algo="CEM", equalPro=TRUE, opti="medoid", criterion="asw")
 \donttest{
 # Note that ctrl must be explicitly named 'ctrl'
-mod   <- MEDseq_fit(seqdef(mvad[,15:86]), G=8, modtype="CC", weights=mvad$weight, ctrl=ctrl)
+mod   <- MEDseq_fit(seqdef(mvad[,17:86]), G=11, modtype="CC", weights=mvad$weight, ctrl=ctrl)
 
 # Alternatively, specify the control arguments directly
-mod   <- MEDseq_fit(seqdef(mvad[,15:86]), G=8, modtype="CC", weights=mvad$weight,
+mod   <- MEDseq_fit(seqdef(mvad[,17:86]), G=11, modtype="CC", weights=mvad$weight,
                     algo="CEM", equalPro=TRUE, opti="medoid", criterion="asw")
 
 # Note that supplying control arguments via a mix of the ... construct and the named argument 

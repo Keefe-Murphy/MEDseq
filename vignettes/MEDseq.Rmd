@@ -60,9 +60,9 @@ suppressMessages(library(TraMineR))
 ```
 
 ## MVAD Data
-Load the MVAD data. The data comes from a study by McVicar and Anyadike-Danes (2002) on transition from school to work. The data consist of static background characteristics (covariates and sampling weights) and a time series sequence of 72 monthly labour market activities for each of 712 individuals in a cohort survey. The individuals were followed up from July 1993 to June 1999. Type `?mvad` for more information. We will drop the first sequence position (i.e. time point) as it (along with the covariates `Grammar` and `Location`) were used to define the sampling weights.
+Load the MVAD data. The data comes from a study by McVicar and Anyadike-Danes (2002) on transition from school to work. The data consist of static background characteristics (covariates and sampling weights) and a time series sequence of 72 monthly labour market activities for each of 712 individuals in a cohort survey. The individuals were followed up from July 1993 to June 1999. Type `?mvad` for more information. We will drop the first two sequence positions (i.e. months) as they (along with the covariates `Grammar` and `Location`) were used to define the sampling weights.
 
-Note that the data set must have equal sequence lengths, and the intervals are assumed to be evenly spaced. The MVAD data meets these criteria. The __TraMineR__ function `seqdef` is used to convert the data to the appropriate format. 
+Note that the data set must have equal sequence lengths, intervals must be evenly spaced, and missingness is not allowed. The MVAD data meet these criteria. The __TraMineR__ function `seqdef` is used to convert the data to the appropriate format. 
 
 ```{r}
 data(mvad, package="MEDseq")
@@ -72,13 +72,13 @@ mvad          <- list(covariates = mvad[c(3L:4L,10L:14L,87L)],
                       sequences = mvad[,15L:86L],
                       weights = mvad[,2L])
 mvad.cov      <- mvad$covariates
-mvad.seq      <- seqdef(mvad$sequences[,-1L],
+mvad.seq      <- seqdef(mvad$sequences[-c(1L,2L)],
                         states = c("EM", "FE", "HE", "JL", "SC", "TR"),
                         labels = c("Employment", "Further Education", "Higher Education", 
                                    "Joblessness", "School", "Training"))
 ```
 
-The function `MEDseq_control` allows the algorithm used for model fitting, the method used to initialise the allocations (e.g. k-medoids or Ward's hierarchical clustering), the criterion used to identify the optimal model (e.g. density-based silhouette (DBS), average silhouette width (ASW), BIC, etc.), and more to be specified. By default, the EM algorithm is employed, k-medoids is used to obtain starting values, and the (weighted) mean density-based silhouette criterion is used to choose the optimal model (if a range of models are fitted). In this vignette, we will mostly accept these defaults.
+The function `MEDseq_control` allows the algorithm used for model fitting, the method used to initialise the allocations (e.g. k-medoids or Ward's hierarchical clustering), the criterion used to identify the optimal model (e.g. BIC, density-based silhouette (DBS), average silhouette width (ASW), etc.), and more to be specified. By default, the EM algorithm is employed, k-medoids is used to obtain starting values, and the BIC is used to choose the optimal model (if a range of models are fitted). In this vignette, we will mostly accept these defaults.
 
 The optimal model identified in the Murphy et al. (2019) paper has `G=10` components, the `UCN` model type, sampling weights, and a subset of covariates identified using a stepwise variable selection procedure. The UCN model has a single precision parameter for each cluster. The `gating` covariates can be specified via a formula interface. The argument `covars` tells the formula where to look for the specified covariates. Thus, to fit such a model:
 
@@ -112,16 +112,16 @@ mod3 <- MEDseq_fit(mvad.seq, G=11, modtype="CC", weights=mvad$weights,
                    gating=~. - Grammar - Location, covars=mvad.cov, verbose=FALSE)
 ```
 
-Confirm that the first model is indeed optimal according to the (weighted) mean density-based silhouette. Examine the optimal model in greater detail. Observe how the UCN model type explicitly includes a noise component.
+Confirm that the first model is indeed optimal according to the BIC. Examine the optimal model in greater detail. Observe how the UCN model type explicitly includes a noise component.
 
 ```{r, eval=FALSE}
-(comp <- MEDseq_compare(mod1, mod2, mod3, criterion="dbs"))
+(comp <- MEDseq_compare(mod1, mod2, mod3, criterion="bic"))
 opt   <- comp$optimal
 summary(opt, classification = TRUE, parameters = FALSE, network = FALSE)
 ```
 
 ```{r, echo=FALSE}
-(comp <- MEDseq_compare(mod1, mod2, mod3, criterion="dbs"))
+(comp <- MEDseq_compare(mod1, mod2, mod3, criterion="bic"))
 opt   <- comp$optimal
 suppressMessages(summary(opt))
 ```

@@ -6,8 +6,8 @@
 \usage{
 \method{plot}{MEDseq}(x,
      type = c("clusters", "mean", "precision", "gating", 
-              "dbs", "asw", "bic", "icl", "aic", "nec", 
-              "cv", "LOGLIK", "dbsvals", "aswvals", 
+              "bic", "icl", "aic", "dbs", "asw", "cv", 
+              "nec", "LOGLIK", "dbsvals", "aswvals", 
               "uncert.bar", "uncert.profile", "loglik", 
               "d", "f", "Ht", "i", "I"), 
      seriate = c("observations", "both", "clusters", "none"), 
@@ -23,13 +23,13 @@
 \item{\code{"mean"}}{Visualise the central sequences. See \code{seriate}. The central sequence for the noise component, if any is not shown as it doesn't contribute in any way to the likelihood.}
 \item{\code{"precision"}}{Visualise the central sequence parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{grey} and \code{black} respectively (see \code{log.scale}).}
 \item{\code{"gating"}}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriate}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
-\item{\code{"dbs"}}{Plots all (weighted) mean/median DBS values in a fitted \code{MEDseq} object.}
-\item{\code{"asw"}}{Plots all (weighted) mean/median ASW values in a fitted \code{MEDseq} object.}
 \item{\code{"bic"}}{Plots all BIC values in a fitted \code{MEDseq} object.}
 \item{\code{"icl"}}{Plots all ICL values in a fitted \code{MEDseq} object.}
 \item{\code{"aic"}}{Plots all AIC values in a fitted \code{MEDseq} object.}
-\item{\code{"nec"}}{Plots all NEC values in a fitted \code{MEDseq} object.}
+\item{\code{"dbs"}}{Plots all (weighted) mean/median DBS values in a fitted \code{MEDseq} object.}
+\item{\code{"asw"}}{Plots all (weighted) mean/median ASW values in a fitted \code{MEDseq} object.}
 \item{\code{"cv"}}{Plots all cross-validated log-likelihood values in a fitted \code{MEDseq} object.}
+\item{\code{"nec"}}{Plots all NEC values in a fitted \code{MEDseq} object.}
 \item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object.}
 \item{\code{"dbsvals"}}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster).}
 \item{\code{"aswvals"}}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster).}
@@ -71,38 +71,38 @@ data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
                  which(x == "yes")), labels = colnames(mvad[,5:9]))
 mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
-                      sequences = mvad[,15L:86L], 
+                      sequences = mvad[,15:86], 
                       weights = mvad[,2])
 mvad.cov      <- mvad$covariates
+
+# Create a state sequence object with the first two (summer) time points removed
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
 labels        <- c("Employment", "Further Education", "Higher Education", 
                    "Joblessness", "School", "Training")
-mvad.seq      <- seqdef(mvad$sequences, states=states, labels=labels)
+mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
 
 # Fit a range of exponential-distance models without clustering
 mod0          <- MEDseq_fit(mvad.seq, G=1)
 
-# Show the central sequence and precision parameters
+# Show the central sequence and precision parameters of the optimal model
 plot(mod0, type="mean")
 plot(mod0, type="precision")
 \donttest{
 # Fit a range of unweighted mixture models without covariates
 # Only consider models with a noise component
-# mod1        <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"))
+# mod1        <- MEDseq_fit(mvad.seq, G=9:11, modtype=c("CCN", "CUN", "UCN", "UUN"))
 
 # Plot the DBS values for all fitted models
 # plot(mod1, "dbs")
 
-# Plot the clusters of the optimal model
-# plot(mod1, "clusters")
+# Plot the clusters of the optimal model (according to the dbs criterion)
+# plot(mod1, "clusters", criterion="dbs")
 
-# Plot the clusters of the best UUN model
-# plot(mod1, "clusters", modtype="UUN")
+# Plot the observation-specific ASW values of the best UUN model (according to the asw criterion)
+# plot(mod1, "aswvals", modtype="UUN", criterion="asw")
 
 # Fit a model with weights and gating covariates
-# Drop the 1st time point which was used to define the weights
-# mvad.seq2   <- seqdef(mvad$sequences[,-1], states=states, labels=labels)
-# mod2        <- MEDseq_fit(mvad.seq2, G=10, modtype="UCN", weights=mvad$weights, 
+# mod2        <- MEDseq_fit(mvad.seq, G=10, modtype="UCN", weights=mvad$weights, 
 #                           gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
 
 # Plot the central sequences & precision parameters of this model
@@ -112,10 +112,13 @@ plot(mod0, type="precision")
 # Plot the clustering uncertainties in the form of a barplot
 # plot(mod2, "uncert.bar")
 
-# Plot the observation-specific DBS values and the sequence frequencies by cluster
-# Note that these plots may not display properly in the preview panel
+# Plot the observation-specific DBS values and the transversal entropies by cluster
 # plot(mod2, "dbsvals")
-# plot(mod2, "Ht")}
+# plot(mod2, "Ht")
+
+# Plot the state-distributions by cluster
+# Note that this plot may not display properly in the preview panel
+plot(mod2, "d")}
 }
 \references{
 Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.

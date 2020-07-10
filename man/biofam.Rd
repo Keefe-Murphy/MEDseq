@@ -51,6 +51,13 @@ Two additional weights variables are inserted for illustrative purpose ONLY (sin
 }
 \examples{
 data(biofam, package="MEDseq")
+
+biofam        <- list(covariates = biofam[2L:9L], sequences = biofam[10L:25L] + 1L)
+biofam.cov    <- biofam$covariates[,colSums(is.na(biofam$covariates)) == 0]
+biofam.seq    <- seqdef(biofam$sequences,
+                        states = c("P", "L", "M", "L+M", "C", "L+C", "L+M+C", "D"),
+                        labels = c("Parent", "Left", "Married", "Left+Marr", "Child", 
+                                   "Left+Child", "Left+Marr+Child", "Divorced"))
 }
 \references{
 Mueller, N. S., Studer, M. and Ritschard, G. (2007). Classification de parcours de vie a l'aide de l'optimal matching. In \emph{XIVe Rencontre de la Societe francophone de classification (SFC 2007), Paris, 5-7 septembre 2007}, pp. 157-160.

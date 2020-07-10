@@ -7,8 +7,8 @@
 get_MEDseq_results(x,
                    what = c("z", "MAP", "DBS", "ASW"), 
                    rank = 1L, 
-                   criterion = c("dbs", "asw", "bic", "icl", 
-                                 "aic", "cv", "nec", "loglik"), 
+                   criterion = c("bic", "icl", "aic", "dbs", 
+                                 "asw", "cv", "nec", "loglik"), 
                    G = NULL, 
                    modtype = NULL, 
                    noise = TRUE, 
@@ -21,7 +21,7 @@ get_MEDseq_results(x,
 
 \item{rank}{A number indicating what \code{rank} model results should be extracted from, where the \code{rank} is determined by \code{criterion}. Defaults to \code{1}, i.e. the best model.}
 
-\item{criterion}{The \code{criterion} used to determine the ranking. Defaults to \code{"dbs"}.}
+\item{criterion}{The \code{criterion} used to determine the ranking. Defaults to \code{"bic"}.}
 
 \item{G}{Optional argument giving the number of components in the model for which results are desired. Can be supplied with or without also specifying \code{modtype}.}
 
@@ -50,7 +50,10 @@ Arguments to this function can be supplied to \code{\link{plot.MEDseq}} via the 
 # mod <- MEDseq_fit(seqdef(biofam[10:25] + 1L), G=9:10)
 
 # Extract the MAP clustering of the best 9-cluster model according to the asw criterion
-# get_MEDseq_results(mod, what="MAP", G=9, criterion="asw")}
+# get_MEDseq_results(mod, what="MAP", G=9, criterion="asw")
+
+# Extract the DBS values of the best UUN model according to the dbs criterion
+# get_MEDseq_results(mod, what="DBS", modtype="UUN", criterion="dbs")}
 }
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}

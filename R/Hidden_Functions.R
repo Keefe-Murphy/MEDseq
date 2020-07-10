@@ -20,31 +20,27 @@
 }
 
 #' @importFrom matrixStats "rowMaxs"
-.choice_crit      <- function(ll, seqs, z, gate.pen, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), nonzero = NULL) {
+.choice_crit      <- function(ll, seqs, z, gp, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), type=c("new", "old")) {
+  type            <- match.arg(type)
   G               <- attr(seqs, ifelse(is.element(modtype, c("CCN", "UCN", "CUN", "UUN")), "G0", "G"))
   P               <- attr(seqs, "T")
-  kpar            <- ifelse(is.null(nonzero),
-                            switch(EXPR= modtype,
-                                   CC  = G * P   + 1L,
-                                   CCN = G * P   + (G > 0),
-                                   UC  =,
-                                   UCN = G * (P  + 1L),
-                                   CU  =,
-                                   CUN = P * (G  + 1L),
-                                   UU  =,
-                                   UUN = P * G   * 2L),
-                            switch(EXPR= modtype,
-                                   CC  = nonzero * G  * P   + 1L,
-                                   CCN = nonzero * G  * P   + (G > 0),
-                                   UC  =,
-                                   UCN = nonzero * P  + G,
-                                   CU  =,
-                                   CUN = nonzero * G  + P,
-                                   UU  =,
-                                   UUN = nonzero + G  * P)) + gate.pen
-  ll2             <- ll  * 2
+  mp              <- switch(EXPR=type, 
+                            new=attr(seqs, "VTS"),
+                            old=P)   * G
+  kpar            <- switch(EXPR= modtype,
+                            CC  = mp + 1L,
+                            CCN = mp + (G > 0),
+                            UC  =,
+                            UCN = mp + G,
+                            CU  =,
+                            CUN = mp + P,
+                            UU  =,
+                            UUN = switch(EXPR=type, 
+                                          new=mp + G * P,
+                                          old=mp * 2L)) + gp
+  ll2             <- ll  * 2L
   bic             <- ll2 - kpar * log(attr(seqs, "W"))
-    return(list(bic = bic, icl = bic + 2L * sum(log(rowMaxs(z)), na.rm=TRUE), aic = ll2 - kpar * 2, df = kpar))
+    return(list(bic = bic, icl = bic + 2L * sum(log(rowMaxs(z)), na.rm=TRUE), aic = ll2 - kpar * 2L, df = kpar))
 }
 
 .crits_names      <- function(x) {
@@ -224,8 +220,7 @@
       Mstep       <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z, HAM.mat=HAM.mat)
       check       <- any(attr(Mstep$theta, "NonUnique")) || isFALSE(attr(Mstep$theta, "NoTies"))
       ctrl$ties   <- j < 4 || 
-                     (noty && check)
-      noty        <- noty  && !check
+      (noty       <- noty  && !check)
       Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
       z           <- Estep$z
       ERR         <- any(is.nan(z))
@@ -278,7 +273,7 @@
     if(l.meth == "CCN")                {
         return(list(lambda = matrix(0L, nrow=1L, ncol=1L)))
     }
-    numer         <- switch(EXPR=l.meth, CC=P,                  CU=1L)
+    numer         <- switch(EXPR=l.meth, CC=P, CU=1L)
     if(ctrl$do.wts)                    {
       ws          <- attr(seqs, "Weights")
       denom       <- switch(EXPR=l.meth, CC=sum(.dseq(seqs, theta) * ws)/W, CU=rowSums2(sweep(numseq != .char_to_num(theta), 2L, ws, FUN="*", check.margin=FALSE))/W)
@@ -340,17 +335,18 @@
       z           <- z * attr(seqs, "Weights")
     }
     if((gate.g    <- ctrl$gate.g))    {
-      prop        <- if(is.element(modtype, c("UC", "UU", "UCN", "UUN"))) { if(ctrl$do.wts) colSums2(z)/attr(seqs, "W") else colMeans2(z) }
+      prop        <- if((need.prop   <- is.element(modtype, c("UC", "UU", "UCN", "UUN")))) { 
+                     if(ctrl$do.wts)    colSums2(z)/attr(seqs, "W") else colMeans2(z)      }
       if(!noise   || ctrl$noise.gate) {
         fitG      <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
         tau       <- fitG$fitted.values
       } else       {
         zN        <- z
         z         <- z[,-G, drop=FALSE]
-        z         <- .renorm_z(z)
+        z         <- if(ctrl$do.wts) .renorm_z(z) * attr(seqs, "Weights") else .renorm_z(z)
         z[is.nan(z)]     <- .Machine$double.eps
         fitG      <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
-        tau       <- .tau_noise(fitG$fitted.values, zN[,G])
+        tau       <- .tau_noise(fitG$fitted.values, ifelse(need.prop, prop[G], ifelse(ctrl$do.wts, sum(zN[,G])/attr(seqs, "W"), mean(zN[,G]))))
         z         <- zN
       }
     } else         {
@@ -618,7 +614,7 @@
              }
            })
   }
-  if(!noties      && 
+  if(!noties      && any(nonu)   &&
      ctrl$ties    &&
      ctrl$verbose) {
    if(ctrl$random) {             message("\tTie for estimated sequence position broken at random\n")
@@ -686,9 +682,22 @@
 #' @importFrom matrixStats "colSums2" "rowSums2"
 #' @importFrom stringdist "stringdistmatrix"
 .theta_data       <- function(seqs, z = NULL, ctrl = NULL, HAM.mat = HAM.mat) {
-  if((G <- attr(seqs, "G"))   == 1L)  {
+  if((G <- attr(seqs, "G"))   == 1L)   {
     sumdist       <- if(ctrl$do.wts)    colSums2(HAM.mat * attr(seqs, "Weights")) else rowSums2(HAM.mat)
-      return(list(theta = seqs[which.min(sumdist)], dsum = min(sumdist)))
+    distmin       <- min(sumdist)
+    ind           <- which(sumdist == distmin)
+    if((nonu      <- length(ind) > 1)) {
+     ind          <- ifelse(ctrl$random, sample(ind, 1L), ind)  
+     if(ctrl$ties &&
+        ctrl$verbose)          {
+      if(ctrl$random)          { message("\tTie for medoid sequence position broken at random\n")
+      } else                     message("\tTie found for medoid sequence position\n") 
+     }
+    }
+    theta         <- seqs[ind]
+    attr(theta, "NonUnique")  <- nonu
+    attr(theta, "NoTies")     <- !nonu
+      return(list(theta = theta, dsum = distmin))
   } else           {
     if(is.null(z))               stop("'z' must be supplied if 'G'>1",     call.=FALSE)
     if(is.null(ctrl$nmeth))      stop("'nmeth' must be supplied if 'G'>1", call.=FALSE)
@@ -698,19 +707,21 @@
     nonu          <- rep(FALSE, G0)
     for(g in seq_len(G0))      {
       sumdist     <- colSums2(HAM.mat  * z[,g])
-      ind         <- which(sumdist == min(sumdist))
+      distmin     <- min(sumdist)
+      ind         <- which(sumdist == distmin)
       if((nonu[g] <- length(ind) > 1)) {
         ind       <- ifelse(ctrl$random, sample(ind, 1L), ind)  
-      }
-      if(nonu[g]  && noties   &&
-         ctrl$ties            &&
-         ctrl$verbose)         {
-        noties    <- FALSE
-        if(ctrl$random)        { message("\tTie for medoid sequence position broken at random\n")
-        } else                   message("\tTie found for medoid sequence position\n")
+        if(noties &&
+           ctrl$ties)          {
+          noties  <- FALSE
+          if(ctrl$verbose)     {
+            if(ctrl$random)    { message("\tTie for medoid sequence position broken at random\n")
+            } else               message("\tTie found for medoid sequence position\n")
+          }
+        }
       }
       theta[[g]]  <- seqs[ind]
-      dsum[[g]]   <- min(sumdist)
+      dsum[[g]]   <- distmin
     }
     theta         <- do.call(base::c, theta)
     attr(theta, "NonUnique")  <- nonu
