@@ -276,14 +276,15 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' \item{\code{bic}}{BIC values, ranked according to \code{criterion}.}
 #' \item{\code{icl}}{TCL values, ranked according to \code{criterion}.}
 #' \item{\code{aic}}{AIC values, ranked according to \code{criterion}.}
-#' \item{\code{cv}}{Cross-validated log-likelihood values, ranked according to \code{criterion}.}
-#' \item{\code{nec}}{NEC values, ranked according to \code{criterion}.}
 #' \item{\code{dbs}}{(Weighted) mean/median DBS values, ranked according to \code{criterion}.}
 #' \item{\code{asw}}{(Weighted) mean/median ASW values, ranked according to \code{criterion}.}
+#' \item{\code{cv}}{Cross-validated log-likelihood values, ranked according to \code{criterion}.}
+#' \item{\code{nec}}{NEC values, ranked according to \code{criterion}.}
 #' \item{\code{loglik}}{Maximal log-likelihood values, ranked according to \code{criterion}.}
 #' \item{\code{gating}}{The gating formulas.}
 #' \item{\code{algo}}{The algorithm used for fitting the model - either \code{"EM"}, \code{"CEM"}, \code{"cemEM"}.}
 #' \item{\code{equalPro}}{Logical indicating whether mixing proportions were constrained to be equal across components.}
+#' \item{\code{opti}}{The method used for estimating the central sequence(s).}
 #' \item{\code{weights}}{Logical indicating whether the given model was fitted with sampling weights.}
 #' \item{\code{noise}}{Logical indicating the presence/absence of a noise component. Only displayed if at least one of the compared models has a noise component.}
 #' \item{\code{noise.gate}}{Logical indicating whether gating covariates were allowed to influence the noise component's mixing proportion. Only printed for models with a noise component, when at least one of the compared models has gating covariates.}
@@ -542,7 +543,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' In both cases, the results will be unchanged, but setting \code{unique} to \code{TRUE} can often be much faster. 
 #' @param criterion When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.
 #' @param tau0 Prior mixing proportion for the noise component. If supplied, a noise component will be added to the model in the estimation, with \code{tau0} giving the prior probability of belonging to the noise component for \emph{all} observations. Typically supplied as a scalar in the interval (0, 1), e.g. \code{0.1}. Can be supplied as a vector when gating covariates are present and \code{noise.gate} is \code{TRUE}.
-#' @param noise.gate A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component (i.e. the \code{"CCN"}, \code{"UCN"}, \code{"CUN"}, and \code{"UUN"} models); only effects estimation in the presence of gating covariates.
+#' @param noise.gate A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component (i.e. the \code{"CCN"}, \code{"UCN"}, \code{"CUN"}, and \code{"UUN"} models); only affects estimation in the presence of gating covariates.
 #' @param random A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations.
 #' @param do.cv A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.
 #' @param do.nec A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.
@@ -923,6 +924,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     gate.names    <- colnames(covars)
     covars        <- cbind(covars, eval(bquote(stats::model.frame(.(as.formula(paste("~", paste(eval(bquote(all.vars(.(gating))), envir=parent.frame())[-1L], collapse="+")))), data=.(call$covars), drop.unused.levels=TRUE)), envir=parent.frame(), enclos=environment()))
     covars        <- covars[,unique(colnames(covars)), drop=FALSE]
+    covch         <- vapply(covars, is.character, logical(1L))
+    covars[covch] <- lapply(covars[covch], factor)
+    if(any(covch))               message("Character covariates coerced to factors\n")
   }
   gate.names      <- if(gate.x)  gate.names[!is.na(gate.names)]
   if(!covmiss)     {
@@ -1549,11 +1553,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   covars          <- if(do.uni) covars[dis.agg,, drop=FALSE] else covars
   rownames(covars)                 <- seq_along(MAP)
   if(!(gate.G[1L   + noise,best.G] -> bG))  {
-    if(G > 1)      {
+    z             <- x.z
+    if(G > (noise.gate   + 1L))  {
       if(ctrl$do.wts)            {
         z         <- x.z * w2
         z[apply(z == 0, 1L, all),] <- .Machine$double.eps
-      } else z    <- x.z
+      }
       fitG        <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
       if(equalPro && !equalNoise   && noise) {
         tau0      <- mean(z[,G])
@@ -1568,7 +1573,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         fitG$residuals          <- z - fitG$fitted.values
       }
     }   else       {
+      if(G > 1    && ctrl$do.wts)   {
+        z         <- x.z * w2
+        z[apply(z == 0, 1L, all),] <- .Machine$double.eps
+      }
       fitG        <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial()))
+      attr(fitG, "Formula")     <- "~1"
     }
   }     else       {
     x.tau         <- if(do.uni) x.tau[dis.agg,, drop=FALSE]   else x.tau
@@ -1579,7 +1589,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   fitG$lab        <- if(noise   && noise.gate && G > 1) c(paste0("Cluster", Gseq[-G]), "Noise") else if(noise && G > 1) paste0("Cluster", Gseq[-G]) else paste0("Cluster", Gseq)
   attr(fitG, "EqualNoise")      <- equalNoise
   attr(fitG, "EqualPro")        <- equalPro
-  attr(fitG, "Formula")         <- Reduce(paste, deparse(gating[-2L]))
+  attr(fitG, "Formula")         <- ifelse(is.null(attr(fitG, "Formula")), Reduce(paste, deparse(gating[-2L])), attr(fitG, "Formula"))
   attr(fitG, "Maxit")           <- ctrl$g.itmax
   attr(fitG, "MaxNWts")         <- ctrl$MaxNWts
   attr(fitG, "Noise")           <- noise && any(MAP == 0)
@@ -1714,9 +1724,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @param x An object of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}} or an object of class \code{"MEDseqCompare"} generated by \code{\link{MEDseq_compare}}.
 #' @param type A character string giving the type of plot requested:
 #' \describe{
-#' \item{\code{"clusters"}}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriate}.}
+#' \item{\code{"clusters"}}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriate}. Similar to the \code{type="I"} plot (see below).}
 #' \item{\code{"mean"}}{Visualise the central sequences. See \code{seriate}. The central sequence for the noise component, if any is not shown as it doesn't contribute in any way to the likelihood.}
-#' \item{\code{"precision"}}{Visualise the central sequence parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{grey} and \code{black} respectively (see \code{log.scale}).}
+#' \item{\code{"precision"}}{Visualise the precision parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{"white"} and \code{"black"} respectively (see \code{quant.scale}).}
 #' \item{\code{"gating"}}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriate}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
 #' \item{\code{"bic"}}{Plots all BIC values in a fitted \code{MEDseq} object.}
 #' \item{\code{"icl"}}{Plots all ICL values in a fitted \code{MEDseq} object.}
@@ -1732,16 +1742,16 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties in the form of a profile plot.}
 #' \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
 #' }
-#' Also available are the following options which act as wrappers to types of plots produced by the \code{\link[TraMineR]{seqplot}} function in the \pkg{TraMineR} package.
+#' Also available are the following options which act as wrappers to types of plots produced by the \code{\link[TraMineR]{seqplot}} function in the \pkg{TraMineR} package and \code{seriate}.
 #' \describe{
 #' \item{\code{"d"}}{State distribution plots (by cluster).}
 #' \item{\code{"f"}}{Sequence frequency plots (by cluster).}
 #' \item{\code{"Ht"}}{Transversal entropy plots (by cluster).}
 #' \item{\code{"i"}}{Selected sequence index plots (by cluster).}
-#' \item{\code{"I"}}{Whole set index plots (by cluster).}
+#' \item{\code{"I"}}{Whole set index plots (by cluster). This plot effectively contains the same as \code{type="clusters"}, and is similarly affected by the \code{seriate} argument, albeit shown on a by-cluster basis rather than stacked in one plot.}
 #' }
-#' @param seriate Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The options \code{"clusters"} and \code{"both"} are only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}. Additionally, the options \code{"observations"} and \code{"both"} are only invoked when \code{type} is one of \code{"clusters"} or \code{"gating"}.
-#' @param log.scale Logical indicating whether precision parameter heatmaps should be plotted on the log-scale when \code{type="precision"}. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are effected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{log.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise.
+#' @param seriate Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}. Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, or \code{"I"}.
+#' @param quant.scale Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.
 #' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used.
 #'
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
@@ -1758,7 +1768,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #'               "uncert.bar", "uncert.profile", "loglik", 
 #'               "d", "f", "Ht", "i", "I"), 
 #'      seriate = c("observations", "both", "clusters", "none"), 
-#'      log.scale = FALSE, 
+#'      quant.scale = FALSE, 
 #'      ...)
 #' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
 #' @keywords plotting main
@@ -1822,9 +1832,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' 
 #' # Plot the state-distributions by cluster
 #' # Note that this plot may not display properly in the preview panel
-#' plot(mod2, "d")}
+#' # plot(mod2, "d")}
 plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gating", "bic", "icl", "aic", "dbs", "asw", "cv", "nec", "LOGLIK", "dbsvals", "aswvals", "uncert.bar", "uncert.profile", 
-                                          "loglik", "d", "f", "Ht", "i", "I"), seriate = c("observations", "both", "clusters", "none"), log.scale = FALSE, ...) {
+                                          "loglik", "d", "f", "Ht", "i", "I"), seriate = c("observations", "both", "clusters", "none"), quant.scale = FALSE, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(type)           &&
      (length(type)       > 1  ||
@@ -1834,8 +1844,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       !is.character(seriate)))   stop("'seriate' must be a character vector of length 1", call.=FALSE)
   type            <- match.arg(type)
   seriate         <- match.arg(seriate)
-  sericlus        <- is.element(seriate, c("both", "clusters"))
-  seriobs         <- is.element(seriate, c("both", "observations"))
+  sericlus        <- is.element(seriate, c("both", "clusters"))     && is.element(type, c("clusters", "mean", "precision", "gating", 
+                                                                                          "dbsvals", "aswvals", "d", "f", "Ht", "i", "I"))
+  seriobs         <- is.element(seriate, c("both", "observations")) && is.element(type, c("clusters", "gating", "I"))
   palette         <- grDevices::palette()
   savepar         <- graphics::par(no.readonly=TRUE)
   on.exit(graphics::par(savepar))
@@ -1875,7 +1886,8 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
        MAP        != floor(MAP)) stop(paste0("'MAP' must be an integer vector of length N=", N),  call.=FALSE)
   } else MAP      <- x$MAP
   if(is.element(type,    c("clusters", "d", "f", "Ht", "i", "I"))       ||
-    (isTRUE(sericlus) && (is.element(type, c("mean", "precision"))      ||
+    (isTRUE(sericlus) && 
+     (is.element(type, c("mean", "precision", "dbsvals", "aswvals"))    ||
     (type == "gating" && attr(x, "Gating"))))) {
     if(!is.element(type, c("gating", "mean", "precision"))) {
       if(has.MAP)  {
@@ -1908,9 +1920,10 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   }
   Gseq            <- seq_len(G)
   perm            <- if(isTRUE(sericlus)) perm    else Gseq
-  perm            <- if(isTRUE(noise))    replace(perm, G, ifelse(is.element(type, c("clusters", "gating")), 0L, "Noise")) else perm
+  perm            <- if(isTRUE(noise))    replace(perm, G, ifelse(is.element(type, c("clusters", "gating", "I")), 0L, "Noise"))  else perm
 
   if(type == "clusters" || 
+     type == "I"        ||
     (type == "gating"   && 
     attr(x,  "Gating"))) {
     glo.order     <-
@@ -1918,7 +1931,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     set.seed(200)
     for(g in Gseq) {
       if(!any(MAP == perm[g])) {
-        num.cl    <- c(num.cl, 0L)
+        num.cl    <- c(num.cl,  0L)
         next
       }
       srows       <- Nseq[MAP == perm[g]]
@@ -1926,7 +1939,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       glo.order   <- c(glo.order, if(isTRUE(seriobs)) srows[get_order(seriate(stats::as.dist(dmat[srows,srows]), method="TSP"))] else srows)
     }
     cum.cl        <- cumsum(num.cl)
-    gcl           <- c(0L, cum.cl)
+    gcl           <- c(0L,  cum.cl)
   }
   
   switch(EXPR=type,
@@ -1969,23 +1982,36 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     graphics::layout(1)
       invisible()
   }, precision=    {
-    log.scale     <- ifelse(missing(log.scale), is.element(modtype, c("UU", "UUN")), log.scale)
-    if(length(log.scale) > 1  ||
-       !is.logical(log.scale))   stop("'log.scale' must be a single logical indicator", call.=FALSE)
+  if(isFALSE(suppressMessages(requireNamespace("viridisLite", quietly=TRUE))) ||
+     isFALSE(.version_above("viridisLite", 
+              "0.2.0")))         stop(paste0("The 'viridisLite' package must be loaded when type=\"", type, "\""), call.=FALSE)
+    quant.scale   <- ifelse(missing(quant.scale), is.element(modtype, c("UU", "UUN")), !is.element(modtype, c("CC", "CCN")) && quant.scale)
+    if(length(quant.scale)  > 1  ||
+       !is.logical(quant.scale)) stop("'quant.scale' must be a single logical indicator", call.=FALSE)
+    if(all("CCN"  == modtype     &&
+           G      == 1))         message("Nothing to plot!\n")
     graphics::layout(rbind(1, 2), heights=c(0.85, 0.15))
-    graphics::par(mar=c(4.1, 4.1, 4.1, 3.1))
+    graphics::par(mar=c(4.1, 4.1, 4.1, 4.6 + ifelse(isTRUE(quant.scale), 0.5, 0L)))
     i.ind         <- is.infinite(lambda)
-    num.ind       <- !i.ind  &  lambda >  0
-    dat           <- if(log.scale) log(lambda[num.ind]) else lambda[num.ind]
-    facs          <- if(length(dat) > 1) cut(dat, 30L, include.lowest=TRUE) else 1L
+    num.ind       <- !i.ind &  0  < lambda
+    dat           <- lambda[num.ind]
+    ncols         <- 13L
+    ncols         <- ifelse(length(unique(dat)) > 0, ifelse(length(unique(dat)) > 1, pmin(length(unique(dat)) + 1L, ncols), ncols), 1L)
+    if(isTRUE(quant.scale))       {
+      breaks      <- stats::quantile(dat, probs=seq(0L, 1L, length.out=ncols))
+      breaks      <- unique(breaks)
+      ncols       <- length(breaks)
+      facs        <- if(ncols > 1) cut(dat, breaks,     include.lowest=TRUE) else 1L
+    } else facs   <- if(ncols > 1) cut(dat, ncols - 1L, include.lowest=TRUE) else 1L
+    ncols         <- pmax(1L, ncols - 1L)
+    cols          <- viridisLite::viridis(ncols, option="D", direction=-1)
     cmat          <- matrix("", nrow=G, ncol=P)
-    cols          <- grDevices::heat.colors(30L, rev=TRUE)
     cmat[i.ind]            <- "black"
-    cmat[lambda   == 0]    <- "grey65"
+    cmat[lambda   == 0]    <- "White"
     cmat[num.ind]          <- cols[as.numeric(facs)]
     levels        <- sort(unique(as.vector(cmat)))
     z             <- matrix(unclass(factor(cmat, levels=levels, labels=seq_along(levels))), nrow=P, ncol=G, byrow=TRUE)
-    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Positions", ylab=switch(EXPR=seriate, clusters=, both="Ordered Clusters", "Clusters"), main=paste0("Precision Parameters Plot", ifelse(log.scale, " (Log Scale)",  "")))
+    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Positions", ylab=switch(EXPR=seriate, clusters=, both="Ordered Clusters", "Clusters"), main=paste0("Precision Parameters Plot", ifelse(quant.scale, "\n(Quantile Scale)",  "")))
     graphics::axis(1, at=Pseq, tick=FALSE, las=1, cex.axis=0.75, labels=colnames(x$params$theta))
     graphics::axis(2, at=Gseq, tick=FALSE, las=1, cex.axis=0.75, labels=as.character(perm))
     graphics::box(lwd=2)
@@ -2004,53 +2030,56 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       graphics::polygon(xx, yy, col = cols[i], border = cols[i])
     }
     graphics::par(new=TRUE)
-    base::plot(0, 0, type="n", ylim=if(length(dat) > 1) range(dat, na.rm=TRUE) else c(0, 1), yaxt="n", ylab="", xaxt="n", xlab="", frame.plot=FALSE)
-    graphics::axis(side=4, las=2, tick=FALSE, line=0.5)
+    base::plot(0, 0, type="n", ylim=if(isTRUE(quant.scale) || length(unique(dat)) == 0) c(0L, 100L) else range(dat, na.rm=TRUE), yaxt="n", ylab="", xaxt="n", xlab="", frame.plot=FALSE)
+    if(isTRUE(quant.scale))   {
+      graphics::axis(side=4, las=2, tick=FALSE, line=0.25, cex.axis=0.725,
+                     at=seq(0L, 100L, length.out=ncols), labels=.tidy_breaks(breaks))
+    } else           graphics::axis(side=4, las=2, tick=FALSE, line=0.5)
     graphics::par(mar=c(0, 0, 0, 0))
     graphics::plot.new()
-    graphics::legend("center", c(expression(paste(lambda, " = 0")), expression(paste(lambda %->%~infinity))), fill=c("grey65", "black"), ncol=2, text.width=0.1, cex=1.25)
+    graphics::legend("center", c(expression(paste(lambda, " = 0")), expression(paste(lambda %->%~infinity))), fill=c("white", "black"), ncol=2, text.width=0.1, cex=1.25)
     graphics::layout(1)
       invisible()
   }, gating=       {
     suppressWarnings(graphics::par(pty="m"))
-    Tau        <- .mat_byrow(x$params$tau, nrow=N, ncol=ncol(x$z))
-    sericlus   <- isTRUE(sericlus)   && attr(x, "Gating")
-    seriobs    <- isTRUE(seriobs)    && attr(x, "Gating")
-    perm       <- replace(perm, G, G)
-    Tau        <- if(isTRUE(sericlus))  Tau[,perm, drop=FALSE]      else Tau
-    vars       <- all.vars(stats::as.formula(attr(x$gating, "Formula")))
-    if(miss.x  <- length(dots) > 0   && any(names(dots) == "x.axis")) {
-      ncovs    <- length(vars) > 1
+    Tau           <- .mat_byrow(x$params$tau, nrow=N, ncol=ncol(x$z))
+    sericlus      <- isTRUE(sericlus)   && attr(x, "Gating")
+    seriobs       <- isTRUE(seriobs)    && attr(x, "Gating")
+    perm          <- replace(perm, G, G)
+    Tau           <- if(isTRUE(sericlus))  Tau[,perm, drop=FALSE]      else Tau
+    vars          <- all.vars(stats::as.formula(attr(x$gating, "Formula")))
+    if(miss.x     <- length(dots) > 0   && any(names(dots) == "x.axis")) {
+      ncovs       <- length(vars) > 1
       if(isTRUE(ncovs))          warning("Function may produce undesirable plot when 'x.axis' is supplied for a model with multiple gating network covariates\n", call.=FALSE, immediate.=TRUE)
-      x.axis   <- dots$x.axis
-      o.axis   <- order(x.axis, decreasing=FALSE)
-      x.axis   <- x.axis[o.axis]
-      Tau      <- Tau[o.axis,,        drop=FALSE]
-      type     <- ifelse(ncovs, "p", "b")
+      x.axis      <- dots$x.axis
+      o.axis      <- order(x.axis, decreasing=FALSE)
+      x.axis      <- x.axis[o.axis]
+      Tau         <- Tau[o.axis,,        drop=FALSE]
+      type        <- ifelse(ncovs, "p", "b")
     } else         {
-      Tau      <- if(isTRUE(seriobs))   Tau[glo.order,, drop=FALSE] else Tau
-      x.axis   <- seq_len(N)
-      type     <- "b"
+      Tau         <- if(isTRUE(seriobs))   Tau[glo.order,, drop=FALSE] else Tau
+      x.axis      <- seq_len(N)
+      type        <- "b"
     }
-    xlab       <- ifelse(miss.x, ifelse(is.null(dots$xlab), deparse(match.call()$x.axis), dots$xlab), ifelse(isTRUE(seriobs), "Seriated Observations", ifelse(isTRUE(sericlus), "Observations", "Observation")))
-    col        <- if(noise) c(grDevices::rainbow(G - 1L), "grey65") else grDevices::rainbow(G)
-    col        <- col[perm]
+    xlab          <- ifelse(miss.x, ifelse(is.null(dots$xlab), deparse(match.call()$x.axis), dots$xlab), ifelse(isTRUE(seriobs), "Seriated Observations", ifelse(isTRUE(sericlus), "Observations", "Observation")))
+    col           <- if(noise) c(grDevices::rainbow(G - 1L), "grey65") else grDevices::rainbow(G)
+    col           <- col[perm]
     if(length(x.axis) != N)      stop("'x.axis' must be of length N", call.=FALSE)
-    if(x.fac   <- is.factor(x.axis)) {
-      xlev     <- levels(x.axis)
-      x.axis   <- as.integer(x.axis)
-      xaxt     <- "n"
-    } else      {
-      type     <- ifelse(any(vars %in% names(x$gating$xlevels)), "p", type)
-      xaxt     <- ifelse(any(seriobs, sericlus), "n", "s")
+    if(x.fac      <- is.factor(x.axis)) {
+      xlev        <- levels(x.axis)
+      x.axis      <- as.integer(x.axis)
+      xaxt        <- "n"
+    } else         {
+      type        <- ifelse(any(vars %in% names(x$gating$xlevels)), "p", type)
+      xaxt        <- ifelse(any(seriobs, sericlus), "n", "s")
     }
     graphics::matplot(x=x.axis, y=Tau, type=type, main="Gating Network", xaxt=xaxt, xlab=xlab, ylab="", col=col, pch=1, lty=perm)
     graphics::mtext(expression(widehat(tau)[g]), side=2, las=2, line=3)
-    if(x.fac)   {
+    if(x.fac)      {
       graphics::axis(1, at=unique(x.axis), labels=xlev)
     }
-    if(isTRUE(sericlus) &&
-       isFALSE(miss.x))  {
+    if(isTRUE(sericlus)    &&
+       isFALSE(miss.x))     {
       graphics::abline(v=cum.cl)
       graphics::mtext(replace(perm, G, "Noise"), at=gcl[-length(gcl)] + diff(gcl)/2, side=1, las=1)
       graphics::mtext("Ordered Clusters", side=1, line=1, las=1)
@@ -2097,21 +2126,28 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     },    aswvals= {
       if(!attr(x, "ASW")     ||
          all(type   == "asw",
-         is.null(x$ASWvals)))    stop("ASW values cannot be plotted as only 1-component models were fitted", call.=FALSE)
+         is.null(x$ASWvals)))    stop("ASW values cannot be plotted as only 1-component models were fitted",      call.=FALSE)
       object      <- if(has.dot) do.call(get_MEDseq_results, c(list(x=x, what="ASW"), dots[!(names(dots) %in% c("x", "what"))])) else x$aswvals
       if(is.null(object))        stop("ASW values cannot be plotted as the model only has 1 non-empty component", call.=FALSE)
     })
     rownames(object)       <- as.character(Nseq)
     cl            <- object[,"cluster"]
     X             <- object[order(cl, -object[,2L]),, drop=FALSE]
+    if(isTRUE(sericlus))    {
+      perm        <- replace(perm, G, G)
+      X           <- do.call(rbind, lapply(Gseq, function(g) X[X[,1L] == perm[g],]))
+      col         <- rev(rep(unique(X[,1L]), table(X[,1L])[perm]))
+    } else col    <- rev(X[,1L])
     sil           <- X[,2L]
     space         <- c(0L, rev(diff(cli <- X[,"cluster"])))
     space[space   != 0]    <- 0.5
     ng            <- table(cl)
     G             <- attr(object, "G")
-    col           <- rev(X[,1L])
+    modtype       <- attr(object, "ModelType")
+    noise         <- modtype %in% c("CCN", "UCN", "CUN", "UUN")
     if(identical(palette, grDevices::palette("default"))) {
-      palette     <- c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999", ifelse(noise, "black", "khaki"))
+      palette     <- rep(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"), length.out=G)
+      palette[G]  <- ifelse(noise, "black", palette[G])
       grDevices::palette(if(grDevices::dev.capabilities()$semiTransparency) grDevices::adjustcolor(palette, alpha.f=0.75) else palette)
     }
     dat           <- rev(graphics::barplot(rev(sil), space=space, xlim=c(min(0L, min(sil)), 1L), 
@@ -2120,15 +2156,13 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     summ          <- attr(object, "Summ")
     if(weighted)   {
       weights     <- attr(x, "Weights")[order(cl, -object[,2L])]
-      switch(EXPR=summ, median=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("(Weighted) Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(weightedMedian(sil, weights), digits=3)), adj=0),
-                          mean=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("(Weighted) Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(weightedMean(sil,   weights), digits=3)), adj=0))
+      switch(EXPR=summ, median=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot", ifelse(isTRUE(sericlus), " (Ordered by Cluster)", "")), sub=paste0("(Weighted) Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(weightedMedian(sil, weights), digits=3)), adj=0),
+                          mean=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot", ifelse(isTRUE(sericlus), " (Ordered by Cluster)", "")), sub=paste0("(Weighted) Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(weightedMean(sil,   weights), digits=3)), adj=0))
     } else         {
       switch(EXPR=summ, median=graphics::title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(stats::median(sil), digits=3)), adj=0),
                           mean=graphics::title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(mean(sil),          digits=3)), adj=0))
     }
     graphics::mtext(paste0("n = ", N),  adj=0)
-    modtype       <- attr(object, "ModelType")
-    noise         <- modtype %in% c("CCN", "UCN", "CUN", "UUN")
     graphics::mtext(substitute(G~modtype~"clusters"~C[g], list(G=G, modtype=modtype)), adj=1)
     if(weighted)   {
       switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", w.med[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2),
@@ -2143,7 +2177,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     }
     medy          <- tapply(dat, cli, stats::median)
     for(g in seq_len(G)) {
-      graphics::text(1, medy[g], paste(ifelse(g == G && noise, 0L, g), ":  ", ng[g], " | ", format(meds[g], digits=1, nsmall=2)), xpd=NA, adj=0.8)
+      graphics::text(1, medy[g], paste(ifelse(g == G && noise, "Noise", g), ":  ", ng[g], " | ", format(meds[g], digits=1, nsmall=2)), xpd=NA, adj=0.8)
     }
       invisible()
   }, uncert.profile=,
@@ -2191,9 +2225,11 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     graphics::axis(1, at=llseq, labels=llseq)
       invisible()
   },               {
-    MAP           <- factor(replace(MAP, MAP == 0, "Noise"), levels=perm)
+    MAP           <- factor(replace(MAP, MAP == 0, "Noise"), levels=switch(EXPR=type, I=replace(perm, perm == 0, "Noise"), perm))
+    MAP           <- switch(EXPR=type, I=MAP[glo.order], MAP)
     attr(dat, "Weights")      <- if(attr(x, "Weighted")) attr(dat, "Weights") else 1L
-    dots          <- c(list(seqdata=dat, with.legend=FALSE, group=MAP, type=type, with.missing=FALSE, weighted=attr(x, "Weighted")), dots[!(names(dots) %in% c("G", "modtype", "noise"))])
+    dots          <- c(list(seqdata=switch(EXPR=type, I=dat[glo.order,], dat), with.legend=FALSE, group=MAP, type=type, 
+                            with.missing=FALSE, weighted=attr(x, "Weighted")), dots[!(names(dots) %in% c("G", "modtype", "noise"))])
     dots          <- switch(EXPR=type, Ht=dots[names(dots) != "border"], if(!any(names(dots) == "border")) c(list(border=NA), dots) else dots)
     dots          <- switch(EXPR=type, I=c(list(space=0L), dots), dots)
     dots          <- dots[unique(names(dots))]
@@ -2424,9 +2460,10 @@ print.MEDseqCompare    <- function(x, index=seq_len(x$pick), rerank = FALSE, dig
   x$equalPro      <- NULL
   x$equalPro      <- equalPro
   na.equalNoise   <- is.na(x$equalNoise)
-  equalNoise      <- replace(x$equalNoise, na.equalNoise,    "")
+  equalNoise      <- replace(x$equalNoise, na.equalNoise, "")
   x$equalNoise    <- NULL
   x$equalNoise    <- if(all(na.equalNoise))      NULL else equalNoise
+  x$opti          <- if(all(x$opti == "mode"))   NULL else x$opti
   title           <- "Comparison of Mixtures of Exponential-Distance Models with Covariates"
   cat(paste0("---------------------------------------------------------------------\n", 
              title, "\nData: ", x$data, "\nRanking Criterion: ", toupper(crit), "\nOptimal Only: ", opt,

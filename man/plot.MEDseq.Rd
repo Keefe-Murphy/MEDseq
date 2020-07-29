@@ -11,7 +11,7 @@
               "uncert.bar", "uncert.profile", "loglik", 
               "d", "f", "Ht", "i", "I"), 
      seriate = c("observations", "both", "clusters", "none"), 
-     log.scale = FALSE, 
+     quant.scale = FALSE, 
      ...)
 }
 \arguments{
@@ -19,9 +19,9 @@
 
 \item{type}{A character string giving the type of plot requested:
 \describe{
-\item{\code{"clusters"}}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriate}.}
+\item{\code{"clusters"}}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriate}. Similar to the \code{type="I"} plot (see below).}
 \item{\code{"mean"}}{Visualise the central sequences. See \code{seriate}. The central sequence for the noise component, if any is not shown as it doesn't contribute in any way to the likelihood.}
-\item{\code{"precision"}}{Visualise the central sequence parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{grey} and \code{black} respectively (see \code{log.scale}).}
+\item{\code{"precision"}}{Visualise the precision parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{"white"} and \code{"black"} respectively (see \code{quant.scale}).}
 \item{\code{"gating"}}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriate}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
 \item{\code{"bic"}}{Plots all BIC values in a fitted \code{MEDseq} object.}
 \item{\code{"icl"}}{Plots all ICL values in a fitted \code{MEDseq} object.}
@@ -37,18 +37,18 @@
 \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties in the form of a profile plot.}
 \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
 }
-Also available are the following options which act as wrappers to types of plots produced by the \code{\link[TraMineR]{seqplot}} function in the \pkg{TraMineR} package.
+Also available are the following options which act as wrappers to types of plots produced by the \code{\link[TraMineR]{seqplot}} function in the \pkg{TraMineR} package and \code{seriate}.
 \describe{
 \item{\code{"d"}}{State distribution plots (by cluster).}
 \item{\code{"f"}}{Sequence frequency plots (by cluster).}
 \item{\code{"Ht"}}{Transversal entropy plots (by cluster).}
 \item{\code{"i"}}{Selected sequence index plots (by cluster).}
-\item{\code{"I"}}{Whole set index plots (by cluster).}
+\item{\code{"I"}}{Whole set index plots (by cluster). This plot effectively contains the same as \code{type="clusters"}, and is similarly affected by the \code{seriate} argument, albeit shown on a by-cluster basis rather than stacked in one plot.}
 }}
 
-\item{seriate}{Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The options \code{"clusters"} and \code{"both"} are only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}. Additionally, the options \code{"observations"} and \code{"both"} are only invoked when \code{type} is one of \code{"clusters"} or \code{"gating"}.}
+\item{seriate}{Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}}. The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}. Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, or \code{"I"}.}
 
-\item{log.scale}{Logical indicating whether precision parameter heatmaps should be plotted on the log-scale when \code{type="precision"}. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are effected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{log.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise.}
+\item{quant.scale}{Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.}
 
 \item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used.}
 }
@@ -118,7 +118,7 @@ plot(mod0, type="precision")
 
 # Plot the state-distributions by cluster
 # Note that this plot may not display properly in the preview panel
-plot(mod2, "d")}
+# plot(mod2, "d")}
 }
 \references{
 Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.

@@ -50,14 +50,15 @@ A list of class \code{"MEDseqCompare"}, for which a dedicated print function exi
 \item{\code{bic}}{BIC values, ranked according to \code{criterion}.}
 \item{\code{icl}}{TCL values, ranked according to \code{criterion}.}
 \item{\code{aic}}{AIC values, ranked according to \code{criterion}.}
-\item{\code{cv}}{Cross-validated log-likelihood values, ranked according to \code{criterion}.}
-\item{\code{nec}}{NEC values, ranked according to \code{criterion}.}
 \item{\code{dbs}}{(Weighted) mean/median DBS values, ranked according to \code{criterion}.}
 \item{\code{asw}}{(Weighted) mean/median ASW values, ranked according to \code{criterion}.}
+\item{\code{cv}}{Cross-validated log-likelihood values, ranked according to \code{criterion}.}
+\item{\code{nec}}{NEC values, ranked according to \code{criterion}.}
 \item{\code{loglik}}{Maximal log-likelihood values, ranked according to \code{criterion}.}
 \item{\code{gating}}{The gating formulas.}
 \item{\code{algo}}{The algorithm used for fitting the model - either \code{"EM"}, \code{"CEM"}, \code{"cemEM"}.}
 \item{\code{equalPro}}{Logical indicating whether mixing proportions were constrained to be equal across components.}
+\item{\code{opti}}{The method used for estimating the central sequence(s).}
 \item{\code{weights}}{Logical indicating whether the given model was fitted with sampling weights.}
 \item{\code{noise}}{Logical indicating the presence/absence of a noise component. Only displayed if at least one of the compared models has a noise component.}
 \item{\code{noise.gate}}{Logical indicating whether gating covariates were allowed to influence the noise component's mixing proportion. Only printed for models with a noise component, when at least one of the compared models has gating covariates.}

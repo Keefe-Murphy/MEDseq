@@ -28,6 +28,7 @@
 #' McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 165(2): 317-334.
 #' @note The first two months of the observation period coincide with summer holidays from school. Hence, documented examples throughout this package extract only the states in columns 17 to 86; i.e. sequences of length 70 from \code{Sep.93} to \code{Jun.99}.
 #' @examples
+#' \dontshow{suppressMessages(require(TraMineR))}
 #' data(mvad, package="MEDseq")
 #' 
 #' mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
@@ -43,6 +44,7 @@
 #'                    "Joblessness", "School", "Training")
 #' mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
 #' @docType data
+#' @importFrom TraMineR "seqdef"
 #' @source McVicar and Anyadike-Danes (2002)
 #' @keywords datasets
 #' @usage data(mvad)
@@ -85,6 +87,7 @@
 #'}
 #' @references Mueller, N. S., Studer, M. and Ritschard, G. (2007). Classification de parcours de vie a l'aide de l'optimal matching. In \emph{XIVe Rencontre de la Societe francophone de classification (SFC 2007), Paris, 5-7 septembre 2007}, pp. 157-160.
 #' @examples
+#' \dontshow{suppressMessages(require(TraMineR))}
 #' data(biofam, package="MEDseq")
 #' 
 #' biofam        <- list(covariates = biofam[2L:9L], sequences = biofam[10L:25L] + 1L)
@@ -94,6 +97,7 @@
 #'                         labels = c("Parent", "Left", "Married", "Left+Marr", "Child", 
 #'                                    "Left+Child", "Left+Marr+Child", "Divorced"))
 #' @docType data
+#' @importFrom TraMineR "seqdef"
 #' @source Swiss Household Panel \url{https://forscenter.ch/projects/swiss-household-panel/}
 #' @keywords datasets
 #' @usage data(biofam)

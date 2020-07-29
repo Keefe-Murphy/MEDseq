@@ -25,6 +25,7 @@ Imports:
 Suggests:
   klaR (>= 0.6-13),
   knitr,
-  rmarkdown
+  rmarkdown,
+  viridisLite (>= 0.2.0)
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr

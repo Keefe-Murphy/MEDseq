@@ -97,17 +97,17 @@
   dG.X            <- is.null(params$dG)
   if(is.null(numseq)       &&
      isFALSE(ctrl$numseq)  &&
-    (G  == 1L     || dG.X) &&
-     ctrl$nmeth)   {
+     ctrl$nmeth   && dG.X)  {
     numseq        <- sapply(seqs, .char_to_num)
   }
   
   if(G  == 1L)     { 
     return(if(ctrl$do.wts)  {
+     dG <- if(dG.X)  switch(EXPR=modtype, CC=.dseq(seqs, theta), CU=numseq != .char_to_num(theta))                                 else params$dG
              switch(EXPR=modtype, 
-                    CC  = -ifelse(lambda == 0, attr(seqs, "W") * lPV, lambda * sum(attr(seqs, "Weights") * .dseq(seqs, theta), na.rm=TRUE) + attr(seqs, "W") * P * log1p(V1 * exp(-lambda))),
+                    CC  = -ifelse(lambda == 0, attr(seqs, "W") * lPV, lambda * sum(attr(seqs, "Weights") * dG, na.rm=TRUE) + attr(seqs, "W") * P * log1p(V1 * exp(-lambda))),
                     CCN = -attr(seqs, "W") * lPV,
-                    CU  = -sum(sweep((numseq != .char_to_num(theta)) * as.vector(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W") * sum(log1p(V1 * exp(-lambda))))
+                    CU  = -sum(sweep(dG * as.vector(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W") * sum(log1p(V1 * exp(-lambda))))
            } else  {
              switch(EXPR=modtype,
                     CC  = -ifelse(lambda == 0, N * lPV, sum(lambda * N * .dbar(seqs, theta), N * P * log1p(V1 * exp(-lambda)), na.rm=TRUE)),
@@ -254,6 +254,15 @@
     as.data.frame(lapply(x, function(y) { levels(y) <- Vseq; y} ))
 }
 
+.get_SPS_theta    <- function(x, noise=FALSE) {
+  if(!inherits(x, "MEDseq"))     stop("'x' must be an object of class 'MEDseq'",    call.=FALSE)
+  if(length(noise) > 1 ||
+     !is.logical(noise))         stop("'noise' must be a single logical indicator", call.=FALSE)
+  tmp             <- utils::capture.output(print(x$params$theta, SPS=TRUE))[-1L]
+  tmp             <- paste0("(", sub("^.*?\\((.*)\\)[^)]*$", "\\1", tmp), ")")
+    if(isTRUE(noise)) tmp else tmp[!vapply(tmp, function(x) grepl("*", x, fixed = TRUE), logical(1L))]
+}
+
 #' @importFrom matrixStats "colSums2" "rowMeans2" "rowSums2"
 #' @importFrom stringdist "stringdistmatrix"
 .lambda_mle       <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
@@ -274,10 +283,11 @@
         return(list(lambda = matrix(0L, nrow=1L, ncol=1L)))
     }
     numer         <- switch(EXPR=l.meth, CC=P, CU=1L)
+    dG            <- switch(EXPR=l.meth, CC=.dseq(seqs, theta), numseq != .char_to_num(theta))
     if(ctrl$do.wts)                    {
       ws          <- attr(seqs, "Weights")
-      denom       <- switch(EXPR=l.meth, CC=sum(.dseq(seqs, theta) * ws)/W, CU=rowSums2(sweep(numseq != .char_to_num(theta), 2L, ws, FUN="*", check.margin=FALSE))/W)
-    } else denom  <- switch(EXPR=l.meth, CC=.dbar(seqs, theta),             CU=rowMeans2(numseq      != .char_to_num(theta)))  
+      denom       <- switch(EXPR=l.meth, CC=sum(dG * ws)/W, CU=rowSums2(sweep(dG, 2L, ws, FUN="*", check.margin=FALSE))/W)
+    } else denom  <- switch(EXPR=l.meth, CC=mean(dG),       CU=rowMeans2(dG))  
   } else           {
     N             <- attr(seqs, "N")
     G0            <- ifelse(noise, attr(seqs, "G0"), G)
@@ -312,7 +322,7 @@
                      UCN=, UUN=           {
     lambda[prop   == 0,] <- Inf
   })
-    return(list(lambda = if(noise) rbind(lambda, 0L) else lambda, dG = if(G > 1) dG))
+    return(list(lambda = if(noise) rbind(lambda, 0L) else lambda, dG = dG))
 }
 
 #' @importFrom matrixStats "colMeans2" "colSums2" "rowSums2"
@@ -335,8 +345,8 @@
       z           <- z * attr(seqs, "Weights")
     }
     if((gate.g    <- ctrl$gate.g))    {
-      prop        <- if((need.prop   <- is.element(modtype, c("UC", "UU", "UCN", "UUN")))) { 
-                     if(ctrl$do.wts)    colSums2(z)/attr(seqs, "W") else colMeans2(z)      }
+      prop        <- if((need.prop   <- is.element(modtype, c("UC", "UU", "UCN", "UUN"))))  { 
+                     if(ctrl$do.wts)    colSums2(z)/attr(seqs, "W")       else colMeans2(z) }
       if(!noise   || ctrl$noise.gate) {
         fitG      <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
         tau       <- fitG$fitted.values
@@ -350,13 +360,13 @@
         z         <- zN
       }
     } else         {
-      prop        <- if(ctrl$do.wts) colSums2(z)/attr(seqs, "W") else colMeans2(z)
+      prop        <- if(ctrl$do.wts)    colSums2(z)/attr(seqs, "W")       else colMeans2(z)
       tau         <- if(isFALSE(ctrl$equalPro)) prop else if(noise && !ctrl$equalNoise) c(rep((1 - prop[G])/attr(seqs, "G0"), attr(seqs, "G0")), prop[G]) else rep(1/G, G)
     }
   }   else prop   <- tau <- 1L
   theta           <- .optimise_theta(seqs=seqs, ctrl=ctrl, z=z, numseq=numseq, HAM.mat=HAM.mat)
   MLE             <- .lambda_mle(seqs=seqs, params=list(theta=theta, z=z, prop=prop), modtype=modtype, ctrl=ctrl, numseq=numseq)
-  param           <- list(theta=theta, lambda=MLE$lambda, dG=if(G > 1) MLE$dG, tau=tau, fitG=if(G > 1 && gate.g) fitG)
+  param           <- list(theta=theta, lambda=MLE$lambda, dG=MLE$dG, tau=tau, fitG=if(G > 1 && gate.g) fitG)
   attr(param, "modtype") <- modtype
     return(param)
 }
@@ -728,6 +738,15 @@
     attr(theta, "NoTies")     <- noties
       return(list(theta = theta, dsum  = do.call(base::c, dsum)))
   }
+}
+
+.tidy_breaks      <- function(x) {
+  x               <- sprintf("%.2f", x)
+  x               <- paste(x[-length(x)], 
+                           x[-1L],   sep=",")
+  x[1L]           <- paste0("[", x[1L],  "]")
+  x[-1L]          <- paste0("(", x[-1L], "]")
+    x
 }
 
 .unique_list      <- function(x) {

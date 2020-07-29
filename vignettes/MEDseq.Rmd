@@ -37,9 +37,7 @@ install.packages('devtools')
 devtools::install_github('Keefe-Murphy/MEDseq')
 ```
 
-to install the latest development version of the package from the __MEDseq__ [GitHub page](https://github.com/Keefe-Murphy/MEDseq). 
-
-To instead install the latest stable official release of the package from CRAN go to R and type:
+to install the latest development version of the package from the __MEDseq__ [GitHub page](https://github.com/Keefe-Murphy/MEDseq). To instead install the latest stable official release of the package from CRAN go to R and type:
 
 ```{r, eval=FALSE}
 install.packages('MEDseq')
@@ -78,61 +76,71 @@ mvad.seq      <- seqdef(mvad$sequences[-c(1L,2L)],
                                    "Joblessness", "School", "Training"))
 ```
 
-The function `MEDseq_control` allows the algorithm used for model fitting, the method used to initialise the allocations (e.g. k-medoids or Ward's hierarchical clustering), the criterion used to identify the optimal model (e.g. BIC, density-based silhouette (DBS), average silhouette width (ASW), etc.), and more to be specified. By default, the EM algorithm is employed, k-medoids is used to obtain starting values, and the BIC is used to choose the optimal model (if a range of models are fitted). In this vignette, we will mostly accept these defaults.
+The names of the model types are CC, UC, CU, UU, CCN, UCN, CUN, and UUN. The first letter denotes whether the precision parameters are constrained (C) or unconstrained (U) across clusters, the second denotes the same across time periods, and the third letter (N) indicates the precision of a noise component, i.e. one in which the distribution of the sequences is uniform.  
 
-The optimal model identified in the Murphy et al. (2019) paper has `G=10` components, the `UCN` model type, sampling weights, and a subset of covariates identified using a stepwise variable selection procedure. The UCN model has a single precision parameter for each cluster. The `gating` covariates can be specified via a formula interface. The argument `covars` tells the formula where to look for the specified covariates. Thus, to fit such a model:
+The `MEDseq_control` function allows the algorithm used for model fitting, the method used to initialise the allocations (e.g. k-medoids or Ward's hierarchical clustering), the criterion used to identify the optimal model (e.g. BIC, density-based silhouette (DBS), average silhouette width (ASW), etc.), and more to be specified. By default, the EM algorithm is employed, k-medoids is used to obtain starting values, and the BIC is used to choose the optimal model (if a range of models are fitted). In this vignette, we will mostly accept these defaults, with the exception of the `noise.gate` argument.
+
+The optimal model identified in the Murphy et al. (2019) paper has `G=11` components, the `UUN` model type, sampling weights, and one covariate (an indicator of GCSE exam performance) in the gating network, identified using a stepwise variable selection procedure. The UUN model has a specific precision parameter for each time point in each cluster. The `gating` covariates can be specified via a formula interface. The argument `covars` tells the formula where to look for the specified covariates. Here, the probability of belonging to this noise component is set to be independent of the included gating covariate. Thus, to fit such a model:
 
 ```{r, eval=FALSE}
-mod1 <- MEDseq_fit(mvad.seq, G=10, modtype="UCN", weights=mvad$weights, 
-                   gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
+mod1 <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights, gating=~ gcse5eq, 
+                   covars=mvad.cov, control=MEDseq_control(noise.gate=FALSE))
 ```
 
-```{r, echo=FALSE}
-mod1 <- MEDseq_fit(mvad.seq, G=10, modtype="UCN", weights=mvad$weights, 
-                   gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov, verbose=FALSE)
+```{r, include=FALSE}
+load(file="mvad_opt.rda")
 ```
-
-The names of the model types are CC, UC, CU, UU, CCN, UCN, CUN, and UUN. The first letter denotes whether the precision parameters are constrained (C) or unconstrained (U) across clusters, the second denotes the same across time periods, and the third letter (N) indicates the precision of a noise component. In this context, a noise component is one wherein the distribution of the sequences is uniform. 
 
 Typically, a range of `G` values and `modtype` settings are supplied to a single call to `MEDseq_fit` and chosen from using some criterion. Thus, for a given set of covariates, the model which is optimal in terms of the number of components and the precision parameter configuration can be identified. 
 
 To compare different runs using different sets of covariates, the function `MEDseq_compare` can be used. First, let's fit models with all covariates included (except `Grammar` and `Location`) and no covariates included. Let's try different numbers of components and different model types. Note that only the first model here includes a noise component.
 
-```{r}
-# 9-component CUN model with no covariates.
-# The CUN model has a precision parameter for each sequence position (i.e. time point),
+```{r, eval=FALSE}
+# 10-component CUN model with no covariates.
+# CUN models have a precision parameter for each sequence position (i.e. time point),
 # though each time point's precision is common across clusters.
 
-mod2 <- MEDseq_fit(mvad.seq, G=9,  modtype="CUN", weights=mvad$weights, verbose=FALSE)
+mod2 <- MEDseq_fit(mvad.seq, G=10, modtype="CUN", weights=mvad$weights)
 
-# 11-component CC model with all coviarates.
-# The CC model has only a single precision parameter across all clusters and time points.
+# 12-component CC model with all covariates.
+# CC models have a single precision parameter across all clusters and time points.
 
-mod3 <- MEDseq_fit(mvad.seq, G=11, modtype="CC", weights=mvad$weights,
+mod3 <- MEDseq_fit(mvad.seq, G=12, modtype="CC", weights=mvad$weights,
+                   gating=~. - Grammar - Location, covars=mvad.cov)
+```
+
+```{r, echo=FALSE}
+# 10-component CUN model with no covariates.
+# CUN models have a precision parameter for each sequence position (i.e. time point),
+# though each time point's precision is common across clusters.
+
+mod2 <- MEDseq_fit(mvad.seq, G=10, modtype="CUN", weights=mvad$weights, verbose=FALSE)
+
+# 12-component CC model with all covariates.
+# CC models have a single precision parameter across all clusters and time points.
+
+mod3 <- MEDseq_fit(mvad.seq, G=12, modtype="CC", weights=mvad$weights,
                    gating=~. - Grammar - Location, covars=mvad.cov, verbose=FALSE)
 ```
 
-Confirm that the first model is indeed optimal according to the BIC. Examine the optimal model in greater detail. Observe how the UCN model type explicitly includes a noise component.
+Confirm that the first model is indeed optimal according to the BIC. Examine the optimal model in greater detail. 
 
-```{r, eval=FALSE}
+```{r}
 (comp <- MEDseq_compare(mod1, mod2, mod3, criterion="bic"))
+```
+
+```{r}
 opt   <- comp$optimal
 summary(opt, classification = TRUE, parameters = FALSE, network = FALSE)
 ```
 
-```{r, echo=FALSE}
-(comp <- MEDseq_compare(mod1, mod2, mod3, criterion="bic"))
-opt   <- comp$optimal
-suppressMessages(summary(opt))
-```
+Examine the estimated gating network coefficients with the dedicated `print` method. Note that standard errors can be computed by calling `MEDseq_stderr` on the `opt` object, to better inform the interpretations of the covariate effects.
 
-Examine the estimated gating network coefficients. Note that standard errors can be computed by calling `MEDseq_stderr` on the `opt` object, to better inform the interpretations of the covariate effects.
-
-```{r, eval=FALSE}
+```{r}
 print(opt$gating)
 ```
 
-Visualise the clusters uncovered by the optimal model. Note that seriation is applied for visual clarity. The legend indicates which colours correspond to which state categories. 
+Visualise the clusters uncovered by the optimal model. Note that seriation is applied (by default) to the observations within clusters for visual clarity. The legend indicates which colours correspond to which state categories. 
 
 ```{r, eval=FALSE}
 plot(opt, type="clusters")
@@ -180,41 +188,46 @@ biofam.seq <- seqdef(biofam$sequences,
                                 "Left+Marr+Child", "Divorced"))
 ```
 
-While the data set contains weights, they are not appropriate for use; `biofam` is merely a subsample of the original data so the weights are not properly adapted. Thus, we will fit a model without supplying the `weights` argument. Secondly, the data set also contain some baseline covariates. As many of them contain missing values, let's only consider the `birthwt` variable, which gives the birth year of each subject.
+While the data set contains weights, they are not appropriate for use; `biofam` is merely a subsample of the original data so the weights are not properly adapted. Thus, we will fit a model without supplying the `weights` argument. Secondly, the data set also contain some baseline covariates. As many of them contain missing values, let's only consider the `birthwt` variable, which gives the birth year of each subject. Again, we override the `noise.gate=TRUE` default so that the covariate(s) do not influence the mixing proportions of the noise component. We do so here directly, without invoking `MEDseq_control` explicitly. Thus, the noise component's mixing proportion will be constant (though estimated) across all observed sequences and covariate patterns.
 
-In the previous example, the model by default assumed that covariates also influenced the mixing proportion of the noise component. We can override this by specifying `noise.gate=FALSE` via `MEDseq_control`. Thus, the noise component's mixing proportion will be constant (though estimated) across all observed sequences and covariate patterns.
 
 ```{r, eval=FALSE}
 # The UUN model includes a noise component.
 # Otherwise, the model has a precision parameter for each time point in each cluster.
 
-bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", 
-                  gating=~ birthyr, covars=biofam.cov, 
-                  control=MEDseq_control(noise.gate=FALSE))
+bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", gating=~ birthyr, 
+                  covars=biofam.cov, noise.gate=FALSE)
 ```
 
 ```{r, echo=FALSE}
 bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", gating=~ birthyr, 
-                  covars=biofam.cov, control=MEDseq_control(noise.gate=FALSE), verbose=FALSE)
+                  covars=biofam.cov, noise.gate=FALSE, verbose=FALSE)
 ```
 
-Such a model was identified as optimal according to the weighted DBS criterion following the same steps as the analysis of the MVAD data in the Murphy et al. (2019) paper. Print the details of the model to the screen by typing `print(bio)`:
+Such a model was identified as optimal following the same steps as the analysis of the MVAD data in the Murphy et al. (2019) paper, albeit according to the weighted DBS criterion rather than the BIC. Print the details of the model to the screen:
 
 ```{r, echo=FALSE}
 bio$call <- bio$call[-length(bio$call)]
+```
+
+```{r}
 print(bio)
 ```
 
-As before, let's look at the clusters uncovered by the model. This time, `seriate="both"` means to order the clusters and the observations within clusters for visual clarity.
+As before, let's look at the clusters uncovered by the model. This time, `seriate="both"` means to order the clusters themselves as well as the observations within clusters for visual clarity.
 
-```{r}
+```{r, eval=FALSE}
 plot(bio, type="clusters", seriate="both")
 ```
 
-Use the following code to examine the precision parameters. Note how we have a full $16\times G$ matrix of precision parameters, one for each time point in each cluster. Typically, we would not supply the argument `log.scale=TRUE`. However, in this case there are many quite large precision parameter values which skew the colour scale. Indeed, some are even infinite! Infinite precision under UU or UUN models implies that all values for that time point are identical within the given cluster.
+```{r, echo=FALSE}
+knitr::include_graphics("BIO_Clusters.png")
+```
+
+Use the following code to examine the precision parameters. Note how we have a full $16\times G$ matrix of precision parameters, one for each time point in each cluster. In this case there are many quite large precision parameter values which skew the colour scale. Indeed, some are even infinite! Infinite precision under UU or UUN models implies that all values for that time point are identical to the corresponding central sequence position estimate of the given cluster. By specifying `quant.scale=TRUE`, quantiles are used to construct non-linear break-points, thereby ensuring each colour represents an equal proportion of the data. We invoke `seriate` again for comparability.
 
 ```{r}
-plot(bio, type="precision", log.scale=TRUE)
+plot(bio, type="precision", quant.scale=TRUE, seriate="clusters")
 ```
 
 This time, rather than showing the weighted mean DBS values, let's look at observation-specific (unweighted) average silhouette-width values. Note that this relies instead on the MAP partition rather than the soft cluster assignment probabilities.
