@@ -19,7 +19,7 @@
 #' @references Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
 #' @export 
 #' @seealso \code{\link{MEDseq_fit}}
-#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @keywords utility
 #' @usage
 #' dbs(z,
@@ -119,7 +119,7 @@ dbs               <- function(z, ztol = 1E-100, weights = NULL, summ = c("mean",
 #' @export
 #' @importFrom TraMineR "seqdef"
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}
-#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @keywords utility
 #' @usage
 #' get_MEDseq_results(x,
@@ -297,7 +297,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' @export
 #' @keywords clustering main
 #' @importFrom TraMineR "seqdef"
-#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}
 #' @usage
@@ -566,7 +566,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @importFrom TraMineR "seqdef"
 #' @importFrom WeightedCluster "wcKMedoids"
 #' @keywords control
-#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link[cluster]{agnes}}, \code{\link[klaR]{kmodes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' 
@@ -768,7 +768,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @importFrom TraMineR "seqdef" "seqformat"
 #' @importFrom WeightedCluster "wcKMedoids" "wcSilhouetteObs"
 #' @export
-#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @keywords clustering main
 #' @seealso \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}
@@ -922,7 +922,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   if(gate.x)       {
     covars        <- eval(bquote(stats::model.frame(.(stats::update.formula(gating, NULL ~ .)), data=.(call$covars), drop.unused.levels=TRUE)), envir=parent.frame(), enclos=environment())
     gate.names    <- colnames(covars)
-    covars        <- cbind(covars, eval(bquote(stats::model.frame(.(as.formula(paste("~", paste(eval(bquote(all.vars(.(gating))), envir=parent.frame())[-1L], collapse="+")))), data=.(call$covars), drop.unused.levels=TRUE)), envir=parent.frame(), enclos=environment()))
+    covars        <- cbind(covars, eval(bquote(stats::model.frame(.(stats::as.formula(paste("~", paste(eval(bquote(all.vars(.(gating))), envir=parent.frame())[-1L], collapse="+")))), data=.(call$covars), drop.unused.levels=TRUE)), envir=parent.frame(), enclos=environment()))
     covars        <- covars[,unique(colnames(covars)), drop=FALSE]
     covch         <- vapply(covars, is.character, logical(1L))
     covars[covch] <- lapply(covars[covch], factor)
@@ -1770,7 +1770,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #'      seriate = c("observations", "both", "clusters", "none"), 
 #'      quant.scale = FALSE, 
 #'      ...)
-#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @keywords plotting main
 #' @export
 #' @importFrom matrixStats "rowMaxs" "rowSums2" "weightedMedian" "weightedMean"
@@ -2618,7 +2618,7 @@ print.summaryMEDgate  <- function(x, ...) {
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' 
 #' O'Hagan, A., Murphy, T. B., Scrucca, L., and Gormley, I. C. (2019). Investigation of parameter uncertainty in clustering using a Gaussian mixture model via jackknife, bootstrap and weighted likelihood bootstrap. \emph{Computational Statistics}, 34(4): 1779-1813.
-#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @keywords clustering main
 #' @usage
 #' MEDseq_stderr(mod,
@@ -2727,22 +2727,26 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #'
 #' Computes the mean time (per cluster) spent in each sequence category (i.e. state value) for a fitted \code{MEDseq} model.
 #' @param x An object of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}} or an object of class \code{"MEDseqCompare"} generated by \code{\link{MEDseq_compare}}.
-#' @param MAP A logical indicating whether to use the MAP classification in the computation of the averages, or the 'soft' clustering assignments given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}).
-#' @param norm A logical indicating whether the mean times are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries give the total (weighted) number of times a given sequence category was observed in a given cluster.
+#' @param MAP A logical indicating whether to use the MAP classification in the computation of the averages, or the 'soft' clustering assignment probabilities given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}). See \code{weighted} for incorporating the sampling weights (regardless of the value of \code{MAP}).
+#' @param weighted A logical indicating whether the sampling weights (if used during model fitting) are used to compute the weighted averages. These can be used alone (when \code{MAP} is \code{TRUE}) or in conjunction with the 'soft' clustering assignment probabilities (when \code{MAP} is \code{FALSE}). Defaults to \code{TRUE}. Note that the first column of the output is not affected by the value of \code{weighted}.
+#' @param norm A logical indicating whether the mean times (outputted values after the first column) are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries beyond the first column give the total (weighted) number of times a given sequence category was observed in a given cluster.
+#' @param prop A logical (defaulting to \code{FALSE} and only invoked when \code{norm} is also \code{TRUE}) which further normalises the output to give the \emph{proportions} of time spent in each state on average instead of the absolute values.
 #' @details Models with weights, covariates, &/or a noise component are also accounted for.
 #'
 #' @return A matrix with sequence category and cluster-specific mean times, giving clusters on the rows, corresponding cluster sizes in the first column, and sequence categories in the remaining columns.
 #' @importFrom matrixStats "colSums2"
-#' @importFrom TraMineR "seqdef"
+#' @importFrom TraMineR "seqdef" "seqistatd"
 #' @export
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{MEDseq_control}}
-#' @author Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @keywords utility
 #' @usage
 #' MEDseq_meantime(x,
 #'                 MAP = FALSE,
-#'                 norm = TRUE)
+#'                 weighted = TRUE, 
+#'                 norm = TRUE,
+#'                 prop = FALSE)
 #' @examples
 #' \dontshow{suppressMessages(require(TraMineR))}
 #' \donttest{data(biofam)
@@ -2752,38 +2756,54 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #'                           "L+C", "L+M+C", "D"))
 #' mod <- MEDseq_fit(seqs, G=10, modtype="UUN")
 #' 
-#' MEDseq_meantime(mod)
+#' round(MEDseq_meantime(mod), 2)
+#' round(MEDseq_meantime(mod, prop=TRUE), 2)
 #' MEDseq_meantime(mod, MAP=TRUE, norm=FALSE)}
-MEDseq_meantime        <- function(x, MAP = FALSE, norm = TRUE) {
+MEDseq_meantime        <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE, prop = FALSE) {
     UseMethod("MEDseq_meantime")
 }
 
 #' @method MEDseq_meantime MEDseq
 #' @export
-MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, norm = TRUE) {
+MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE, prop = FALSE) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
-  if(length(norm)  > 1 ||
-     !is.logical(norm))          stop("'norm' must be a single logical indicator", call.=FALSE)
   if(length(MAP)   > 1 ||
-     !is.logical(MAP))           stop("'MAP' must be a single logical indicator",  call.=FALSE)
-  MAP             <- isTRUE(MAP) && attr(x, "Algo") != "CEM"
-  alph            <- attr(x$params$theta, "alphabet")
+     !is.logical(MAP))           stop("'MAP' must be a single logical indicator",      call.=FALSE)
+  if(length(weighted)   > 1 ||
+     !is.logical(weighted))      stop("'weighted' must be a single logical indicator", call.=FALSE)
+  if(length(norm)  > 1 ||
+     !is.logical(norm))          stop("'norm' must be a single logical indicator",     call.=FALSE)
+  if(length(prop)  > 1 ||
+     !is.logical(prop))          stop("'prop' must be a single logical indicator",     call.=FALSE)
+  MAP             <- isTRUE(MAP)      && attr(x, "Algo")     != "CEM"
+  weighted        <- isTRUE(weighted) && attr(x, "Weighted")
+  weights         <- attr(x, "Weights")
+  alph            <- attr(x$data, "alphabet")
   V               <- attr(x, "V")
   P               <- attr(x, "T")
   G               <- x$G
   z               <- x$z
   noise           <- attr(x, "Noise")
   gnames          <- paste0("Cluster", seq_len(G))
-  gnames          <- if(isTRUE(noise)) replace(gnames, G, "Noise")   else gnames
-  class           <- if(isTRUE(noise)) replace(x$MAP, x$MAP == 0, G) else x$MAP 
-  tabMAP          <- if(isTRUE(MAP))   tabulate(class)               else colSums2(z)
+  gnames          <- if(isTRUE(noise)) replace(gnames, G, "Noise")    else gnames
+  class           <- if(isTRUE(noise)) replace(x$MAP, x$MAP  == 0, G) else x$MAP 
+  tabMAP          <- if(isTRUE(MAP))   tabulate(class)                else colSums2(z)
+  z               <- if(isTRUE(weighted)) z * weights                 else z
   if(isTRUE(MAP))  {
-    temp          <- do.call(rbind, by(x$data, class,  function(x) tabulate(do.call(base::c, x), V)))
-  } else           {
+    if(isTRUE(weighted))  {
+      temp        <- suppressMessages(seqistatd(x$data)) * weights
+      temp        <- do.call(rbind, lapply(seq_len(G), function(g) colSums2(temp[class == g,])))
+    } else temp   <- do.call(rbind, by(x$data, class,  function(x) tabulate(do.call(base::c, x), V)))
+  }   else         {
     x$data        <- do.call(base::c, .fac_to_num(x$data))
-    temp          <- do.call(rbind, lapply(seq_len(G), function(g) tapply(rep(z[,g], P), x$data, sum)))
+    temp          <- do.call(rbind, lapply(seq_len(G), function(g) tapply(rep(z[,g], P), x$data, sum)))  
   }
-  temp            <- if(isTRUE(norm))  temp/tabMAP                   else temp
+  if(isTRUE(weighted))    {
+    temp          <- temp / colSums2(z)
+    temp          <- if(isFALSE(norm)) temp * tabMAP                  else if(isTRUE(prop)) temp / P else temp
+  } else if(isTRUE(norm)) {
+    temp          <- if(isTRUE(prop))  temp / (tabMAP    * P)         else temp / tabMAP
+  }
   temp            <- cbind(tabMAP, temp)
   rownames(temp)  <- gnames
   colnames(temp)  <- c("Size", alph)

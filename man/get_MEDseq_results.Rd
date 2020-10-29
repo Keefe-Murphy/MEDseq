@@ -59,6 +59,6 @@ Arguments to this function can be supplied to \code{\link{plot.MEDseq}} via the 
 \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}
 }
 \author{
-Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
+Keefe Murphy - <\email{keefe.murphy@mu.ie}>
 }
 \keyword{utility}

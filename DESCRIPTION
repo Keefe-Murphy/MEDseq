@@ -3,7 +3,7 @@ Type: Package
 Date: 2020-05-12
 Title: Mixtures of Exponential-Distance Models with Covariates
 Version: 1.1.1
-Authors@R: c(person("Keefe", "Murphy", email = "keefe.murphy@ucd.ie", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7709-3159")),
+Authors@R: c(person("Keefe", "Murphy", email = "keefe.murphy@mu.ie", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7709-3159")),
            person("Thomas Brendan", "Murphy", email = "brendan.murphy@ucd.ie", role = "ctb", comment = c(ORCID = "0000-0002-5668-7046")),
            person("Raffaella", "Piccarreta", email = "raffaella.piccarreta@unibocconi.it ", role = "ctb"),
            person("Isobel Claire", "Gormley", email = "claire.gormley@ucd.ie", role = "ctb"))

@@ -64,7 +64,7 @@ O'Hagan, A., Murphy, T. B., Scrucca, L., and Gormley, I. C. (2019). Investigatio
 \code{\link{MEDseq_fit}}
 }
 \author{
-Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
+Keefe Murphy - <\email{keefe.murphy@mu.ie}>
 }
 \keyword{clustering}
 \keyword{main}

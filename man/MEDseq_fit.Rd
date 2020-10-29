@@ -146,7 +146,7 @@ Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering
 \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}
 }
 \author{
-Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
+Keefe Murphy - <\email{keefe.murphy@mu.ie}>
 }
 \keyword{clustering}
 \keyword{main}

@@ -60,6 +60,6 @@ Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods.
 \code{\link{MEDseq_fit}}
 }
 \author{
-Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
+Keefe Murphy - <\email{keefe.murphy@mu.ie}>
 }
 \keyword{utility}

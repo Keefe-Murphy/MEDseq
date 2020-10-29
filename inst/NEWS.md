@@ -11,6 +11,10 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
   the `preczero` argument has thus been removed from both functions.
   
 ### New Features & Improvements
+* `MEDseq_meantime` gains two new arguments (see documentation for more details):  
+    * `weighted` (default: `TRUE`, old: `FALSE`) allows the sampling weights to be used,  
+    with or without the cluster assignment probabilities, in the computation of the weighted averages.
+    * `prop` (default: `FALSE`) divides the output when `norm=TRUE` by the sequence length.
 * `MEDseq_control` gains the arg. `random=TRUE`, governing tie-breaking of estimated central sequence  
   positions: old behaviour (always choosing the first candidate state) recoverable via `random=FALSE`.
 * `plot.MEDseq` arg. `quant.scale=FALSE` replaces old arg. `log.scale`: quantiles now used  
@@ -43,7 +47,8 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Ensured `matrixStats (>= 0.53.1)` and `TraMineR (>= 1.6)` in `Imports:`.
 * Package startup message now checks if newer version of package is available from CRAN.
 * Significant vignette edits.
-* Minor documentation & examples edits.
+* Updated maintainer e-mail address.
+* Minor documentation, examples, and CRAN compliance edits.
 
 ## MEDseq v1.1.1 - (_4<sup>th</sup> release [patch update]: 2020-05-12_)
 ### Bug Fixes & Miscellaneous Edits

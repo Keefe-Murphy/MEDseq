@@ -87,10 +87,6 @@ mod1 <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights, gating=~
                    covars=mvad.cov, control=MEDseq_control(noise.gate=FALSE))
 ```
 
-```{r, include=FALSE}
-load(file="mvad_opt.rda")
-```
-
 Typically, a range of `G` values and `modtype` settings are supplied to a single call to `MEDseq_fit` and chosen from using some criterion. Thus, for a given set of covariates, the model which is optimal in terms of the number of components and the precision parameter configuration can be identified. 
 
 To compare different runs using different sets of covariates, the function `MEDseq_compare` can be used. First, let's fit models with all covariates included (except `Grammar` and `Location`) and no covariates included. Let's try different numbers of components and different model types. Note that only the first model here includes a noise component.
@@ -109,21 +105,13 @@ mod3 <- MEDseq_fit(mvad.seq, G=12, modtype="CC", weights=mvad$weights,
                    gating=~. - Grammar - Location, covars=mvad.cov)
 ```
 
-```{r, echo=FALSE}
-# 10-component CUN model with no covariates.
-# CUN models have a precision parameter for each sequence position (i.e. time point),
-# though each time point's precision is common across clusters.
-
-mod2 <- MEDseq_fit(mvad.seq, G=10, modtype="CUN", weights=mvad$weights, verbose=FALSE)
-
-# 12-component CC model with all covariates.
-# CC models have a single precision parameter across all clusters and time points.
-
-mod3 <- MEDseq_fit(mvad.seq, G=12, modtype="CC", weights=mvad$weights,
-                   gating=~. - Grammar - Location, covars=mvad.cov, verbose=FALSE)
-```
-
 Confirm that the first model is indeed optimal according to the BIC. Examine the optimal model in greater detail. 
+
+```{r, include=FALSE}
+load(file="mvad_mod1.rda")
+load(file="mvad_mod2.rda")
+load(file="mvad_mod3.rda")
+```
 
 ```{r}
 (comp <- MEDseq_compare(mod1, mod2, mod3, criterion="bic"))
@@ -166,7 +154,7 @@ Use the following code to see the observation-specific (weighted) density-based 
 plot(opt, type="dbsvals")
 ```
 
-Finally, we can quantify the type of observation characterising each cluster by computing the mean time spent in each state within each cluster. By specifying `MAP=TRUE` here, we are computing the mean time based on the hard MAP partition rather than the soft probabilistic assignments. By specifying `norm=TRUE` (which is the default), the mean times are normalised to sum to the sequence length within each cluster. The size of each cluster in terms of the number of observations assigned to it is also reported.
+Finally, we can quantify the type of observation characterising each cluster by computing the mean time spent in each state within each cluster. By specifying `MAP=TRUE` here, we are computing the mean time based on the hard MAP partition rather than weighted by the soft cluster membership probabilities (albeit still weighted by the sampling weights used during model fitting, by default). By specifying `norm=TRUE` (which is the default), the mean times are normalised to sum to the sequence length within each cluster. The size of each cluster in terms of the number of observations assigned to it is also reported.
 
 ```{r}
 MEDseq_meantime(opt, MAP=TRUE, norm=TRUE)

@@ -34,7 +34,7 @@
 #' @author
 #' Keefe Murphy [aut, cre], Thomas Brendan Murphy [ctb], Raffaella Piccarreta [ctb], Isobel Claire Gormley [ctb]
 #'
-#' \strong{Maintainer}: Keefe Murphy - <\email{keefe.murphy@@ucd.ie}>
+#' \strong{Maintainer}: Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' @examples
 #' \dontshow{suppressMessages(require(TraMineR))}

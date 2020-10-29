@@ -113,7 +113,7 @@ Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering
 \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}
 }
 \author{
-Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
+Keefe Murphy - <\email{keefe.murphy@mu.ie}>
 }
 \keyword{clustering}
 \keyword{main}

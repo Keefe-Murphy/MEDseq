@@ -129,7 +129,7 @@ Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing a
 \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}
 }
 \author{
-Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
+Keefe Murphy - <\email{keefe.murphy@mu.ie}>
 }
 \keyword{main}
 \keyword{plotting}

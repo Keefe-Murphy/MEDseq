@@ -751,7 +751,7 @@
 
 .unique_list      <- function(x) {
   x               <- lapply(x, function(x) { attributes(x) <- NULL; x} )
-    sum(duplicated.default(x, nmax=1L))   == length(x) - 1L
+    sum(duplicated.default(x, nmax = 1L)) == (length(x) - 1L)
 }
 
 .unMAP            <- function(classification, groups = NULL, noise = NULL, ...) {

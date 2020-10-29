@@ -90,6 +90,6 @@ Useful links:
 \author{
 Keefe Murphy [aut, cre], Thomas Brendan Murphy [ctb], Raffaella Piccarreta [ctb], Isobel Claire Gormley [ctb]
 
-\strong{Maintainer}: Keefe Murphy - <\email{keefe.murphy@ucd.ie}>
+\strong{Maintainer}: Keefe Murphy - <\email{keefe.murphy@mu.ie}>
 }
 \keyword{package}
