@@ -28,7 +28,7 @@ If you find bugs or want to suggest new features please visit the __MEDseq__ [Gi
 This vignette mostly aims to demonstrate the __MEDseq__ models by reproducing the analysis of the MVAD data in the Murphy et al. (2019) paper. However, an additional example data set is also analysed.
 
 ### Installing MEDseq
-__MEDseq__ will run in Windows, Mac OS X, or Linux. To install it you first need to install [R](https://cran.r-project.org/). Installing [Rstudio](https://www.rstudio.com/) as a nice desktop environment for using R is also recommended.
+__MEDseq__ will run in Windows, Mac OS X, or Linux. To install it you first need to install [R](https://cran.r-project.org/). Installing [RStudio](https://rstudio.com/) as a nice desktop environment for using R is also recommended.
 
 Once in R you can type at the R command prompt:
 
@@ -202,20 +202,20 @@ bio$call <- bio$call[-length(bio$call)]
 print(bio)
 ```
 
-As before, let's look at the clusters uncovered by the model. This time, `seriate="both"` means to order the clusters themselves as well as the observations within clusters for visual clarity.
+As before, let's look at the clusters uncovered by the model. This time, `seriated="both"` means to order the clusters themselves as well as the observations within clusters for visual clarity.
 
 ```{r, eval=FALSE}
-plot(bio, type="clusters", seriate="both")
+plot(bio, type="clusters", seriated="both")
 ```
 
 ```{r, echo=FALSE}
 knitr::include_graphics("BIO_Clusters.png")
 ```
 
-Use the following code to examine the precision parameters. Note how we have a full $16\times G$ matrix of precision parameters, one for each time point in each cluster. In this case there are many quite large precision parameter values which skew the colour scale. Indeed, some are even infinite! Infinite precision under UU or UUN models implies that all values for that time point are identical to the corresponding central sequence position estimate of the given cluster. By specifying `quant.scale=TRUE`, quantiles are used to construct non-linear break-points, thereby ensuring each colour represents an equal proportion of the data. We invoke `seriate` again for comparability.
+Use the following code to examine the precision parameters. Note how we have a full $16\times G$ matrix of precision parameters, one for each time point in each cluster. In this case there are many quite large precision parameter values which skew the colour scale. Indeed, some are even infinite! Infinite precision under UU or UUN models implies that all values for that time point are identical to the corresponding central sequence position estimate of the given cluster. By specifying `quant.scale=TRUE`, quantiles are used to construct non-linear break-points, thereby ensuring each colour represents an equal proportion of the data. We invoke `seriated` again for comparability.
 
 ```{r}
-plot(bio, type="precision", quant.scale=TRUE, seriate="clusters")
+plot(bio, type="precision", quant.scale=TRUE, seriated="clusters")
 ```
 
 This time, rather than showing the weighted mean DBS values, let's look at observation-specific (unweighted) average silhouette-width values. Note that this relies instead on the MAP partition rather than the soft cluster assignment probabilities.

@@ -1,6 +1,7 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+## MEDseq v1.2.0 - (_5<sup>th</sup> release [minor update]: 2020-11-20_)
 ### Significant user-visible changes
 * Corrected the parameter count penalty for the BIC, ICL, and AIC model selection criteria,  
   specifically, the count is now greater for the central sequence position estimates.
@@ -23,25 +24,28 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
   _highest available_ value for the `pamonce` option,  based on the `cluster` package's version number.
 * `init.z` gains the options `"kmodes"` & `"kmodes2"`, though only for _unweighted_ sequences:  
   both require the newly _suggested_ `klaR (>= 0.6-13)` package.
+* `plot.MEDseq` gains the arg. `smeth`, governing the seriation method to be used (`"TSP"`, by default).
 * For weighted sequences, `init.z="kmedoids"` is now itself initialised by Ward's hierarchical clustering.
 * Significant speed-ups to computation of central sequences for all `opti` settings (esp. `"mode"`).
 * Added `SPS` arg. (default=`FALSE`) to `print.MEDtheta` & `summary.MEDseq`.
-* `seriate="observations"` (the default) now also works for `type="I"` plots.
-* `seriate="clusters"` now also works for `type="dbsvals"` & `type="aswvals"` plots.
 * `dbs` gains the optional/experimental arg. `clusters` - no change to default.
   
 ### Bug Fixes & Miscellaneous Edits
+* Various fixes to the `seriated` arg. to `plot.MEDseq`:  
+    * Arg. name changed from `seriate` to avoid conflict with function `seriation::seriate`.  
+    * Fixed `seriated` options `"clusters"`/`"both"` for models with no noise component.  
+    * `seriated="observations"` (the default) now also works for `type="I"` plots.  
+    * `seriated="clusters"` now also works for `type="dbsvals"` & `type="aswvals"` plots. 
 * `MEDseq_fit` now always internally normalises the `weights` to sum to the sample size.
 * Minor fixes to properly account for weighted sequences &/or duplicates when `noise.gate=FALSE`.
 * Minor fix to gathering of results to account for `noise.gate=FALSE` when `G=2`.
-* Fixed `seriate` options `"clusters"`/`"both"` in `plot.MEDseq` for models with no noise component.
 * `MEDseq_stderr` now respects the `algo`, `opti`, & `noise.gate` settings of the original model.
 * `MEDseq_compare` now returns & prints `opti` info where relevant.
 * Fixes to `print` & `summary` methods for `MEDgating` objects if `equalPro=TRUE`.
 * `MEDseq_fit` now coerces `"character"` covariates to `"factor"`.
 * Minor fixes to `print` method for `MEDlambda` objects also.
 * Additional minor edits to `plot.MEDseq(..., type="gating")`.
-* `print.MEDseqCompare` gains the args. `maxi`, & `rerank=FALSE`.
+* `print.MEDseqCompare` gains the args. `maxi` & `rerank=FALSE`.
 * Minor speed-ups for `G=1` models.
 * Added `viridisLite (>= 0.2.0)` to `Suggests:` (for `plot.MEDseq(..., type="precision")`).
 * Ensured `matrixStats (>= 0.53.1)` and `TraMineR (>= 1.6)` in `Imports:`.
