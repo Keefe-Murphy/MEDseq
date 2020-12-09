@@ -30,6 +30,9 @@ Computes the mean time (per cluster) spent in each sequence category (i.e. state
 \details{
 Models with weights, covariates, &/or a noise component are also accounted for.
 }
+\note{
+The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be used to visualise the mean times (by cluster). However, the results displayed therein (at present) always assume \code{MAP=TRUE}, \code{weighted=TRUE}, \code{norm=TRUE}, and \code{prop=FALSE}.
+}
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}
 \donttest{data(biofam)
@@ -47,7 +50,7 @@ MEDseq_meantime(mod, MAP=TRUE, norm=FALSE)}
 Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 }
 \seealso{
-\code{\link{MEDseq_fit}}, \code{\link{MEDseq_control}}
+\code{\link{MEDseq_fit}}, \code{\link{MEDseq_control}}, \code{\link{plot.MEDseq}}
 }
 \author{
 Keefe Murphy - <\email{keefe.murphy@mu.ie}>

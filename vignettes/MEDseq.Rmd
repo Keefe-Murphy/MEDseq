@@ -11,9 +11,14 @@ vignette: >
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(fig.width=7, fig.height=7, fig.align = 'center', fig.show='hold',
-                      dev.args=list(type="cairo"), warning=FALSE, message=FALSE, 
-                      progress=FALSE, collapse=TRUE, comments="#>")
+knitr::opts_chunk$set(fig.width=7, fig.height=7, fig.align = 'center', 
+                      fig.show='hold', warning=FALSE, 
+                      message=FALSE, progress=FALSE, 
+                      collapse=TRUE, comments="#>")
+
+if(isTRUE(capabilities("cairo"))) {
+  knitr::opts_chunk$set(dev.args=list(type="cairo"))
+}
 ```
 
 ## Introduction
@@ -236,7 +241,7 @@ Now let's use the plot function from __MEDseq__ to examine the transversal entro
 plot(bio, type="Ht")
 ```
 
-Other plot types adapted from __TraMineR__ can be produced using `type="d"` (state distribution plots), `type="f"` (state frequency plots), `type="i"` (selected sequence index plots), and `type="I"` (whole set index plots). Each of these plots are shown on a per-cluster basis. Clustering uncertainties, the gating network, and model selection criteria can also be visualised. 
+Other plot types adapted from __TraMineR__ can be produced using `type="d"` (state distribution plots), `type="f"` (state frequency plots), `type="i"` (selected sequence index plots), `type="I"` (whole set index plots), `type="ms"` (modal state plots; an alternative to `type="mean"` above), and `type="mt"` (mean times plots). Each of these plots are shown on a per-cluster basis, and all account for the sampling weights (if any). Clustering uncertainties, the gating network, and model selection criteria can also be visualised. 
 
 ---------
 

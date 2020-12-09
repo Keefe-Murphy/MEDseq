@@ -83,7 +83,7 @@
 
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowSums2"
 #' @importFrom stringdist "stringdistmatrix"
-.E_step           <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
+.E_step           <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL, HAM.mat = NULL) {
   G               <- attr(seqs, "G")
   N               <- attr(seqs, "N")
   P               <- attr(seqs, "T")
@@ -95,6 +95,7 @@
   theta           <- params$theta
   lambda          <- switch(EXPR=modtype, CC=, CCN=as.vector(params$lambda), params$lambda)
   dG.X            <- is.null(params$dG)
+  opti            <- ctrl$opti
   if(is.null(numseq)       &&
      isFALSE(ctrl$numseq)  &&
      ctrl$nmeth   && dG.X)  {
@@ -103,7 +104,7 @@
   
   if(G  == 1L)     { 
     return(if(ctrl$do.wts)  {
-     dG <- if(dG.X)  switch(EXPR=modtype, CC=.dseq(seqs, theta), CU=numseq != .char_to_num(theta))                                 else params$dG
+     dG <- if(dG.X)  switch(EXPR=modtype, CC=switch(EXPR=opti, medoid=HAM.mat[,attr(theta, "Ind"), drop=FALSE], .dseq(seqs, theta)), CU=numseq != .char_to_num(theta)) else params$dG
              switch(EXPR=modtype, 
                     CC  = -ifelse(lambda == 0, attr(seqs, "W") * lPV, lambda * sum(attr(seqs, "Weights") * dG, na.rm=TRUE) + attr(seqs, "W") * P * log1p(V1 * exp(-lambda))),
                     CCN = -attr(seqs, "W") * lPV,
@@ -116,7 +117,7 @@
            })
   } else {
     dG  <- if(dG.X)  switch(EXPR=modtype, 
-                            CC=, UC=, CCN=, UCN=vapply(Gseq, function(g) .dseq(seqs, theta[g]), numeric(N)),
+                            CC=, UC=, CCN=, UCN=switch(EXPR=opti, medoid=HAM.mat[,attr(theta, "Ind"), drop=FALSE], vapply(Gseq, function(g) .dseq(seqs, theta[g]), numeric(N))),
                             CU=, UU=, CUN=, UUN=lapply(Gseq, function(g) unname(apply(numseq, 2L, "!=", .char_to_num(theta[g]))))) else params$dG
     log.tau       <- .mat_byrow(log(params$tau), nrow=N, ncol=G)
     if(noise)      {
@@ -206,7 +207,7 @@
   if(!(runEM      <- g > 1))   {
     ctrl$ties     <- TRUE
     Mstep         <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, HAM.mat=HAM.mat)
-    ll            <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
+    ll            <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep, HAM.mat=HAM.mat)
     j             <- 1L
     ERR           <- FALSE
   } else           {
@@ -221,7 +222,7 @@
       check       <- any(attr(Mstep$theta, "NonUnique")) || isFALSE(attr(Mstep$theta, "NoTies"))
       ctrl$ties   <- j < 4 || 
       (noty       <- noty  && !check)
-      Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep)
+      Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep, HAM.mat=HAM.mat)
       z           <- Estep$z
       ERR         <- any(is.nan(z))
       if(isTRUE(ERR))            break
@@ -265,7 +266,7 @@
 
 #' @importFrom matrixStats "colSums2" "rowMeans2" "rowSums2"
 #' @importFrom stringdist "stringdistmatrix"
-.lambda_mle       <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL) {
+.lambda_mle       <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL, HAM.mat = NULL) {
   theta           <- params$theta
   P               <- attr(seqs, "T")
   V1V             <- attr(seqs, "V1V")
@@ -275,6 +276,7 @@
   noise           <- attr(seqs, "Noise")
   n.meth          <- is.element(l.meth, c("CU", "UU", "CUN", "UUN"))
   p.meth          <- is.element(l.meth, c("UC", "UU", "UCN", "UUN"))
+  opti            <- ctrl$opti
   if(is.null(numseq) && n.meth)        {
     numseq        <- sapply(seqs, .char_to_num)
   }
@@ -283,7 +285,7 @@
         return(list(lambda = matrix(0L, nrow=1L, ncol=1L)))
     }
     numer         <- switch(EXPR=l.meth, CC=P, CU=1L)
-    dG            <- switch(EXPR=l.meth, CC=.dseq(seqs, theta), numseq != .char_to_num(theta))
+    dG            <- switch(EXPR=l.meth, CC=switch(EXPR=opti, medoid=HAM.mat[,attr(theta, "Ind"), drop=FALSE], .dseq(seqs, theta)), numseq != .char_to_num(theta))
     if(ctrl$do.wts)                    {
       ws          <- attr(seqs, "Weights")
       denom       <- switch(EXPR=l.meth, CC=sum(dG * ws)/W, CU=rowSums2(sweep(dG, 2L, ws, FUN="*", check.margin=FALSE))/W)
@@ -306,7 +308,7 @@
       dGp         <- vapply(seq_len(G0), function(g) rowSums2(sweep(dG[[g]], 2L, z[,g], FUN="*", check.margin=FALSE)), numeric(P))
     },             {
       pN          <- P * switch(EXPR=l.meth, CCN=sum(z), W)
-      dG          <- vapply(seq_len(G0), function(g) .dseq(seqs, theta[g]), numeric(N))
+      dG          <- switch(EXPR=opti, medoid=HAM.mat[,attr(theta, "Ind"), drop=FALSE], vapply(seq_len(G0), function(g) .dseq(seqs, theta[g]), numeric(N)))
     })
     numer         <- switch(EXPR=l.meth, CC=,  CCN=pN,       
                                          UC=,  UCN=pN * prop,  
@@ -328,7 +330,7 @@
 #' @importFrom matrixStats "colMeans2" "colSums2" "rowSums2"
 #' @importFrom nnet "multinom"
 .M_step           <- function(seqs, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
-                              ctrl, gating = NULL, covars = NULL, z = NULL, numseq = NULL, HAM.mat = HAM.mat) {
+                              ctrl, gating = NULL, covars = NULL, z = NULL, numseq = NULL, HAM.mat = NULL) {
   if(!is.null(gating))    {
     environment(gating)  <- environment()
   }
@@ -365,7 +367,7 @@
     }
   }   else prop   <- tau <- 1L
   theta           <- .optimise_theta(seqs=seqs, ctrl=ctrl, z=z, numseq=numseq, HAM.mat=HAM.mat)
-  MLE             <- .lambda_mle(seqs=seqs, params=list(theta=theta, z=z, prop=prop), modtype=modtype, ctrl=ctrl, numseq=numseq)
+  MLE             <- .lambda_mle(seqs=seqs, params=list(theta=theta, z=z, prop=prop), modtype=modtype, ctrl=ctrl, numseq=numseq, HAM.mat=HAM.mat)
   param           <- list(theta=theta, lambda=MLE$lambda, dG=MLE$dG, tau=tau, fitG=if(G > 1 && gate.g) fitG)
   attr(param, "modtype") <- modtype
     return(param)
@@ -549,10 +551,12 @@
   }
   
   theta.opt       <- .theta_data(seqs=seqs, z=z, ctrl=ctrl, HAM.mat=HAM.mat)
+  inds            <- attr(theta.opt$theta, "Ind")
   nonu            <- attr(theta.opt$theta, "NonUnique")
   noties          <- attr(theta.opt$theta, "NoTies")
   if(opti == "medoid")       {
     theta         <- if(nmeth) c(theta.opt$theta, NA) else theta.opt$theta
+    attr(theta,   "Ind")         <- inds
     attr(theta,   "NonUnique")   <- nonu
     attr(theta,   "NoTies")      <- noties
       return(theta)
@@ -691,7 +695,7 @@
 
 #' @importFrom matrixStats "colSums2" "rowSums2"
 #' @importFrom stringdist "stringdistmatrix"
-.theta_data       <- function(seqs, z = NULL, ctrl = NULL, HAM.mat = HAM.mat) {
+.theta_data       <- function(seqs, z = NULL, ctrl = NULL, HAM.mat = NULL) {
   if((G <- attr(seqs, "G"))   == 1L)   {
     sumdist       <- if(ctrl$do.wts)    colSums2(HAM.mat * attr(seqs, "Weights")) else rowSums2(HAM.mat)
     distmin       <- min(sumdist)
@@ -705,6 +709,7 @@
      }
     }
     theta         <- seqs[ind]
+    attr(theta, "Ind")        <- ind
     attr(theta, "NonUnique")  <- nonu
     attr(theta, "NoTies")     <- !nonu
       return(list(theta = theta, dsum = distmin))
@@ -714,7 +719,8 @@
     theta         <- dsum     <- list()
     noties        <- TRUE
     G0            <- G - ctrl$nmeth
-    nonu          <- rep(FALSE, G0)
+    nonu          <- 
+    inds          <- rep(FALSE, G0)
     for(g in seq_len(G0))      {
       sumdist     <- colSums2(HAM.mat  * z[,g])
       distmin     <- min(sumdist)
@@ -732,8 +738,10 @@
       }
       theta[[g]]  <- seqs[ind]
       dsum[[g]]   <- distmin
+      inds[[g]]   <- ind
     }
     theta         <- do.call(base::c, theta)
+    attr(theta, "Ind")        <- inds
     attr(theta, "NonUnique")  <- nonu
     attr(theta, "NoTies")     <- noties
       return(list(theta = theta, dsum  = do.call(base::c, dsum)))

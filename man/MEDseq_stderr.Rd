@@ -27,8 +27,11 @@ A list with the following two elements:
 \description{
 Computes standard errors of the gating network coefficients in a fitted MEDseq model using either the Weighted Likelihood Bootstrap or Jackknife methods.
 }
-\note{
+\details{
 A progress bar is displayed as the function iterates over the \code{N} samples. The function may take a long time to run for large \code{N}. The function terminates immediately if \code{mod$G == 1}.
+}
+\note{
+The \code{symmetric} argument is an experimental feature. More generally, caution is advised in interpreting the standard error estimates under \emph{either} the \code{"WLBS"} \strong{or} the \code{"Jackknife"} \code{method} when there are existing sampling weights which arise from complex/stratified sampling designs.
 }
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}

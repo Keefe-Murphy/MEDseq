@@ -9,7 +9,7 @@
               "bic", "icl", "aic", "dbs", "asw", "cv", 
               "nec", "LOGLIK", "dbsvals", "aswvals", 
               "uncert.bar", "uncert.profile", "loglik", 
-              "d", "f", "Ht", "i", "I"), 
+              "d", "f", "Ht", "i", "I", "ms", "mt"), 
      seriated = c("observations", "both", "clusters", "none"), 
      smeth = "TSP",
      quant.scale = FALSE, 
@@ -21,7 +21,7 @@
 \item{type}{A character string giving the type of plot requested:
 \describe{
 \item{\code{"clusters"}}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriated}. Similar to the \code{type="I"} plot (see below).}
-\item{\code{"mean"}}{Visualise the central sequences. See \code{seriated}. The central sequence for the noise component, if any is not shown as it doesn't contribute in any way to the likelihood.}
+\item{\code{"mean"}}{Visualise the central sequences (typically modal sequences, but this depends on the \code{opti} argument to \code{\link{MEDseq_control}} used during model-fitting). See \code{seriated}. The central sequence for the noise component, if any, is not shown as it doesn't contribute in any way to the likelihood. See the \code{type="ms"} option below for an alternative means of displaying the central sequences.}
 \item{\code{"precision"}}{Visualise the precision parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{"white"} and \code{"black"} respectively (see \code{quant.scale}).}
 \item{\code{"gating"}}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriated}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
 \item{\code{"bic"}}{Plots all BIC values in a fitted \code{MEDseq} object.}
@@ -38,22 +38,24 @@
 \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties in the form of a profile plot.}
 \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
 }
-Also available are the following options which act as wrappers to types of plots produced by the \code{\link[TraMineR]{seqplot}} function in the \pkg{TraMineR} package. All are affected by the value of \code{seriated}.
+Also available are the following options which act as wrappers to types of plots produced by the \code{\link[TraMineR]{seqplot}} function in the \pkg{TraMineR} package. All are affected by the value of \code{seriated} and all account for the sampling weights, if any. Note that all but \code{type="ms"} below work with the hard MAP partition and discard the soft cluster membership probabilities.
 \describe{
 \item{\code{"d"}}{State distribution plots (by cluster).}
 \item{\code{"f"}}{Sequence frequency plots (by cluster).}
 \item{\code{"Ht"}}{Transversal entropy plots (by cluster).}
 \item{\code{"i"}}{Selected sequence index plots (by cluster).}
 \item{\code{"I"}}{Whole set index plots (by cluster). This plot effectively contains the same information as \code{type="clusters"}, and is similarly affected by the \code{seriated} argument, albeit shown on a by-cluster basis rather than stacked in one plot.}
+\item{\code{"ms"}}{Modal state sequence plots (by cluster). This is an alternative way of displaying the central sequences beyond the \code{type="mean"} option above. Notably, this option respects arguments passed to \code{\link{get_MEDseq_results}} via the \code{...} construct (see below), while \code{type="mean"} does not, although still nothing is shown for the noise component. Displayed plots will always show \emph{weighted} results, regardless of the inclusion of sampling weights, unless the model has no such weights and either a) has only one non-noise component or b) was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}} (i.e. unless the model uses hard assignments). \strong{Note}: unlike \code{type="mean"}, this option always plots \emph{modal} sequences, even if another \code{opti} setting was invoked during model-fitting via \code{\link{MEDseq_control}}, in which case there will be a mismatch between the visualisation and \code{x$params$theta}.}
+\item{\code{"mt"}}{Mean times plots (by cluster). At present, this is equivalent to plotting the results of \code{\link{MEDseq_meantime}(x, MAP=TRUE, weighted=TRUE, norm=TRUE, prop=FALSE)}. Other options (particularly \code{MAP=FALSE}) may be added in future versions of this package.}
 }}
 
-\item{seriated}{Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} argument below. The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}. Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, or \code{"I"}, which are also the only options for which \code{"both"} is relevant.}
+\item{seriated}{Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} argument below. The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, or \code{"I"}, which are also the only options for which \code{"both"} is relevant.}
 
 \item{smeth}{A character string with the name of the seriation method to be used. Defaults to \code{"TSP"}. See \code{\link[seriation]{seriate}} and \code{seriation::list_seriation_methods("dist")} for further details. Only relevant when \code{seriated != "none"}.}
 
 \item{quant.scale}{Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.}
 
-\item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used.}
+\item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used.}
 }
 \value{
 The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
@@ -62,7 +64,7 @@ The visualisation according to \code{type} of the results of a fitted \code{MEDs
 Produces a range of plots of the results of fitted \code{MEDseq} models.
 }
 \details{
-The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, or \code{"I"}.
+The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}.
 }
 \note{
 Every \code{type} of plot respects the sampling weights, if any. Those related to \code{\link[TraMineR]{seqdef}} plots from \pkg{TraMineR} may be too wide to display in the preview panel. The same is also true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}.
@@ -129,7 +131,7 @@ Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering
 Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. \emph{Journal of Statistical Software}, 40(4): 1-37.
 }
 \seealso{
-\code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}, \code{\link[seriation]{list_seriation_methods}}
+\code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}, \code{\link[seriation]{list_seriation_methods}}, \code{\link{MEDseq_meantime}}
 }
 \author{
 Keefe Murphy - <\email{keefe.murphy@mu.ie}>

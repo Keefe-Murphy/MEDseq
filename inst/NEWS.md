@@ -1,6 +1,15 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+## MEDseq v1.2.1 - (_6<sup>th</sup> release [patch update]: 2020-12-29_)
+### Bug Fixes & Miscellaneous Edits
+* The `"d"`, `"f"`, `"Ht"`, `"i"`, & `"I"` plot types now properly account for sampling weights.
+* Layout and legend-placement has been improved for these same types of plots.
+* Mimicking `TraMineR` further, `plot.MEDseq` also gains the `type` options `"ms"` & `"mt"`.
+* Minor speed-ups associated with the `opti="medoid"` setting.
+* Added ORCID iDs to DESCRIPTION.
+* Minor CRAN compliance edits to the vignette.
+
 ## MEDseq v1.2.0 - (_5<sup>th</sup> release [minor update]: 2020-11-20_)
 ### Significant user-visible changes
 * Corrected the parameter count penalty for the BIC, ICL, and AIC model selection criteria,  
