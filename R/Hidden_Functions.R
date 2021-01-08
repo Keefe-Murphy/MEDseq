@@ -76,6 +76,24 @@
     form
 }
 
+.drop_levels      <- function(fit, newdata) {
+  if(!is.data.frame(newdata))    stop("'newdata' must be a data.frame", call.=FALSE)
+  dat.fac         <- vapply(newdata, is.factor, logical(1L))
+  if(!any(dat.fac))              return(newdata)
+  factors         <- rep(names(fit$xlevels), vapply(fit$xlevels, length, integer(1L)))
+  factorLevels    <- unname(unlist(fit$xlevels))
+  modelFactors    <- cbind.data.frame(factors, factorLevels)
+  predictors      <- names(newdata[names(newdata) %in% factors])
+  for(i in seq_along(predictors))  {
+    ind           <- newdata[,predictors[i]]      %in% modelFactors[modelFactors$factors == predictors[i],]$factorLevels
+    if(any(!ind))  {
+      newdata[!ind,predictors[i]] <- NA
+      newdata[,predictors[i]]     <- factor(newdata[,predictors[i]], levels=modelFactors[modelFactors$factors == predictors[i],]$factorLevels)
+    }
+  }
+    newdata
+}
+
 #' @importFrom stringdist "stringdistmatrix"
 .dseq             <- function(seqs, theta) {
     stringdistmatrix(seqs, theta, method="hamming")

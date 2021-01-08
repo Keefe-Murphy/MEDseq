@@ -1,6 +1,17 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+### Bug Fixes & Miscellaneous Edits
+* Added `predict`, `fitted`, & `residuals` methods for `"MEDgating"` objects, i.e. `x$gating`.
+* Minor fixes to returned `x$gating` object, especially for `equalPro` models  
+with a noise component and weighted models _without_ any gating covariates at all.
+* Stronger checks to ensure `weights` arg. is explicitly supplied to `MEDseq_fit`  
+in cases where the `"stslist"` object passed via `seqs` has the `"weights"` attribute.
+* Stronger checks for variables in `gating` formula which are not found in `covars`.
+* Minor fixes to `print.MEDseq` for models where DBS &/or ASW statistics weren't computed.
+* Removed some superfluous warnings for all but the `"mt"` `TraMineR` type plots.
+* Minor vignette edits.
+
 ## MEDseq v1.2.1 - (_6<sup>th</sup> release [patch update]: 2020-12-29_)
 ### Bug Fixes & Miscellaneous Edits
 * The `"d"`, `"f"`, `"Ht"`, `"i"`, & `"I"` plot types now properly account for sampling weights.

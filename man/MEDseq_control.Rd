@@ -94,13 +94,12 @@ Supplies a list of arguments (with defaults) for use with \code{\link{MEDseq_fit
 }
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}
-data(mvad)
-
 # The CC MEDseq model is almost equivalent to k-medoids when the
 # CEM algorithm is employed, mixing proportions are constrained,
 # and the central sequences are restricted to the observed sequences
 ctrl   <- MEDseq_control(algo="CEM", equalPro=TRUE, opti="medoid", criterion="asw")
 \donttest{
+data(mvad)
 # Note that ctrl must be explicitly named 'ctrl'
 mod   <- MEDseq_fit(seqdef(mvad[,17:86]), G=11, modtype="CC", weights=mvad$weight, ctrl=ctrl)
 

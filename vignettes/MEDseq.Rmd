@@ -8,6 +8,7 @@ vignette: >
   %\VignetteIndexEntry{MEDseq}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+  %\VignetteDepends{TraMineR}
 ---
 
 ```{r setup, include=FALSE}
@@ -186,7 +187,7 @@ While the data set contains weights, they are not appropriate for use; `biofam` 
 
 ```{r, eval=FALSE}
 # The UUN model includes a noise component.
-# Otherwise, the model has a precision parameter for each time point in each cluster.
+# Otherwise, there is a precision parameter for each time point in each cluster.
 
 bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", gating=~ birthyr, 
                   covars=biofam.cov, noise.gate=FALSE)
@@ -248,8 +249,8 @@ Other plot types adapted from __TraMineR__ can be produced using `type="d"` (sta
 ## References
 Murphy, K., Murphy, T. B., Piccarreta, R., & Gormley I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _To appear_. Pre-print available at [arXiv:1908.07963](https://arxiv.org/abs/1908.07963).
 
-McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 165(2): 317-334.
+Gabadinho, A., Ritschard, G., Müller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. _Journal of Statistical Software_, 40(4): 1--37.
 
-Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007), Paris, 5-7 septembre 2007_, pp. 157-160.
+McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 165(2): 317--334.
 
-Gabadinho, A., Ritschard, G., Müller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. _Journal of Statistical Software_, 40(4): 1-37.
+Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007), Paris, 5-7 septembre 2007_, pp. 157--160.

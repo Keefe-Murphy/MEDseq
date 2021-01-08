@@ -46,7 +46,6 @@ Arguments to this function can be supplied to \code{\link{plot.MEDseq}} via the 
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}
 \donttest{data(biofam)
-
 # mod <- MEDseq_fit(seqdef(biofam[10:25] + 1L), G=9:10)
 
 # Extract the MAP clustering of the best 9-cluster model according to the asw criterion

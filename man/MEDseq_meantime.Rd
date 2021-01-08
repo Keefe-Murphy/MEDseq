@@ -36,7 +36,6 @@ The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be u
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}
 \donttest{data(biofam)
-
 seqs <- seqdef(biofam[10:25] + 1L,
                states = c("P", "L", "M", "L+M", "C", 
                           "L+C", "L+M+C", "D"))
