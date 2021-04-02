@@ -1078,7 +1078,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     if(init.z     == "hc"  ||
       (do.wts     &&
        init.z     == "kmedoids"))    {
-      hcZ         <- if(do.wts) stats::hclust(dist.mat2, method="ward.D2", members=w2) else agnes(dist.mat2, diss=TRUE, method="ward")
+      hcZ         <- if(do.wts) stats::hclust(dist.mat2, method="ward.D2", members=w2) else agnes(dist.mat2, diss=TRUE, method="ward", keep.diss=FALSE, keep.data=FALSE, trace.lev=0L)
     }
     if(!zli.miss)  {
      if(length(z.list) != len.G) stop(paste0("'z.list' must be a list of length ", len.G), call.=FALSE)  
@@ -1755,7 +1755,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \describe{
 #' \item{\code{"clusters"}}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriated}. Similar to the \code{type="I"} plot (see below).}
 #' \item{\code{"mean"}}{Visualise the central sequences (typically modal sequences, but this depends on the \code{opti} argument to \code{\link{MEDseq_control}} used during model-fitting). See \code{seriated}. The central sequence for the noise component, if any, is not shown as it doesn't contribute in any way to the likelihood. See the \code{type="ms"} option below for an alternative means of displaying the central sequences.}
-#' \item{\code{"precision"}}{Visualise the precision parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{"white"} and \code{"black"} respectively (see \code{quant.scale}).}
+#' \item{\code{"precision"}}{Visualise the precision parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{"white"} and \code{"black"} respectively (see \code{quant.scale} and \code{seriated}).}
 #' \item{\code{"gating"}}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriated}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
 #' \item{\code{"bic"}}{Plots all BIC values in a fitted \code{MEDseq} object.}
 #' \item{\code{"icl"}}{Plots all ICL values in a fitted \code{MEDseq} object.}
@@ -1765,8 +1765,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"cv"}}{Plots all cross-validated log-likelihood values in a fitted \code{MEDseq} object.}
 #' \item{\code{"nec"}}{Plots all NEC values in a fitted \code{MEDseq} object.}
 #' \item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object.}
-#' \item{\code{"dbsvals"}}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster).}
-#' \item{\code{"aswvals"}}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster).}
+#' \item{\code{"dbsvals"}}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster). See \code{seriated}.}
+#' \item{\code{"aswvals"}}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster). See \code{seriated}.}
 #' \item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties in the form of a bar plot.}
 #' \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties in the form of a profile plot.}
 #' \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
@@ -1777,17 +1777,22 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"f"}}{Sequence frequency plots (by cluster).}
 #' \item{\code{"Ht"}}{Transversal entropy plots (by cluster).}
 #' \item{\code{"i"}}{Selected sequence index plots (by cluster).}
-#' \item{\code{"I"}}{Whole set index plots (by cluster). This plot effectively contains the same information as \code{type="clusters"}, and is similarly affected by the \code{seriated} argument, albeit shown on a by-cluster basis rather than stacked in one plot.}
+#' \item{\code{"I"}}{Whole set index plots (by cluster). This plot effectively contains almost exactly the same information as \code{type="clusters"} plots, and is similarly affected by the \code{seriated} argument, albeit shown on a by-cluster basis rather than stacked in one plot. However, bar widths for each observation will (by default) be proportional to their weight (if any), which is not the case for \code{type="clusters"} plots. However, this can be overruled by passing \code{weighted=FALSE} through the \code{...} construct.}
 #' \item{\code{"ms"}}{Modal state sequence plots (by cluster). This is an alternative way of displaying the central sequences beyond the \code{type="mean"} option above. Notably, this option respects arguments passed to \code{\link{get_MEDseq_results}} via the \code{...} construct (see below), while \code{type="mean"} does not, although still nothing is shown for the noise component. Displayed plots will always show \emph{weighted} results, regardless of the inclusion of sampling weights, unless the model has no such weights and either a) has only one non-noise component or b) was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}} (i.e. unless the model uses hard assignments). \strong{Note}: unlike \code{type="mean"}, this option always plots \emph{modal} sequences, even if another \code{opti} setting was invoked during model-fitting via \code{\link{MEDseq_control}}, in which case there will be a mismatch between the visualisation and \code{x$params$theta}.}
 #' \item{\code{"mt"}}{Mean times plots (by cluster). At present, this is equivalent to plotting the results of \code{\link{MEDseq_meantime}(x, MAP=TRUE, weighted=TRUE, norm=TRUE, prop=FALSE)}. Other options (particularly \code{MAP=FALSE}) may be added in future versions of this package.}
 #' }
-#' @param seriated Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} argument below. The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, or \code{"I"}, which are also the only options for which \code{"both"} is relevant.
-#' @param smeth A character string with the name of the seriation method to be used. Defaults to \code{"TSP"}. See \code{\link[seriation]{seriate}} and \code{seriation::list_seriation_methods("dist")} for further details. Only relevant when \code{seriated != "none"}.
+#' @param seriated Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} and \code{sortv} arguments below. 
+#' 
+#' The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"mean"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. 
+#' 
+#' Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, \code{"i"} or \code{"I"}, which are also the only options for which \code{"both"} is relevant.
+#' @param smeth A character string with the name of the seriation method to be used. Defaults to \code{"TSP"}. See \code{\link[seriation]{seriate}} and \code{seriation::list_seriation_methods("dist")} for further details and the available methods. Only relevant when \code{seriated != "none"}. When \code{seriated == "obs"} or \code{seriated == "both"}, the ordering of observations can be governed by \code{smeth} or \emph{instead} governed by the \code{sortv} argument below.
+#' @param sortv A sorting method governing the ordering of observations for \code{"clusters"}, \code{"gating"}, \code{"i"}, or \code{"I"} type plots. Potential options are \code{"dbs"} and \code{"asw"} for sorting observations by their DBS or ASW values (if available). Only relevant if \code{seriated} is one of \code{"observations"} or \code{"both"}. Note that the \code{sortv} argument overrides the setting in \code{smeth} as it pertains to the ordering of observations if \code{sortv} is supplied; otherwise \code{sortv} is \code{NULL} and the \code{smeth} is invoked.
 #' @param quant.scale Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.
-#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used.
+#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types, e.g. \code{weighted}.
 #'
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
-#' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}.
+#' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
 #' @note Every \code{type} of plot respects the sampling weights, if any. Those related to \code{\link[TraMineR]{seqdef}} plots from \pkg{TraMineR} may be too wide to display in the preview panel. The same is also true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}.
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
 #' 
@@ -1801,6 +1806,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #'               "d", "f", "Ht", "i", "I", "ms", "mt"), 
 #'      seriated = c("observations", "both", "clusters", "none"), 
 #'      smeth = "TSP",
+#'      sortv = NULL,
 #'      quant.scale = FALSE, 
 #'      ...)
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
@@ -1845,6 +1851,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' # Plot the clusters of the optimal model (according to the dbs criterion)
 #' # plot(mod1, "clusters", criterion="dbs")
 #' 
+#' # Use seriation to order the observations and the clusters
+#' # plot(mod1, "cluster", criterion="dbs", seriated="both")
+#' 
+#' # Use the DBS values to sort the observations
+#' # plot(mod1, "cluster", criterion="dbs", seriated="both", sortv="dbs")
+#' 
 #' # Plot the observation-specific ASW values of the best UUN model (according to the asw criterion)
 #' # plot(mod1, "aswvals", modtype="UUN", criterion="asw")
 #' 
@@ -1859,15 +1871,15 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' # Plot the clustering uncertainties in the form of a barplot
 #' # plot(mod2, "uncert.bar")
 #' 
-#' # Plot the observation-specific DBS values and the transversal entropies by cluster
+#' # Plot the observation-specific DBS values
 #' # plot(mod2, "dbsvals")
-#' # plot(mod2, "Ht")
 #' 
-#' # Plot the state-distributions by cluster
-#' # Note that this plot may not display properly in the preview panel
+#' # Plot the  transversal entropies by cluster & then the state-distributions by cluster
+#' # Note that these plots may not display properly in the preview panel
+#' # plot(mod2, "Ht")
 #' # plot(mod2, "d")}
 plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gating", "bic", "icl", "aic", "dbs", "asw", "cv", "nec", "LOGLIK", "dbsvals", "aswvals", "uncert.bar", "uncert.profile", 
-                                          "loglik", "d", "f", "Ht", "i", "I", "ms", "mt"), seriated = c("observations", "both", "clusters", "none"), smeth = "TSP", quant.scale = FALSE, ...) {
+                                          "loglik", "d", "f", "Ht", "i", "I", "ms", "mt"), seriated = c("observations", "both", "clusters", "none"), smeth = "TSP", sortv = NULL, quant.scale = FALSE, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(type)           &&
      (length(type)       > 1  ||
@@ -1879,7 +1891,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   seriated        <- match.arg(seriated)
   sericlus        <- is.element(seriated, c("both", "clusters"))     && is.element(type, c("clusters", "mean", "precision", "gating", 
                                                                                            "dbsvals", "aswvals", "d", "f", "Ht", "i", "I", "ms", "mt"))
-  seriobs         <- is.element(seriated, c("both", "observations")) && is.element(type, c("clusters", "gating", "I"))
+  seriobs         <- is.element(seriated, c("both", "observations")) && is.element(type, c("clusters", "gating", "i", "I"))
   if(seriated     != "none")   {
     if(!missing(smeth)        &&
        (length(smeth)    > 1  ||
@@ -1960,12 +1972,27 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   }
   Gseq            <- seq_len(G)
   perm            <- if(isTRUE(sericlus)) perm    else Gseq
-  perm            <- if(isTRUE(noise))    replace(perm, G, ifelse(is.element(type, c("clusters", "gating", "I")), 0L, "Noise"))  else perm
+  perm            <- if(isTRUE(noise))    replace(perm, G, ifelse(is.element(type, c("clusters", "gating", "i", "I")), 0L, "Noise"))  else perm
 
   if(type == "clusters" || 
+     type == "i"        ||
      type == "I"        ||
     (type == "gating"   && 
     attr(x,  "Gating"))) {
+    if((vsort     <- isTRUE(seriobs)    && 
+        !is.null(sortv)))      {
+      if(length(sortv)   > 1  ||
+         !is.character(sortv))   stop("'sortv' must be a character vector of length 1", call.=FALSE)
+      if(!is.element(sortv, 
+         c("dbs", "asw")))       stop("'sortv' must be one of \"dbs\" or \"asw\"",      call.=FALSE)
+      if(sortv    ==  "dbs"   &&
+        (!attr(x, "DBS")      ||
+         is.null(x$DBSvals)))    stop(paste0("DBS values cannot be used for sorting as ", ifelse(attr(x, "Algo") == "CEM", "the CEM algorithm was used to fit the models", "only 1-component models were fitted")), call.=FALSE)
+      if(sortv    ==  "asw"   &&
+        (!attr(x, "ASW")      ||
+         is.null(x$ASWvals)))    stop("ASW values cannot be plotted as only 1-component models were fitted", call.=FALSE)
+      sortv       <- if(has.dot) do.call(get_MEDseq_results, c(list(x=x, what=toupper(sortv)), dots[!(names(dots) %in% c("x", "what"))])) else switch(EXPR=sortv, dbs=x$dbsvals, x$aswvals)
+    } else if(!is.null(sortv))   stop("'sortv' can only be supplied when 'seriated' is one of \"observations\" or \"both\"", call.=FALSE)
     glo.order     <-
     num.cl        <- NULL
     set.seed(200)
@@ -1976,7 +2003,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       }
       srows       <- Nseq[MAP == perm[g]]
       num.cl      <- c(num.cl, length(srows))
-      glo.order   <- c(glo.order, if(isTRUE(seriobs)) srows[get_order(seriate(stats::as.dist(dmat[srows,srows]), method=smeth))] else srows)
+      glo.order   <- c(glo.order, if(isTRUE(vsort)) srows[order(sortv[sortv[,1L] == replace(perm, G, G)[g],2L])] else if(isTRUE(seriobs)) srows[get_order(seriate(stats::as.dist(dmat[srows,srows]), method=smeth))] else srows)
     }
     cum.cl        <- cumsum(num.cl)
     gcl           <- c(0L,  cum.cl)
@@ -2265,12 +2292,12 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     graphics::axis(1, at=llseq, labels=llseq)
       invisible()
   },               {
-    MAP           <- factor(replace(MAP, MAP == 0, "Noise"), levels=switch(EXPR=type, I=replace(perm, perm == 0, "Noise"), perm))
-    MAP           <- switch(EXPR=type, I=MAP[glo.order], MAP)
-    attr(dat, "weights")      <- if(attr(x, "Weighted")) attr(dat, "Weights") else rep(1L, N)
+    MAP           <- factor(replace(MAP, MAP == 0, "Noise"),  levels=switch(EXPR=type, i=, I=replace(perm, perm == 0, "Noise"), perm))
+    MAP           <- switch(EXPR=type, i=, I=MAP[glo.order],  MAP)
+    dat           <- switch(EXPR=type, i=, I=dat[glo.order,], dat)
+    attr(dat, "weights")      <- if(attr(x, "Weighted")) switch(EXPR=type, i=, I=attr(dat, "Weights")[glo.order], attr(dat, "Weights")) else rep(1L, N)
     if(type       == "ms") {
       noisemap    <- which(MAP != "Noise")
-      n0          <- length(noisemap)
       MAP         <- MAP[noisemap]
       dat         <- dat[noisemap,, drop=FALSE]
       if(has.dot)  {
@@ -2278,11 +2305,12 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       }
       x$z         <- (x$z * attr(dat, "Weights"))[noisemap,, drop=FALSE]
       attr(dat, "weights")    <- sapply(seq_along(noisemap), function(i) x$z[i,MAP[i]])
-      attr(x,  "Weighted")    <- attr(x, "Weighted") | (G > 1 & attr(x, "Algo") != "CEM")
+      attr(x,  "Weighted")    <- attr(x, "Weighted") || (G > 1 && (attr(x, "Algo") != "CEM"))
       if((G - noise) == 0)       stop("Nothing to plot: no non-noise components", call.=FALSE)
     }
-    dots          <- c(list(seqdata=switch(EXPR=type, I=dat[glo.order,], dat), with.legend=type != "Ht", group=MAP, type=type,
-                            with.missing=FALSE, weighted=attr(x, "Weighted")), dots[!(names(dots) %in% c("G", "modtype", "noise"))])
+    dots          <- c(list(seqdata=dat, with.legend=type != "Ht", group=MAP, with.missing=FALSE,
+                            type=type), dots[!(names(dots) %in% c("G", "modtype", "noise"))])
+    dots$weighted <- ifelse(is.element("weighted", names(dots)), isTRUE(dots$weighted), attr(x, "Weighted"))
     dots          <- switch(EXPR=type, Ht=dots[names(dots) != "border"], if(!any(names(dots) == "border")) c(list(border=NA), dots) else dots)
     dots          <- switch(EXPR=type,  I=c(list(space=0L),   dots), dots)
     dots          <- switch(EXPR=type, mt=c(list(prop=FALSE), dots), dots)
@@ -2963,7 +2991,7 @@ predict.MEDgating <- function(object, newdata = NULL, type = c("probs", "class")
 #'        ...)
 #' @export
 fitted.MEDgating  <- function(object, ...) {
-  args            <- c(list(newdata=NULL), as.list(match.call())[-1L])
+  args            <- c(list(object=object, newdata=NULL), as.list(match.call())[-1L])
   fits            <- do.call(predict.MEDgating, args[unique(names(args))])
   if(!is.null(fits)) return(fits)
 }
@@ -2978,7 +3006,7 @@ fitted.MEDgating  <- function(object, ...) {
 #' @export
 residuals.MEDgating  <- function(object, ...)   {
   dat.z           <- attr(object, "Data")
-  args            <- c(list(type="probs", newdata=dat.z), as.list(match.call())[-1L])
+  args            <- c(list(object=object, type="probs", newdata=dat.z), as.list(match.call())[-1L])
   keep            <- !any(names(list(...))     == "keep.noise") || isTRUE(args$keep.noise)
   fits            <- do.call(fitted.MEDgating, args[unique(names(args))])
   dat.z           <- if(isTRUE(keep) || !attr(object, "Noise")) dat.z else .renorm_z(dat.z[,-ncol(dat.z), drop=FALSE])

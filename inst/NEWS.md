@@ -1,16 +1,22 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
-### Bug Fixes & Miscellaneous Edits
+### New Features & Improvements
 * Added `predict`, `fitted`, & `residuals` methods for `"MEDgating"` objects, i.e. `x$gating`.
+* `plot.MEDseq` gains the `sortv` arg. to allow overriding the `smeth` arg. to instead order observations  
+in certain plots (when `seriated` is one of `"observations"` or `"both"`) by the DBS or ASW values.
+* `seriated` options `"observations"` & `"both"` can now be used for `"i"` type plots,  
+  with related minor fixes for `"i"` & `"I"` type plots for weighted data with seriated observations.
+
+### Bug Fixes & Miscellaneous Edits
 * Minor fixes to returned `x$gating` object, especially for `equalPro` models  
 with a noise component and weighted models _without_ any gating covariates at all.
 * Stronger checks to ensure `weights` arg. is explicitly supplied to `MEDseq_fit`  
 in cases where the `"stslist"` object passed via `seqs` has the `"weights"` attribute.
 * Stronger checks for variables in `gating` formula which are not found in `covars`.
-* Minor fixes to `print.MEDseq` for models where DBS &/or ASW statistics weren't computed.
 * Removed some superfluous warnings for all but the `"mt"` `TraMineR` type plots.
-* Minor vignette edits.
+* Minor fixes to `print.MEDseq` for models where DBS &/or ASW statistics weren't computed.
+* Minor vignette edits and documenation clarifications.
 
 ## MEDseq v1.2.1 - (_6<sup>th</sup> release [patch update]: 2020-12-29_)
 ### Bug Fixes & Miscellaneous Edits
