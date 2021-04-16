@@ -2,11 +2,20 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 ===================================================================
 
 ### New Features & Improvements
-* Added `predict`, `fitted`, & `residuals` methods for `"MEDgating"` objects, i.e. `x$gating`.
-* `plot.MEDseq` gains the `sortv` arg. to allow overriding the `smeth` arg. to instead order observations  
-in certain plots (when `seriated` is one of `"observations"` or `"both"`) by the DBS or ASW values.
+* `plot.MEDseq` gains a number of new arguments:  
+    * `soft` allows soft cluster membership probabilities to be used for the `"d"`, `"f"`, `"Ht"`, `"ms"`,  
+    & `"mt"` `type` plots (default: `soft=TRUE`) + the `"i"` & `"I"` plots (default: `soft=FALSE`), in a  
+    manner akin to  `WeightedCluster::fuzzyseqplot()`:  previously, all but the `"ms"` plot used the  
+    hard MAP partition and discarded the soft assignment information (i.e. `soft=FALSE`, implicitly).
+    * `sortv` allows overriding the `smeth` arg. to instead order observations in certain plots  
+    (where `seriated` is one of `"observations"` or `"both"`) by the `"dbs"` or `"asw"` values;  
+    additionally, and for consistency with `WeightedCluster::fuzzyseqplot()`,  
+    `sortv="membership"` is provided for `soft=TRUE` `type="I"` plots.
+    * `weighted` (`TRUE`, by default) allows control over whether the weights (if any) are used;  
+    relevant only for `"d"`, `"f"`, `"Ht"`, `"i"`, `"I"`, `"ms"`, & `"mt"` `type` plots.
 * `seriated` options `"observations"` & `"both"` can now be used for `"i"` type plots,  
   with related minor fixes for `"i"` & `"I"` type plots for weighted data with seriated observations.
+* Added `predict`, `fitted`, & `residuals` methods for `"MEDgating"` objects, i.e. `x$gating`.
 
 ### Bug Fixes & Miscellaneous Edits
 * Minor fixes to returned `x$gating` object, especially for `equalPro` models  
@@ -94,7 +103,7 @@ in cases where the `"stslist"` object passed via `seqs` has the `"weights"` attr
 * Reformatted package startup message.
 
 ## MEDseq v1.1.0 - (_3<sup>rd</sup> release [minor update]: 2020-03-30_)
-### New Features, Improvements, and Bug Fixes
+### New Features, Improvements, & Bug Fixes
 * Significant efficiency gains when ignoring duplicates in the presence of weights:  
     * before, unique cases were defined as unique sequence/covariates/weight combinations,  
     * now, cases with different weights that are otherwise duplicates are treated as duplicates.

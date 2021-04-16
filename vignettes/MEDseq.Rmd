@@ -27,7 +27,7 @@ __MEDseq__ is an R package which fits a range of models introduced by [Murphy et
 
 The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via the EM or CEM algorithms. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. `MEDseq_stderr` is provided for computing the standard errors of the coefficients for the covariates in the gating network.
 
-A dedicated plotting function exists for visualising various aspects of the results, using new methods as well as some existing methods from the __TraMineR__ package. Finally, the package also contains two data sets: `biofam` and `mvad`.
+A dedicated plotting function exists for visualising various aspects of the results, using new methods as well as some existing methods adapted from the __TraMineR__ package. Finally, the package also contains two data sets: `biofam` and `mvad`.
 
 If you find bugs or want to suggest new features please visit the __MEDseq__ [GitHub issues page](https://github.com/Keefe-Murphy/MEDseq/issues). 
 
@@ -236,21 +236,23 @@ As stated above, some plot types are adapted from __TraMineR__. Let's first look
 seqHtplot(biofam.seq)
 ```
 
-Now let's use the plot function from __MEDseq__ to examine the transversal entropies within each cluster defined by the MAP partition. Here we can see for instance that subjects assigned to Cluster 9, corresponding to those individuals who left the parental home to marry relatively early and had a child on average just one year later, do indeed exhibit greater variability. Conversely, a postponement of the transition to adulthood is evident for subjects in Cluster 5.
+Now let's use the plot function from __MEDseq__ to examine the transversal entropies within each cluster (by default weighted by the cluster membership probabilities and sampling weights, if any). Here we can see for instance that subjects assigned to Cluster 9, corresponding to those individuals who left the parental home to marry relatively early and had a child on average just one year later, do indeed exhibit greater variability. Conversely, a postponement of the transition to adulthood is evident for subjects in Cluster 5.
 
 ```{r, fig.height=8.5}
 plot(bio, type="Ht")
 ```
 
-Other plot types adapted from __TraMineR__ can be produced using `type="d"` (state distribution plots), `type="f"` (state frequency plots), `type="i"` (selected sequence index plots), `type="I"` (whole set index plots), `type="ms"` (modal state plots; an alternative to `type="mean"` above), and `type="mt"` (mean times plots). Each of these plots are shown on a per-cluster basis, and all account for the sampling weights (if any). Clustering uncertainties, the gating network, and model selection criteria can also be visualised. 
+Other plot types adapted from __TraMineR__ can be produced using `type="d"` (state distribution plots), `type="f"` (state frequency plots), `type="i"` (selected sequence index plots), `type="I"` (whole set index plots), `type="ms"` (modal state plots; an alternative to `type="mean"` above), and `type="mt"` (mean times plots). Each of these plots are shown on a per-cluster basis; by default, all account for the sampling weights (if any), via the `weighted` argument, and such plots are typically additionally weighted according to the soft cluster membership probabilities, though it is also possible to use the hard MAP partition instead, via modifying the `soft` argument. Finally, clustering uncertainties, the gating network, and model selection criteria can also be visualised. 
 
 ---------
 
 ## References
-Murphy, K., Murphy, T. B., Piccarreta, R., & Gormley I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _To appear_. Pre-print available at [arXiv:1908.07963](https://arxiv.org/abs/1908.07963).
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _To appear_. Pre-print available at [arXiv:1908.07963](https://arxiv.org/abs/1908.07963).
 
 Gabadinho, A., Ritschard, G., Müller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. _Journal of Statistical Software_, 40(4): 1--37.
 
 McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 165(2): 317--334.
 
 Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007), Paris, 5-7 septembre 2007_, pp. 157--160.
+
+Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), _Sequence Analysis and Related Approaches: Innovative Methods and Applications_, pp. 223--239. Cham: Springer International Publishing.

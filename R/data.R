@@ -42,7 +42,8 @@
 #' states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
 #' labels        <- c("Employment", "Further Education", "Higher Education", 
 #'                    "Joblessness", "School", "Training")
-#' mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
+#' mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, 
+#'                         labels=labels, weights=mvad$weights)
 #' @docType data
 #' @importFrom TraMineR "seqdef"
 #' @source McVicar and Anyadike-Danes (2002)

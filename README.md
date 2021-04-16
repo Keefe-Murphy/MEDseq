@@ -13,7 +13,7 @@ Fits _MEDseq_ models introduced by Murphy et al. (2019) <[arXiv:1908.07963](http
 
 The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via EM/CEM. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. `MEDseq_stderr` is provided for computing the standard errors of the coefficients for the covariates in the gating network.
 
-A dedicated plotting function exists for visualising various aspects of the results, using new methods as well as some existing methods from the __TraMineR__ package. Finally, the package also contains two data sets: `biofam` and `mvad`.
+A dedicated plotting function exists for visualising various aspects of the results, using new methods as well as some existing methods adapted from the __TraMineR__ package. Finally, the package also contains two data sets: `biofam` and `mvad`.
 
 ## Installation
 

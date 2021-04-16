@@ -56,7 +56,8 @@ mvad.cov      <- mvad$covariates
 states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
 labels        <- c("Employment", "Further Education", "Higher Education", 
                    "Joblessness", "School", "Training")
-mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
+mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, 
+                        labels=labels, weights=mvad$weights)
 }
 \references{
 McVicar, D. (2000). Status 0 four years on: young people and social exclusion in Northern Ireland. \emph{Labour Market Bulletin}, 14, 114-119.

@@ -22,7 +22,7 @@ The most important function in the \pkg{MEDseq} package is: \code{\link{MEDseq_f
 
 \code{\link{MEDseq_stderr}} is provided for computing the standard errors of the coefficients for the covariates in the gating network.
 
-A dedicated plotting function \code{\link{plot.MEDseq}} exists for visualising various aspects of the results, using new methods as well as some existing methods from the \pkg{TraMineR} package.
+A dedicated plotting function \code{\link{plot.MEDseq}} exists for visualising various aspects of the results, using new methods as well as some existing methods adapted from the \pkg{TraMineR} package.
 
 Finally, the package also contains two data sets: \code{\link{biofam}} and \code{\link{mvad}}.
 }
