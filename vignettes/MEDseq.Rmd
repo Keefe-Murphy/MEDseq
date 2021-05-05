@@ -9,6 +9,7 @@ vignette: >
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
   %\VignetteDepends{TraMineR}
+  %\VignetteDepends{viridisLite}
 ---
 
 ```{r setup, include=FALSE}
@@ -34,7 +35,7 @@ If you find bugs or want to suggest new features please visit the __MEDseq__ [Gi
 This vignette mostly aims to demonstrate the __MEDseq__ models by reproducing the analysis of the MVAD data in the Murphy et al. (2019) paper. However, an additional example data set is also analysed.
 
 ### Installing MEDseq
-__MEDseq__ will run in Windows, Mac OS X, or Linux. To install it you first need to install [R](https://cran.r-project.org/). Installing [RStudio](https://rstudio.com/) as a nice desktop environment for using R is also recommended.
+__MEDseq__ will run in Windows, Mac OS X, or Linux. To install it you first need to install [R](https://cran.r-project.org/). Installing [RStudio](https://www.rstudio.com/) as a nice desktop environment for using R is also recommended.
 
 Once in R you can type at the R command prompt:
 

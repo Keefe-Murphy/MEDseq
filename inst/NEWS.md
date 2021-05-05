@@ -18,8 +18,14 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Added `predict`, `fitted`, & `residuals` methods for `"MEDgating"` objects, i.e. `x$gating`.
 
 ### Bug Fixes & Miscellaneous Edits
+* A warning message is now printed if the gating network's MLR ever fails to converge, prompting users to  
+  modify the `itmax` arg. to `MEDseq_control`: the 2nd element of this arg. governs the maximum number  
+  of MLR iterations --- consequently, its default has been modified from `100` to `1000`, which is liable to slow  
+  down internal calls to `nnet::multinom`, but generally reduces the required number of EM iterations. 
+* Changes to default colour palettes & plotting symbols for certain plot types:  
+  `Suggests:` package `viridisLite` now only invoked if available.
 * Minor fixes to returned `x$gating` object, especially for `equalPro` models  
-with a noise component and weighted models _without_ any gating covariates at all.
+  with a noise component and weighted models _without_ any gating covariates at all.
 * Stronger checks to ensure `weights` arg. is explicitly supplied to `MEDseq_fit`  
 in cases where the `"stslist"` object passed via `seqs` has the `"weights"` attribute.
 * Stronger checks for variables in `gating` formula which are not found in `covars`.

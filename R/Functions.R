@@ -554,8 +554,10 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @param stopping The criterion used to assess convergence of the EM/CEM algorithm. The default (\code{"aitken"}) uses Aitken's acceleration method, otherwise the \code{"relative"} change in log-likelihood is monitored (which may be less strict).
 #' @param equalPro Logical variable indicating whether or not the mixing proportions are to be constrained to be equal in the model. Default: \code{equalPro = FALSE}. Only relevant when \code{gating} covariates are \emph{not} supplied within \code{\link{MEDseq_fit}}, otherwise ignored. In the presence of a noise component, only the mixing proportions for the non-noise components are constrained to be equal (by default, see \code{equalNoise}), after accounting for the noise component.
 #' @param equalNoise Logical which is \strong{only} invoked when \code{isTRUE(equalPro)} and gating covariates are not supplied. Under the default setting (\code{FALSE}), the mixing proportion for the noise component is estimated, and remaining mixing proportions are equal; when \code{TRUE} all components, including the noise component, have equal mixing proportions.
-#' @param tol A vector of length two giving relative convergence tolerances for 1) the log-likelihood of the EM/CEM algorithm, and 2) optimisation in the multinomial logistic regression in the gating network, respectively. The default is \code{c(1e-05, 1e-08)}. If only one number is supplied, it is used as the tolerance in both cases.
-#' @param itmax A vector of length two giving integer limits on the number of iterations for 1) the EM/CEM algorithm, and 2) the multinomial logistic regression in the gating network, respectively. The default is \code{c(.Machine$integer.max, 100)}.
+#' @param tol A vector of length two giving \emph{relative} convergence tolerances for 1) the log-likelihood of the EM/CEM algorithm, and 2) optimisation in the multinomial logistic regression in the gating network, respectively. The default is \code{c(1e-05, 1e-08)}. If only one number is supplied, it is used as the tolerance in both cases.
+#' @param itmax A vector of length two giving integer limits on the number of iterations for 1) the EM/CEM algorithm, and 2) the multinomial logistic regression in the gating network, respectively. The default is \code{c(.Machine$integer.max, 1000)}. This allows termination of the EM/CEM algorithm to be completely governed by \code{tol[1]}. If only one number is supplied, it is used as the iteration limit for the EM/CEM algorithm only and the other element of \code{itmax} retains its usual default.
+#' 
+#' If, for any model with gating covariates, the multinomial logistic regression in the gating network fails to converge in \code{itmax[2]} iterations at any stage of the EM/CEM algorithm, an appropriate warning will be printed, prompting the user to modify this argument.
 #' @param opti Character string indicating how central sequence parameters should be estimated. The default \code{"mode"} is exact and thus this experimental argument should only be tampered with by expert users. The option \code{"medoid"} fixes the central sequence(s) to be one of the observed sequences (like k-medoids). The other options \code{"first"} and \code{"GA"} use the first-improvement and genetic algorithms, respectively, to mutate the medoid. Pre-computation of the Hamming distance matrix for the observed sequences speeds-up computation of all options other than \code{"mode"}.
 #' @param ordering Experimental feature that should only be tampered with by experienced users. Allows sequences to be reordered on the basis of the column-wise entropy when \code{opti} is \code{"first"} or \code{"GA"}.
 #' @param MaxNWts The maximum allowable number of weights in the call to \code{\link[nnet]{multinom}} for the multinomial logistic regression in the gating network. There is no intrinsic limit in the code, but increasing \code{MaxNWts} will probably allow fits that are very slow and time-consuming. It may be necessary to increase \code{MaxNWts} when categorical concomitant variables with many levels are included or the number of components is high.
@@ -592,7 +594,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #'                equalPro = FALSE, 
 #'                equalNoise = FALSE, 
 #'                tol = c(1E-05, 1E-08), 
-#'                itmax = c(.Machine$integer.max, 100L), 
+#'                itmax = c(.Machine$integer.max, 1000L), 
 #'                opti = c("mode", "medoid", "first", "GA"), 
 #'                ordering = c("none", "decreasing", "increasing"), 
 #'                MaxNWts = 1000L, 
@@ -617,7 +619,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' # 'control' or supplying MEDseq_control output without naming it 'control' can throw an error}
 MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "kmodes", "kmodes2", "hc", "random", "list"), z.list = NULL, dist.mat = NULL, unique = TRUE, 
                               criterion = c("bic", "icl", "aic", "dbs", "asw", "cv", "nec"), tau0 = NULL, noise.gate = TRUE, random = TRUE, do.cv = FALSE, do.nec = FALSE, nfolds = 10L, 
-                              nstarts = 1L, stopping = c("aitken", "relative"), equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 100L), 
+                              nstarts = 1L, stopping = c("aitken", "relative"), equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 1000L), 
                               opti = c("mode", "medoid", "first", "GA"), ordering = c("none", "decreasing", "increasing"), MaxNWts = 1000L, verbose = TRUE, ...) {
   miss.args                <- list(tau0=missing(tau0), init.z = missing(init.z), z.list = missing(z.list))
   if(!missing(algo)        &&
@@ -684,7 +686,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
          tol  >= 1))             stop("'tol' must be in the interval [0, 1)",               call.=FALSE)
   if(len.tol  == 1)    tol <- rep(tol, 2L)
   if(length(itmax)         == 1) {
-    itmax     <- c(itmax, 100L)
+    itmax     <- c(itmax, 1000L)
   } else if(length(itmax)  != 2) stop("'itmax' must be of length 2",                        call.=FALSE)
   if(!is.numeric(itmax)    ||
      any(floor(itmax) != itmax) ||
@@ -1151,7 +1153,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   nonoise         <- any(!noise)
   noise           <- any(noise)
 
-  gate.G          <- matrix(ifelse(rG > 1, gate.x, FALSE), nrow=2L, ncol=length(rG), byrow=TRUE)
+  gate.G          <- matrix(rG > 1  & gate.x, nrow=2L, ncol=length(rG), byrow=TRUE)
   if(gate.x)       {
     Gn            <- G - !noise.gate
     if(gate.x     &&
@@ -1165,18 +1167,19 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     gating        <- stats::as.formula(z ~ 1)
     environment(gating)  <- environment()
   }
-  noise.gate      <- ifelse(gate.G, noise.gate, TRUE)
-  if(all(equalPro, gate.x)) { 
+  noise.gate      <- !gate.G   | noise.gate
+  if(all(equalPro, gate.x))    { 
     if(verbose)                  message("Can't constrain mixing proportions to be equal when gating covariates are supplied\n")
     equalPro      <- FALSE
   }
-  equal.tau       <- rbind(ifelse(G == 1, TRUE, equalPro), ifelse(Gn < 1, TRUE, equalPro)) & !gate.G
+  equal.tau       <- rbind(G  == 1 | equalPro, Gn < 1 | equalPro) & !gate.G
   equal.n0        <- (rbind(G == 1, Gn == 1) | equalNoise) & equal.tau
   attr(covars, "Gating") <- gate.names
   if(!identical(gating, 
                 .drop_constants(covars, 
                 gating)))        stop("Constant columns exist in gating formula; remove offending gating covariate(s) and try again", call.=FALSE)
   G.last          <- G[len.G]
+  MLRconverge     <- TRUE
   if(isTRUE(verbose))            message("\n################\n")
   
   for(g  in G)     {
@@ -1273,7 +1276,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       ctrl$equalNoise    <- equal.n0[ctrl$nmeth    + 1L,h]
       ctrl$equalPro      <- equal.tau[ctrl$nmeth   + 1L,h]
       ctrl$gate.g        <- gate.G[ctrl$nmeth      + 1L,h]
-      ctrl$noise.gate    <- ifelse(ctrl$nmeth, noise.gate[2L,h], TRUE)
+      ctrl$noise.gate    <- !ctrl$nmeth    || noise.gate[2L, h]
       zm          <- if(attr(SEQ, "Noise") <- gN0 <- ctrl$nmeth) zg0 else zg
       if(gN0      &&   !ctrl$noise.gate    && algog  != "EM") {
         if(init.z == "random" &&
@@ -1291,36 +1294,38 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
          switch(EXPR=algog,
                cemEM=          {
             ctrl$algo      <- "CEM"
-            EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],  ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2)
+            EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],  ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, MLRconverge = MLRconverge)
             if(!EMX[[i]]$ERR)  {
               ctrl$algo    <- "EM"
               tmpEMX       <- EMX[[i]]
               j.i          <- pmax(tmpEMX$j, 2L)
-              EMX[[i]]     <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=tmpEMX$z, ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, ll=tmpEMX$ll[c(j.i - 1L, j.i)])
+              EMX[[i]]     <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=tmpEMX$z, ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, ll=tmpEMX$ll[c(j.i - 1L, j.i)], MLRconverge = MLRconverge)
               if(EMX[[i]]$ERR) {
                 EMX[[i]]   <- tmpEMX
                 ctrl$algo  <- "CEM"
               }
             }
-         }, EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],  ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2))
+         }, EMX[[i]]       <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm[[i]],  ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, MLRconverge = MLRconverge))
+         MLRconverge       <- EMX[[i]]$MLRconverge
         }
         EMX       <- EMX[[which.max(vapply(lapply(EMX, "[[", "ll"), max, numeric(1L)))]]
       } else       {
         switch(EXPR=algog,
               cemEM=        {
           ctrl$algo        <- "CEM"
-          EMX              <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,       ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2)
+          EMX              <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,       ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, MLRconverge = MLRconverge)
           if(!EMX$ERR)      {
             ctrl$algo      <- "EM"
             tmpEMX         <- EMX
             j.i            <- pmax(EMX$j, 2L)
-            EMX            <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=EMX$z,    ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, ll=EMX$ll[c(j.i - 1L, j.i)])
+            EMX            <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=EMX$z,    ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, ll=EMX$ll[c(j.i - 1L, j.i)],   MLRconverge = MLRconverge)
             if(EMX$ERR)     {
               EMX          <- tmpEMX
               ctrl$algo    <- "CEM"
             }
           }
-        }, EMX             <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,       ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2))
+        }, EMX             <- .EM_algorithm(SEQ=SEQ, numseq=numseq, g=g, modtype=modtype, z=zm,       ctrl=ctrl, gating=gating, covars=covars, HAM.mat = HAM.mat2, MLRconverge = MLRconverge))
+        MLRconverge        <- EMX$MLRconverge
       }
       ERR         <- EMX$ERR
       j           <- EMX$j
@@ -1363,8 +1368,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
             nCV   <-
             CVn   <- NULL
           }
-          EMX     <- .EM_algorithm(SEQ=SCV, numseq=nCV, g=g, modtype=modtype, z=CVz, ctrl=ctrl, gating=gating, covars=CVg, HAM.mat = if(opti != "mode") hmCV[-testX,-testX, drop=FALSE])
+          EMX     <- .EM_algorithm(SEQ=SCV, numseq=nCV, g=g, modtype=modtype, z=CVz, ctrl=ctrl, gating=gating, covars=CVg, HAM.mat = if(opti != "mode") hmCV[-testX,-testX, drop=FALSE], MLRconverge = MLRconverge)
           MCV     <- EMX$Mstep
+          MLRconverge      <- EMX$MLRconverge
           if(is.matrix(MCV$tau)) {
             tau.tmp        <- stats::predict(MCV$fitG, newdata=gCV[testX,, drop=FALSE], type="probs")
             MCV$tau        <- if(ctrl$noise.gate) tau.tmp else cbind(tau.tmp * (1 - MCV$tau[1L,g]), MCV$tau[1L,g])
@@ -1574,6 +1580,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         z[apply(z == 0, 1L, all),] <- .Machine$double.eps
       }
       fitG        <- multinom(gating, trace=FALSE, data=covars, maxit=ctrl$g.itmax, reltol=ctrl$g.tol, MaxNWts=ctrl$MaxNWts)
+      MLRconverge <- MLRconverge   && fitG$convergence == 0
       if(equalPro && !equalNoise   && noise) {
         tau0      <- mean(z[,G])
         x.tau     <- c(rep((1 - tau0)/(G - 1L), G  - 1L), tau0)
@@ -1599,11 +1606,13 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
        z          <- rep(1L, N2)
        fitG       <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial(), weights=WEIGHTS))
       }
-      attr(fitG, "Formula")     <- "~1"
+      MLRconverge <- MLRconverge   && isTRUE(fitG$converged)
     }
+    attr(fitG, "Formula")       <- "~1"
   }     else       {
     x.tau         <- if(do.uni) x.tau[dis.agg,, drop=FALSE]   else x.tau
   }
+  if(isFALSE(MLRconverge))       warning(paste0("\tFor one or more models, in one or more ", algo, " iterations, the multinomial logistic regression\n\t\tin the gating network failed to converge in ", ctrl$g.itmax, " iterations:\n\t\tmodify the 2nd element of the 'itmax' argument to MEDseq_control()\n"), call.=FALSE, immediate.=TRUE)
   if(is.matrix(x.tau))           {
     colnames(x.tau)             <- paste0("Cluster",          if(noise) replace(Gseq, G, 0L)    else Gseq)
   } else x.tau    <- stats::setNames(x.tau, paste0("Cluster", if(noise) replace(Gseq, G, 0L)    else Gseq))
@@ -1938,8 +1947,8 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   modtype         <- x$modtype
   Nseq            <- seq_len(N)
   Pseq            <- seq_len(P)
-  symbols         <- c(17, 2, 16, 10, 13, 18, 15, 7)
-  use.col         <- c("gray", "dodgerblue1", "red3", "slateblue", "green3", "violet", "gold", "hotpink")
+  symbols         <- c(7, 13, 9, 12, 24, 21, 25, 22)
+  use.col         <- c("dimgray", "dodgerblue2", "red3", "green3", "slateblue", "violetred4", "gold", "hotpink")
   alpha.x         <- attr(dat, "alphabet")
   cpal.x          <- attr(dat, "cpal")
   label.x <- lab  <- attr(dat, "labels")
@@ -1951,6 +1960,11 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     lambda        <- x$params$lambda
     lambda        <- switch(EXPR=modtype, CCN=, CUN=rbind(matrix(lambda[1L,], nrow=G - 1L, ncol=P, byrow=modtype == "CUN"), 0L), 
                                           matrix(lambda, nrow=G, ncol=P, byrow=modtype == "CU"))
+  }
+  if(is.element(type, c("aswvals", "dbsvals", "gating", "precision"))) {
+    has_viridis   <- all(isTRUE(suppressMessages(requireNamespace("viridisLite", quietly=TRUE))),
+                         isTRUE(.version_above("viridisLite", switch(EXPR=type, precision="0.2.0", "0.4.0"))))
+    if(isFALSE(has_viridis))     message(paste0("Nicer colour palettes are invoked for the '", type, "' plot types if the suggested \"viridisLite\" library is installed\n"))
   }
   dots            <- list(...)
   dots            <- dots[unique(names(dots))]
@@ -2088,9 +2102,6 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     graphics::layout(1)
       invisible()
   }, precision=    {
-  if(isFALSE(suppressMessages(requireNamespace("viridisLite", quietly=TRUE))) ||
-     isFALSE(.version_above("viridisLite", 
-              "0.2.0")))         stop(paste0("The 'viridisLite' package must be loaded when type=\"", type, "\""), call.=FALSE)
     quant.scale   <- ifelse(missing(quant.scale), is.element(modtype, c("UU", "UUN")), !is.element(modtype, c("CC", "CCN")) && quant.scale)
     if(length(quant.scale)  > 1  ||
        !is.logical(quant.scale)) stop("'quant.scale' must be a single logical indicator", call.=FALSE)
@@ -2110,7 +2121,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       facs        <- if(ncols > 1) cut(dat, breaks,     include.lowest=TRUE) else 1L
     } else facs   <- if(ncols > 1) cut(dat, ncols - 1L, include.lowest=TRUE) else 1L
     ncols         <- pmax(1L, ncols - 1L)
-    cols          <- viridisLite::viridis(ncols, option="D", direction=-1)
+    cols          <- if(isTRUE(has_viridis)) viridisLite::viridis(ncols, option="D", direction=-1) else grDevices::heat.colors(13L, rev=TRUE)
     cmat          <- matrix("", nrow=G, ncol=P)
     cmat[i.ind]            <- "black"
     cmat[lambda   == 0]    <- "White"
@@ -2168,7 +2179,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       type        <- "b"
     }
     xlab          <- ifelse(miss.x, ifelse(is.null(dots$xlab), deparse(match.call()$x.axis), dots$xlab), ifelse(isTRUE(seriobs), "Seriated Observations", ifelse(isTRUE(sericlus), "Observations", "Observation")))
-    col           <- if(noise) c(grDevices::rainbow(G - 1L), "grey65") else grDevices::rainbow(G)
+    if(isTRUE(has_viridis)) {
+      col         <- if(noise) c(viridisLite::viridis(G - 1L, option="H", direction=1), "grey65") else viridisLite::viridis(G, option="H", direction=1)  
+    } else col    <- if(noise) c(grDevices::rainbow(G - 1L), "grey65") else grDevices::rainbow(G)
     col           <- col[perm]
     if(length(x.axis) != N)      stop("'x.axis' must be of length N", call.=FALSE)
     if(x.fac      <- is.factor(x.axis)) {
@@ -2213,7 +2226,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     ms            <- which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% colnames(dat))
     symbols       <- symbols[ms]
     use.col       <- use.col[ms]
-    graphics::matplot(dat, type="b", xlab="Number of Components (G)", ylab=switch(EXPR=type, dbs=, asw=, cv=, LOGLIK="", toupper(type)), col=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
+    graphics::matplot(dat, type="b", xlab="Number of Components (G)", ylab=switch(EXPR=type, dbs=, asw=, cv=, LOGLIK="", toupper(type)), col=use.col, bg=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
     if(type == "dbs")    graphics::mtext(paste0(ifelse(Weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " DBS"), side=2, line=3, las=3)
     if(type == "asw")    graphics::mtext(paste0(ifelse(Weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " ASW"), side=2, line=3, las=3)
     if(type == "cv")     graphics::mtext(ifelse(Weighted, expression("\u2113"["cv"]^"w"), expression("\u2113"["cv"])), side=2, line=3, las=1, cex=1.5)
@@ -2252,7 +2265,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     modtype       <- attr(object, "ModelType")
     noise         <- modtype %in% c("CCN", "UCN", "CUN", "UUN")
     if(identical(palette, grDevices::palette("default"))) {
-      palette     <- rep(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"), length.out=G)
+      palette     <- if(isTRUE(has_viridis)) viridisLite::viridis(G, option="H", direction=1) else rep(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"), length.out=G)
       palette[G]  <- ifelse(noise, "black", palette[G])
       grDevices::palette(if(grDevices::dev.capabilities()$semiTransparency) grDevices::adjustcolor(palette, alpha.f=0.75) else palette)
     }
@@ -2324,7 +2337,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
   }, loglik=       {
     x             <- x$loglik
     if(all(x      != cummax(x))) warning("Log-likelihoods are not strictly increasing\n", call.=FALSE)
-    base::plot(x, type=ifelse(length(x) == 1, "p", "l"), xlab="Iterations", ylab=paste0(ifelse(Weighted, "Weighted ", ""), "Log-Likelihood"), xaxt="n")
+    base::plot(x, type=ifelse(length(x) == 1, "p", "l"), xlab="Iterations", ylab=paste0(ifelse(Weighted, "Weighted ", ""), "Log-Likelihood"), xaxt="n", ...)
     seqll         <- seq_along(x)
     llseq         <- pretty(seqll)
     llseq         <- if(any(llseq  != floor(llseq))) seqll else llseq
@@ -2481,6 +2494,9 @@ print.MEDgating    <- function(x, call = FALSE, ...) {
   noise            <- attr(x, "Noise")
   equalNoise       <- noise && equalpro
   gateNoise        <- noise && !equalpro && formula != "~1"
+  if(ifelse(inherits(x, "multinom"),
+     x$convergence == 1,
+     isTRUE(x$converged)))       warning("Multinomial logistic regression failed to converge", call.=FALSE, immediate.=TRUE)
   class(x)         <- class(x)[class(x)  != "MEDgating"]
   if(isTRUE(call)  && 
      !is.null(cl   <- x$call)) {
@@ -2822,6 +2838,7 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
   algo        <- attr(mod, "Algo")
   opti        <- attr(mod, "Opti")
   noise.gate  <- attr(mod$gating, "NoiseGate")
+  attr(seqdat, "weights")     <- NULL
   if(method   == "WLBS"       &&
      n         > N)                 warning("It is recommended that N match or exceed the sample size\n", call.=FALSE, immediate.=TRUE)
   pb          <- utils::txtProgressBar(min = 0, max = N, style = 3)
@@ -2995,7 +3012,7 @@ MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE,
 #' (preds <- predict(mod$gating, newdata=mvad.cov[1:5,]))
 #' 
 #' # Note that the predictions are not the same as the multinom predict method
-#' # in this instance, owing to the invocaton of noise.gate=FALSE above
+#' # in this instance, owing to the invocation of noise.gate=FALSE above
 #' mod2   <- mod
 #' class(mod2$gating) <- c("multinom", "nnet")
 #' predict(mod2$gating, newdata=mvad.cov[1:5,], type="probs")

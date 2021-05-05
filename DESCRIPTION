@@ -17,7 +17,7 @@ LazyData: true
 Imports:
   cluster,
   matrixStats (>= 0.53.1),
-  nnet,
+  nnet (>= 7.3-0),
   seriation,
   stringdist,
   TraMineR (>= 1.6),
@@ -26,6 +26,6 @@ Suggests:
   klaR (>= 0.6-13),
   knitr,
   rmarkdown,
-  viridisLite (>= 0.2.0)
+  viridisLite (>= 0.4.0)
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr

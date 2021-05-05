@@ -218,7 +218,7 @@
 }
 
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowMeans2" "rowSums2"
-.EM_algorithm     <- function(SEQ, numseq, g, modtype, z, ctrl, gating = NULL, covars = NULL, HAM.mat = NULL, ll = NULL) {
+.EM_algorithm     <- function(SEQ, numseq, g, modtype, z, ctrl, gating = NULL, covars = NULL, HAM.mat = NULL, ll = NULL, MLRconverge = TRUE) {
   itmax           <- ctrl$itmax
   st.ait          <- ctrl$stopping == "aitken"
   tol             <- ctrl$tol
@@ -236,10 +236,11 @@
     noty          <- TRUE
     while(isTRUE(runEM))    {
       j           <- j + 1L
-      Mstep       <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z, HAM.mat=HAM.mat)
+      Mstep       <- .M_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, gating=gating, covars=covars, z=z, HAM.mat=HAM.mat, MLRconverge = MLRconverge)
       check       <- any(attr(Mstep$theta, "NonUnique")) || isFALSE(attr(Mstep$theta, "NoTies"))
       ctrl$ties   <- j < 4 || 
       (noty       <- noty  && !check)
+      MLRconverge <- Mstep$MLRconverge
       Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep, HAM.mat=HAM.mat)
       z           <- Estep$z
       ERR         <- any(is.nan(z))
@@ -260,7 +261,7 @@
       runEM       <- dX >= tol && j   < itmax  && !ERR
     } # while (j)
   }
-    return(list(ERR = ERR, j = j, Mstep = Mstep, ll = ll, z = z))
+    return(list(ERR = ERR, j = j, Mstep = Mstep, ll = ll, z = z, MLRconverge = MLRconverge))
 }
 
 .entropy          <- function(p) {
@@ -347,8 +348,8 @@
 
 #' @importFrom matrixStats "colMeans2" "colSums2" "rowSums2"
 #' @importFrom nnet "multinom"
-.M_step           <- function(seqs, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
-                              ctrl, gating = NULL, covars = NULL, z = NULL, numseq = NULL, HAM.mat = NULL) {
+.M_step           <- function(seqs, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, 
+                              gating = NULL, covars = NULL, z = NULL, numseq = NULL, HAM.mat = NULL, MLRconverge = TRUE) {
   if(!is.null(gating))    {
     environment(gating)  <- environment()
   }
@@ -379,6 +380,7 @@
         tau       <- .tau_noise(fitG$fitted.values, ifelse(need.prop, prop[G], ifelse(ctrl$do.wts, sum(zN[,G])/attr(seqs, "W"), mean(zN[,G]))))
         z         <- zN
       }
+      MLRconverge <- MLRconverge && fitG$convergence == 0
     } else         {
       prop        <- if(ctrl$do.wts)    colSums2(z)/attr(seqs, "W")       else colMeans2(z)
       tau         <- if(isFALSE(ctrl$equalPro)) prop else if(noise && !ctrl$equalNoise) c(rep((1 - prop[G])/attr(seqs, "G0"), attr(seqs, "G0")), prop[G]) else rep(1/G, G)
@@ -386,7 +388,7 @@
   }   else prop   <- tau <- 1L
   theta           <- .optimise_theta(seqs=seqs, ctrl=ctrl, z=z, numseq=numseq, HAM.mat=HAM.mat)
   MLE             <- .lambda_mle(seqs=seqs, params=list(theta=theta, z=z, prop=prop), modtype=modtype, ctrl=ctrl, numseq=numseq, HAM.mat=HAM.mat)
-  param           <- list(theta=theta, lambda=MLE$lambda, dG=MLE$dG, tau=tau, fitG=if(G > 1 && gate.g) fitG)
+  param           <- list(theta=theta, lambda=MLE$lambda, dG=MLE$dG, tau=tau, fitG=if(G > 1 && gate.g) fitG, MLRconverge=MLRconverge)
   attr(param, "modtype") <- modtype
     return(param)
 }
@@ -703,7 +705,7 @@
   if(!is.numeric(ncat)   ||
      length(ncat)        != 1 ||
      ncat         <= 0)          stop("'ncat' must a strictly positive scalar",   call.=FALSE)
-    do.call(expand.grid, replicate(length, list(seq_len(ncat) - 1L)))
+    do.call(expand.grid, replicate(length, list(0L:(ncat - 1L))))
 }
 
 .tau_noise        <- function(tau, z0)  {
@@ -813,10 +815,9 @@
     return(z)
 }
 
-.version_above  <- function(pkg, than)  {
+.version_above  <- function(pkg, versi) {
   pkg           <- as.character(utils::packageVersion(pkg))
-  test          <- ifelse(test <- identical(pkg, than), test, as.logical(utils::compareVersion(pkg, than)))
-    return(test)
+    identical(pkg, versi)  ||  (utils::compareVersion(pkg, versi) >= 0)
 }
 
 .weighted_mode  <- function(numseq, z)  {

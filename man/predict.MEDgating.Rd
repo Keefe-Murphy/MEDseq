@@ -65,7 +65,7 @@ mod    <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights,
 (preds <- predict(mod$gating, newdata=mvad.cov[1:5,]))
 
 # Note that the predictions are not the same as the multinom predict method
-# in this instance, owing to the invocaton of noise.gate=FALSE above
+# in this instance, owing to the invocation of noise.gate=FALSE above
 mod2   <- mod
 class(mod2$gating) <- c("multinom", "nnet")
 predict(mod2$gating, newdata=mvad.cov[1:5,], type="probs")
