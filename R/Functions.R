@@ -840,7 +840,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(SEQ, "VTS")       <- sum(lengths(apply(seqs, 2L, unique)) - 1L)
   attr(SEQ, "logV1")     <- log(V1)
   attr(SEQ, "lPV")       <- P * log(V)
-  if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the sequence vocabulary must all be > 1", call.=FALSE)
+  if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the size of the sequence alphabet must all be > 1", call.=FALSE)
+  if(V            >= 10)         stop(paste0("Sequence alphabets of size ", V, " are not currently permitted;\nfor now, only a maximum of 9 states can be accommodated"), call.=FALSE)
   if(!is.null(modtype)   &&
      !is.character(modtype))     stop("'modtype' must be a character vector", call.=FALSE)
   modtype         <- if(is.null(modtype)) c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") else toupper(modtype)
@@ -1838,7 +1839,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @export
 #' @importFrom matrixStats "rowMaxs" "rowSums2" "weightedMedian" "weightedMean"
 #' @importFrom seriation "get_order" "list_seriation_methods" "seriate"
-#' @importFrom TraMineR "seqdef" "seqdist" "seqdplot" "seqfplot" "seqHtplot" "seqiplot" "seqIplot" "seqmsplot" "seqplot"
+#' @importFrom TraMineR "seqdef" "seqdist" "seqplot"
 #' @importFrom WeightedCluster "fuzzyseqplot"
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}, \code{\link[seriation]{list_seriation_methods}}, \code{\link[WeightedCluster]{fuzzyseqplot}}, \code{\link{MEDseq_meantime}}
 #'
@@ -2163,7 +2164,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     sericlus      <- isTRUE(sericlus)   && attr(x, "Gating")
     seriobs       <- isTRUE(seriobs)    && attr(x, "Gating")
     perm          <- replace(perm, G, G)
-    Tau           <- if(isTRUE(sericlus))  Tau[,perm, drop=FALSE]      else Tau
+    Tau           <- if(isTRUE(sericlus))  Tau[,perm,      drop=FALSE] else Tau
     vars          <- all.vars(stats::as.formula(attr(x$gating, "Formula")))
     if(miss.x     <- length(dots) > 0   && any(names(dots) == "x.axis")) {
       ncovs       <- length(vars) > 1
@@ -2344,24 +2345,21 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
     graphics::axis(1, at=llseq, labels=llseq)
       invisible()
   },               {
-    MAP           <- factor(replace(MAP, MAP == 0, "Noise"),  levels=switch(EXPR=type, i=, I=replace(perm, perm == 0, "Noise"), perm))
-    MAP           <- switch(EXPR=type, i=, I=MAP[glo.order],  MAP)
-    dat           <- switch(EXPR=type, i=, I=dat[glo.order,], dat)
-    attr(dat, "weights")      <- if(attr(x, "Weighted")) switch(EXPR=type, i=, I=attr(dat, "Weights")[glo.order], attr(dat, "Weights")) else rep(1L, N)
     if(is.null(soft))      {
       soft        <- !is.element(type, c("i", "I"))
     } else if(length(soft)    != 1 || 
               !is.logical(soft)) stop("'soft' must be a single logical indicator",     call.=FALSE)
     soft          <- isTRUE(soft)  && (G > 1 && (attr(x, "Algo") != "CEM"))
-    attr(x, "Weighted")       <- attr(x, "Weighted") || (G > 1   && (attr(x, "Algo") != "CEM"))
-    dots          <- c(list(with.legend=type != "Ht", with.missing=FALSE, type=type), 
-                       dots[!(names(dots) %in% c("G", "modtype", "noise"))])
+    MAP           <- factor(replace(MAP, MAP == 0, "Noise"),  levels=switch(EXPR=type, i=, I=replace(perm, perm == 0, "Noise"), perm))
+    MAP           <- switch(EXPR=type, i=, I=MAP[glo.order],  MAP)
+    dat           <- switch(EXPR=type, i=, I=dat[glo.order,], dat)
     if(length(weighted) != 1  ||
        !is.logical(weighted))    stop("'weighted' must be a single logical indicator", call.=FALSE)
     weighted      <- weighted && attr(x, "Weighted")
+    attr(dat, "weights")      <- if(weighted) switch(EXPR=type, i=, I=attr(dat, "Weights")[glo.order], attr(dat, "Weights")) else rep(1L, N)
     if(type       == "ms") {
       noisemap    <- which(MAP     != "Noise")
-      MAP         <- MAP[noisemap]
+      MAP         <- droplevels(MAP[noisemap])
       dat         <- dat[noisemap,, drop=FALSE]
     }
     if(isTRUE(soft))       {
@@ -2370,7 +2368,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
           x$z     <- do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))]))
         }
         x$z       <- if(isTRUE(weighted)) x$z * attr(dat, "Weights") else x$z
-        x$z       <- x$z[noisemap,, drop=FALSE]
+        x$z       <- x$z[noisemap,as.numeric(replace(perm, perm == "Noise", G)), drop=FALSE]
         attr(dat, "weights")  <- sapply(seq_along(noisemap), function(i) x$z[i,MAP[i]])
         if((G - noise) == 0)     stop("Nothing to plot: no non-noise components", call.=FALSE)
       } else       {
@@ -2387,11 +2385,12 @@ plot.MEDseq       <- function(x, type = c("clusters", "mean", "precision", "gati
       }
       weighted    <- TRUE
     }
-    dots          <- c(list(seqdata=dat, group=MAP), dots)
+    attr(dat, "Weights")      <- NULL
+    dots          <- c(list(seqdata=dat, group=MAP, with.legend=type != "Ht", with.missing=FALSE, type=type, weighted=weighted), 
+                       dots[!(names(dots) %in% c("G", "modtype", "noise"))])
     dots          <- switch(EXPR=type, Ht=dots[names(dots) != "border"], if(!any(names(dots) == "border")) c(list(border=NA), dots) else dots)
-    dots          <- switch(EXPR=type, i=, I=c(list(weighted=weighted), dots), dots)
-    dots          <- switch(EXPR=type,     I=c(list(space=0L),          dots), dots)
-    dots          <- switch(EXPR=type,    mt=c(list(prop=FALSE),        dots), dots)
+    dots          <- switch(EXPR=type,  I=c(list(space=0L),   dots), dots)
+    dots          <- switch(EXPR=type, mt=c(list(prop=FALSE), dots), dots)
     dots          <- dots[unique(names(dots))]
     suppressWarnings(do.call(seqplot, dots))
       invisible()

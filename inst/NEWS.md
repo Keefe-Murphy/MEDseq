@@ -19,19 +19,22 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 
 ### Bug Fixes & Miscellaneous Edits
 * A warning message is now printed if the gating network's MLR ever fails to converge, prompting users to  
-  modify the `itmax` arg. to `MEDseq_control`: the 2nd element of this arg. governs the maximum number  
-  of MLR iterations --- consequently, its default has been modified from `100` to `1000`, which is liable to slow  
+  modify the `itmax` arg. to `MEDseq_control`: the 2<sup>nd</sup> element of this arg. governs the maximum number of  
+  MLR iterations --- consequently, its default has been modified from `100` to `1000`, which is liable to slow  
   down internal calls to `nnet::multinom`, but generally reduces the required number of EM iterations. 
 * Changes to default colour palettes & plotting symbols for certain plot types:  
   `Suggests:` package `viridisLite` now only invoked if available.
 * Minor fixes to returned `x$gating` object, especially for `equalPro` models  
   with a noise component and weighted models _without_ any gating covariates at all.
 * Stronger checks to ensure `weights` arg. is explicitly supplied to `MEDseq_fit`  
-in cases where the `"stslist"` object passed via `seqs` has the `"weights"` attribute.
+  in cases where the `"stslist"` object passed via `seqs` has the `"weights"` attribute.
+* Added error message to `MEDseq_fit` when the number of states exceeds 9,   
+  to better inform of this bug which will be rectified in future updates.
 * Stronger checks for variables in `gating` formula which are not found in `covars`.
+* `type="ms"` plots now work properly when `seriated="clusters"` or `seriated="both"`.
 * Removed some superfluous warnings for all but the `"mt"` `TraMineR` type plots.
 * Minor fixes to `print.MEDseq` for models where DBS &/or ASW statistics weren't computed.
-* Minor vignette edits and documenation clarifications.
+* Minor vignette edits and documentation clarifications.
 
 ## MEDseq v1.2.1 - (_6<sup>th</sup> release [patch update]: 2020-12-29_)
 ### Bug Fixes & Miscellaneous Edits

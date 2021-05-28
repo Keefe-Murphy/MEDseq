@@ -459,7 +459,7 @@
     Map           <- rep(0L, k)
     Max           <- rowMaxs(Tab)
     for(i in (1L:k))    {
-      I           <- match(Max[i], Tab[i, ], nomatch = 0)
+      I           <- match(Max[i], Tab[i,], nomatch = 0)
       aTOb[[i]]   <- Ub[I]
     }
     if(is.numeric(b)) aTOb <- lapply(aTOb, as.numeric)
@@ -467,7 +467,7 @@
     Map           <- rep(0L, k)
     Max           <- apply(Tab, 2L, max)
     for(j in (1L:k))    {
-      J           <- match(Max[j], Tab[, j])
+      J           <- match(Max[j], Tab[,j])
       bTOa[[j]]   <- Ua[J] 
     }
     if(is.numeric(a)) bTOa <- lapply(bTOa, as.numeric)
