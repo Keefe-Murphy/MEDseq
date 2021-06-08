@@ -148,11 +148,11 @@ knitr::include_graphics("MVAD_Clusters.png")
 Many other plotting options exist, some of which are adapted from the __TraMineR__ package. Use the following code to examine the central sequence parameters. Note that the central sequence of the noise component is not shown as it doesn't contribute to the likelihood.
 
 ```{r, eval=FALSE}
-plot(opt, type="mean")
+plot(opt, type="central")
 ```
 
 ```{r, echo=FALSE}
-knitr::include_graphics("MVAD_Mean.png")
+knitr::include_graphics("MVAD_Central.png")
 ```
 
 Use the following code to see the observation-specific (weighted) density-based silhouette values (coloured by cluster). The (weighted) mean within each cluster is also shown. Note that the low average for the noise component is as expected; we do not expect this cluster to be internally coherent, rather it acts as a filter that allows the other clusters to be captured more clearly.
@@ -231,10 +231,10 @@ This time, rather than showing the weighted mean DBS values, let's look at obser
 plot(bio, type="aswvals")
 ```
 
-As stated above, some plot types are adapted from __TraMineR__. Let's first look at a plot of the transversal Shannon entropies for the whole data set.
+As stated above, some plot types are adapted from __TraMineR__, specifically from its `seqplot` function. Let's first look at a plot of the transversal Shannon entropies for the whole data set.
 
 ```{r}
-seqHtplot(biofam.seq)
+seqplot(biofam.seq, type="Ht")
 ```
 
 Now let's use the plot function from __MEDseq__ to examine the transversal entropies within each cluster (by default weighted by the cluster membership probabilities and sampling weights, if any). Here we can see for instance that subjects assigned to Cluster 9, corresponding to those individuals who left the parental home to marry relatively early and had a child on average just one year later, do indeed exhibit greater variability. Conversely, a postponement of the transition to adulthood is evident for subjects in Cluster 5.
@@ -243,7 +243,7 @@ Now let's use the plot function from __MEDseq__ to examine the transversal entro
 plot(bio, type="Ht")
 ```
 
-Other plot types adapted from __TraMineR__ can be produced using `type="d"` (state distribution plots), `type="f"` (state frequency plots), `type="i"` (selected sequence index plots), `type="I"` (whole set index plots), `type="ms"` (modal state plots; an alternative to `type="mean"` above), and `type="mt"` (mean times plots). Each of these plots are shown on a per-cluster basis; by default, all account for the sampling weights (if any), via the `weighted` argument, and such plots are typically additionally weighted according to the soft cluster membership probabilities, though it is also possible to use the hard MAP partition instead, via modifying the `soft` argument. Finally, clustering uncertainties, the gating network, and model selection criteria can also be visualised. 
+Other plot types adapted from __TraMineR__ can be produced using `type="d"` (state distribution plots), `type="f"` (state frequency plots), `type="i"` (selected sequence index plots), `type="I"` (whole set index plots), `type="ms"` (modal state plots; an alternative to `type="central"` above), and `type="mt"` (mean times plots). Each of these plots are shown on a per-cluster basis; by default, all account for the sampling weights (if any), via the `weighted` argument, and such plots are typically additionally weighted according to the soft cluster membership probabilities, though it is also possible to use the hard MAP partition instead, via modifying the `soft` argument. All plot types adapted from __TraMineR__ additionally, by default, label each constituent panel by the central sequence characterising the given cluster, in state-permanence-sequence format. Finally, clustering uncertainties, the gating network, and model selection criteria can also be visualised. 
 
 ---------
 

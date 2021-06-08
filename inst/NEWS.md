@@ -16,6 +16,9 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * `seriated` options `"observations"` & `"both"` can now be used for `"i"` type plots,  
   with related minor fixes for `"i"` & `"I"` type plots for weighted data with seriated observations.
 * Added `predict`, `fitted`, & `residuals` methods for `"MEDgating"` objects, i.e. `x$gating`.
+* Exported `MEDseq_clustnames` & `MEDseq_nameclusts` functions and added `SPS` arg. to `plot.MEDseq`,  
+  `MEDseq_meantime`, `MEDseq_stderr`, & various `print`/`summary` methods: now certain plots & output  
+  can be (or are by default) labelled according to the central sequences in SPS format, as per the paper.
 
 ### Bug Fixes & Miscellaneous Edits
 * A warning message is now printed if the gating network's MLR ever fails to converge, prompting users to  
@@ -31,8 +34,12 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Added error message to `MEDseq_fit` when the number of states exceeds 9,   
   to better inform of this bug which will be rectified in future updates.
 * Stronger checks for variables in `gating` formula which are not found in `covars`.
+* `type="mean"` option renamed to `type="central"` in `plot.MEDseq`.
 * `type="ms"` plots now work properly when `seriated="clusters"` or `seriated="both"`.
+* Minor speed-ups to model-fitting for `modtype="CU"`.
 * Removed some superfluous warnings for all but the `"mt"` `TraMineR` type plots.
+* Fixed small bug in `MEDseq_meantime` when `MAP=FALSE`.
+* Further robustifications to handle empty components.
 * Minor fixes to `print.MEDseq` for models where DBS &/or ASW statistics weren't computed.
 * Minor vignette edits and documentation clarifications.
 

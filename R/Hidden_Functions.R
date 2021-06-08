@@ -111,7 +111,7 @@
   Gseq            <- seq_len(G0)
   N1              <- N > 1
   theta           <- params$theta
-  lambda          <- switch(EXPR=modtype, CC=, CCN=as.vector(params$lambda), params$lambda)
+  lambda          <- switch(EXPR=modtype, CC=, CCN=drop(params$lambda), params$lambda)
   dG.X            <- is.null(params$dG)
   opti            <- ctrl$opti
   if(is.null(numseq)       &&
@@ -124,14 +124,14 @@
     return(if(ctrl$do.wts)  {
      dG <- if(dG.X)  switch(EXPR=modtype, CC=switch(EXPR=opti, medoid=HAM.mat[,attr(theta, "Ind"), drop=FALSE], .dseq(seqs, theta)), CU=numseq != .char_to_num(theta)) else params$dG
              switch(EXPR=modtype, 
-                    CC  = -ifelse(lambda == 0, attr(seqs, "W") * lPV, lambda * sum(attr(seqs, "Weights") * dG, na.rm=TRUE) + attr(seqs, "W") * P * log1p(V1 * exp(-lambda))),
+                    CC  = -ifelse(lambda == 0, attr(seqs, "W") * lPV, lambda * sum(attr(seqs, "Weights") * dG,   na.rm=TRUE) + attr(seqs, "W") * P * log1p(V1 * exp(-lambda))),
                     CCN = -attr(seqs, "W") * lPV,
-                    CU  = -sum(sweep(dG * as.vector(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W") * sum(log1p(V1 * exp(-lambda))))
+                    CU  = -sum(sweep(dG * drop(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W") * sum(log1p(V1 * exp(-lambda))))
            } else  {
              switch(EXPR=modtype,
                     CC  = -ifelse(lambda == 0, N * lPV, sum(lambda * N * .dbar(seqs, theta), N * P * log1p(V1 * exp(-lambda)), na.rm=TRUE)),
                     CCN = -N * lPV,
-                    CU  = -sum((numseq != .char_to_num(theta)) * as.vector(lambda), na.rm=TRUE) - N * sum(log1p(V1 * exp(-lambda))))
+                    CU  = -sum((numseq != .char_to_num(theta)) * drop(lambda), na.rm=TRUE) - N * sum(log1p(V1 * exp(-lambda))))
            })
   } else {
     dG  <- if(dG.X)  switch(EXPR=modtype, 
@@ -147,28 +147,28 @@
                             CC  =-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE) + log.tau - P * log1p(V1 * exp(-lambda)),
                             UC  = sweep(-sweep(dG, 2L, lambda, FUN="*", check.margin=FALSE), 
                                         2L, P * log1p(V1 * exp(-lambda)),  FUN="-", check.margin=FALSE) + log.tau,
-                            CU  = sweep(-vapply(lapply(dG, "*", as.vector(lambda)), FUN=colSums2, na.rm=TRUE,   numeric(N)), 
+                            CU  = sweep(-vapply(lapply(dG, "*", drop(lambda)),     FUN=colSums2, na.rm=TRUE,  numeric(N)), 
                                         2L, sum(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) + log.tau,
-                            UU  = sweep(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,],  na.rm=TRUE),  numeric(N)), 
-                                        2L, rowSums2(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) +  log.tau,
+                            UU  = sweep(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)), 
+                                        2L, rowSums2(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE)       + log.tau,
                             CCN = cbind(sweep(-sweep(dG, 2L, lambda[1L],  FUN="*",  check.margin=FALSE), 
-                                              2L, P * log1p(V1 * exp(-lambda[1L])),   FUN="-", check.margin=FALSE) + log.tau, tau0 - lPV),
+                                              2L, P * log1p(V1 * exp(-lambda[1L])),   FUN="-", check.margin=FALSE) + log.tau, tau0  - lPV),
                             UCN = cbind(sweep(-sweep(dG, 2L, lambda[-G,], FUN="*",  check.margin=FALSE), 
-                                              2L, P * log1p(V1 * exp(-lambda[-G,])),  FUN="-", check.margin=FALSE) + log.tau, tau0 - lPV),
+                                              2L, P * log1p(V1 * exp(-lambda[-G,])),  FUN="-", check.margin=FALSE) + log.tau, tau0  - lPV),
                             CUN = cbind(sweep(-vapply(lapply(dG, "*", lambda[1L,]),   FUN=colSums2, na.rm=TRUE, numeric(N)), 
-                                              2L, sum(log1p(V1 * exp(-lambda[1L,]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - lPV),
+                                              2L, sum(log1p(V1 * exp(-lambda[1L,]))), FUN="-", check.margin=FALSE) + log.tau, tau0  - lPV),
                             UUN = cbind(sweep(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)),
                                               2L, rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - lPV))
     } else         {
       numer       <- switch(EXPR=modtype,
-                            CC  = -dG * lambda - P * log1p(V1 * exp(-lambda)),
+                            CC  = -dG * lambda - P   * log1p(V1 * exp(-lambda)),
                             UC  = sweep(-dG * lambda, 2L, P * log1p(V1 * exp(-lambda)), FUN="-", check.margin=FALSE),
-                            CU  = -vapply(lapply(dG, "*", as.vector(lambda)), FUN=colSums2,  na.rm=TRUE,  numeric(N)) - sum(log1p(V1 * exp(-lambda))),
-                            UU  = -vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,],   na.rm=TRUE), numeric(N)) - rowSums2(log1p(V1 * exp(-lambda))),
-                            CCN = c(-dG * lambda[1L] - P * log1p(V1 * exp(-lambda[1L])), - lPV),
-                            UCN = c(sweep(-dG * lambda[-G,, drop=FALSE], 2L, P * log1p(V1 * exp(-lambda[-G])), FUN="-", check.margin=FALSE), - lPV),
+                            CU  = -vapply(lapply(dG,   "*", drop(lambda)), FUN=colSums2,   na.rm=TRUE,  numeric(N))    - sum(log1p(V1      *  exp(-lambda))),
+                            UU  = -vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N))    - rowSums2(log1p(V1 *  exp(-lambda))),
+                            CCN = c(-dG * lambda[1L] - P    * log1p(V1 * exp(-lambda[1L])),  - lPV),
+                            UCN = c(sweep(-dG  * lambda[-G,, drop=FALSE], 2L, P * log1p(V1   * exp(-lambda[-G])), FUN="-", check.margin=FALSE),       - lPV),
                             CUN = c(-vapply(lapply(dG, "*", lambda[1L,]), FUN=colSums2, na.rm=TRUE, numeric(N)) - sum(log1p(V1 * exp(-lambda[1L,]))), - lPV),
-                            UUN = c(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)) - rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), - lPV))
+                            UUN = c(-vapply(Gseq, function(g) colSums2(dG[[g]]  * lambda[g,], na.rm=TRUE), numeric(N)) - rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), - lPV))
       numer       <- matrix(numer, nrow=1L) + switch(EXPR=modtype, CC=, UC=, CU=, UU=log.tau, c(log.tau, tau0))
     }
     
@@ -274,13 +274,8 @@
     as.data.frame(lapply(x, function(y) { levels(y) <- Vseq; y} ))
 }
 
-.get_SPS_theta    <- function(x, noise=FALSE) {
-  if(!inherits(x, "MEDseq"))     stop("'x' must be an object of class 'MEDseq'",    call.=FALSE)
-  if(length(noise) > 1 ||
-     !is.logical(noise))         stop("'noise' must be a single logical indicator", call.=FALSE)
-  tmp             <- utils::capture.output(print(x$params$theta, SPS=TRUE))[-1L]
-  tmp             <- paste0("(", sub("^.*?\\((.*)\\)[^)]*$", "\\1", tmp), ")")
-    if(isTRUE(noise)) tmp else tmp[!vapply(tmp, function(x) grepl("*", x, fixed = TRUE), logical(1L))]
+.lab_width        <- function(x, cex = 0.67, offset = 1.5) {
+    (offset + max(graphics::strwidth(x, units = "inches")) * graphics::par("mar")[1L]/graphics::par("mai")[1L]) * cex
 }
 
 #' @importFrom matrixStats "colSums2" "rowMeans2" "rowSums2"
