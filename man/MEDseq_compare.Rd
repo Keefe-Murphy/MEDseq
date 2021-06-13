@@ -34,7 +34,7 @@ This argument is only relevant for the \code{\link{MEDseq_compare}} function and
 \item{\code{x}}{An object of class \code{"MEDseqCompare"} resulting from a call to \code{\link{MEDseq_compare}}.}
 \item{\code{index}}{A logical or numeric vector giving the indices of the rows of the table of ranked models to print. This defaults to the full set of ranked models. It can be useful when the table of ranked models is large to examine a subset via this \code{index} argument, for display purposes. See \code{rerank}.}
 \item{\code{rerank}}{A logical indicating whether the ranks should be recomputed when subsetting using \code{index}. Defaults to \code{FALSE}.}
-\item{\code{digits}}{The number of decimal places to round model selection criteria to (defaults to 3).}
+\item{\code{digits}}{The number of decimal places to round model selection criteria to (defaults to \code{3}).}
 \item{\code{maxi}}{A number specifying the maximum number of rows/models to print. Defaults to \code{length(index)}.}}}
 }
 \value{

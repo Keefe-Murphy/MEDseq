@@ -194,16 +194,11 @@ bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", gating=~ birthyr,
                   covars=biofam.cov, noise.gate=FALSE)
 ```
 
-```{r, echo=FALSE}
-bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", gating=~ birthyr, 
-                  covars=biofam.cov, noise.gate=FALSE, verbose=FALSE)
+```{r, include=FALSE}
+load(file="bio_mod.rda")
 ```
 
 Such a model was identified as optimal following the same steps as the analysis of the MVAD data in the Murphy et al. (2019) paper, albeit according to the weighted DBS criterion rather than the BIC. Print the details of the model to the screen:
-
-```{r, echo=FALSE}
-bio$call <- bio$call[-length(bio$call)]
-```
 
 ```{r}
 print(bio)
@@ -237,13 +232,13 @@ As stated above, some plot types are adapted from __TraMineR__, specifically fro
 seqplot(biofam.seq, type="Ht")
 ```
 
-Now let's use the plot function from __MEDseq__ to examine the transversal entropies within each cluster (by default weighted by the cluster membership probabilities and sampling weights, if any). Here we can see for instance that subjects assigned to Cluster 9, corresponding to those individuals who left the parental home to marry relatively early and had a child on average just one year later, do indeed exhibit greater variability. Conversely, a postponement of the transition to adulthood is evident for subjects in Cluster 5.
+Now let's use the plot function from __MEDseq__ to examine the transversal entropies within each cluster (by default weighted by the cluster membership probabilities and sampling weights, if any). Here we can see for instance that subjects assigned to Cluster 9, corresponding to those individuals who left the parental home to marry relatively early and had a child on average just one year later, do indeed exhibit greater variability. Conversely, a postponement of the transition to adulthood is evident for subjects in Cluster 5. Note that the y-axis labels are suppressed here, for clarity.
 
 ```{r, fig.height=8.5}
-plot(bio, type="Ht")
+plot(bio, type="Ht", ylab=NA)
 ```
 
-Other plot types adapted from __TraMineR__ can be produced using `type="d"` (state distribution plots), `type="f"` (state frequency plots), `type="i"` (selected sequence index plots), `type="I"` (whole set index plots), `type="ms"` (modal state plots; an alternative to `type="central"` above), and `type="mt"` (mean times plots). Each of these plots are shown on a per-cluster basis; by default, all account for the sampling weights (if any), via the `weighted` argument, and such plots are typically additionally weighted according to the soft cluster membership probabilities, though it is also possible to use the hard MAP partition instead, via modifying the `soft` argument. All plot types adapted from __TraMineR__ additionally, by default, label each constituent panel by the central sequence characterising the given cluster, in state-permanence-sequence format. Finally, clustering uncertainties, the gating network, and model selection criteria can also be visualised. 
+Other plot types adapted from __TraMineR__ can be produced using `type="d"` (state distribution plots), `type="f"` (state frequency plots), `type="i"` (selected sequence index plots), `type="I"` (whole set index plots), `type="ms"` (modal state plots; an alternative to `type="central"` above), and `type="mt"` (mean times plots). Each of these plots are shown on a per-cluster basis; by default, all account for the sampling weights (if any), via the `weighted` argument, and such plots are typically additionally weighted according to the soft cluster membership probabilities, though it is also possible to use the hard MAP partition instead, via modifying the `soft` argument. All plot types adapted from __TraMineR__ additionally, by default, invoke the `SPS` argument, which causes each constituent panel to be labelled by the central sequence characterising the given cluster, in state-permanence-sequence (SPS) format. Finally, clustering uncertainties, the gating network, and model selection criteria can also be visualised.
 
 ---------
 

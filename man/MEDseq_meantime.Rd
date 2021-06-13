@@ -9,6 +9,7 @@ MEDseq_meantime(x,
                 weighted = TRUE, 
                 norm = TRUE,
                 prop = FALSE, 
+                wt.size = FALSE,
                 SPS = FALSE)
 }
 \arguments{
@@ -16,16 +17,18 @@ MEDseq_meantime(x,
 
 \item{MAP}{A logical indicating whether to use the MAP classification in the computation of the averages, or the 'soft' clustering assignment probabilities given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}). See \code{weighted} for incorporating the sampling weights (regardless of the value of \code{MAP}).}
 
-\item{weighted}{A logical indicating whether the sampling weights (if used during model fitting) are used to compute the weighted averages. These can be used alone (when \code{MAP} is \code{TRUE}) or in conjunction with the 'soft' clustering assignment probabilities (when \code{MAP} is \code{FALSE}). Defaults to \code{TRUE}. Note that the first column of the output is not affected by the value of \code{weighted}.}
+\item{weighted}{A logical indicating whether the sampling weights (if used during model fitting) are used to compute the weighted averages. These can be used alone (when \code{MAP} is \code{TRUE}) or in conjunction with the 'soft' clustering assignment probabilities (when \code{MAP} is \code{FALSE}). Defaults to \code{TRUE}. Note that, \emph{by default}, the first column of the output is not affected by the value of \code{weighted} (see \code{wt.size}).}
 
 \item{norm}{A logical indicating whether the mean times (outputted values after the first column) are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries beyond the first column give the total (weighted) number of times a given sequence category was observed in a given cluster.}
 
 \item{prop}{A logical (defaulting to \code{FALSE} and only invoked when \code{norm} is also \code{TRUE}) which further normalises the output to give the \emph{proportions} of time spent in each state on average instead of the absolute values.}
 
+\item{wt.size}{A logical (default to \code{FALSE} and only invoked when when \code{weighted} is also \code{TRUE}) which toggles whether the weights are \emph{also} used in the computation of the cluster sizes in the first column of the output (regardless of the value of \code{MAP}).}
+
 \item{SPS}{A logical indicating whether the output should be labelled according to the state-permanence-sequence representation of the central sequences. Defaults to \code{FALSE}. See \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}.}
 }
 \value{
-A matrix with sequence category and cluster-specific mean times, giving clusters on the rows, corresponding cluster sizes in the first column, and sequence categories in the remaining columns.
+A matrix with sequence category and cluster-specific mean times, giving clusters on the rows, corresponding cluster sizes (or weighted cluster sizes) in the first column, and sequence categories in the remaining columns.
 }
 \description{
 Computes the mean time (per cluster) spent in each sequence category (i.e. state value) for a fitted \code{MEDseq} model.
@@ -34,7 +37,7 @@ Computes the mean time (per cluster) spent in each sequence category (i.e. state
 Models with weights, covariates, &/or a noise component are also accounted for.
 }
 \note{
-The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be used to visualise the mean times (by cluster). However, the results displayed therein (at present) always assume \code{MAP=TRUE}, \code{weighted=TRUE}, \code{norm=TRUE}, and \code{prop=FALSE}.
+The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be used to visualise the mean times (by cluster). However, the results displayed therein (at present) always assume \code{norm=TRUE}, \code{prop=FALSE}, and \code{wt.size=TRUE}, while the \code{MAP} argument is renamed to \code{soft}, where \code{MAP=!soft}.
 }
 \examples{
 \dontshow{suppressMessages(require(TraMineR))}
