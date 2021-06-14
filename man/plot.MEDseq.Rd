@@ -133,6 +133,10 @@ plot(mod0, type="precision")
 # Use seriation to order the observations and the clusters
 # plot(mod1, "cluster", criterion="dbs", seriated="both")
 
+# Use a different seriation method
+# seriation::list_seriation_methods("dist")
+# plot(mod1, "cluster", criterion="dbs", seriated="both", smeth="Spectral")
+
 # Use the DBS values instead to sort the observations, and label the clusters
 # plot(mod1, "cluster", criterion="dbs", seriated="both", sortv="dbs", SPS=TRUE, size=TRUE)
 

@@ -76,7 +76,7 @@
   version <- read.dcf(path, "Version")
   name    <- read.dcf(path, "Package")
   if(interactive()) {
-    packageStartupMessage(paste("\nMixtures of Exponential-Distance Models with Covariates\n___  ___ ___________                      version", version, "\n|  \\/  ||  ___|  _  \\\n| .  . || |__ | | | |___  ___  __ _\n| |\\/| ||  __|| | | / __|/ _ \\/ _` |\n| |  | || |___| |/ /\\__ \\  __/ (_| |\n\\_|  |_/\\____/|___/ |___/\\___|\\__, |\n                                 | |\n                                 |/\n"))                 
+    packageStartupMessage(paste("\nMixtures of Exponential-Distance Models with Covariates\n___  ___ ___________\t\t\t  version", version, "\n|  \\/  ||  ___|  _  \\\n| .  . || |__ | | | |___  ___  __ _\n| |\\/| ||  __|| | | / __|/ _ \\/ _` |\n| |  | || |___| |/ /\\__ \\  __/ (_| |\n\\_|  |_/\\____/|___/ |___/\\___|\\__, |\n                                 | |\n                                 |/\n"))                 
   } else   {
     packageStartupMessage("\nPackage ", sQuote(name), " version ", version, ".\n")
   }

@@ -14,9 +14,9 @@ vignette: >
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(fig.width=7, fig.height=7, fig.align = 'center', 
-                      fig.show='hold', warning=FALSE, 
+                      fig.show='hold', warning=FALSE,
                       message=FALSE, progress=FALSE, 
-                      collapse=TRUE, comments="#>")
+                      collapse=TRUE, comment="#>")
 
 if(isTRUE(capabilities("cairo"))) {
   knitr::opts_chunk$set(dev.args=list(type="cairo"))
@@ -90,7 +90,7 @@ The `MEDseq_control` function allows the algorithm used for model fitting, the m
 The optimal model identified in the Murphy et al. (2019) paper has `G=11` components, the `UUN` model type, sampling weights, and one covariate (an indicator of GCSE exam performance) in the gating network, identified using a stepwise variable selection procedure. The UUN model has a specific precision parameter for each time point in each cluster. The `gating` covariates can be specified via a formula interface. The argument `covars` tells the formula where to look for the specified covariates. Here, the probability of belonging to this noise component is set to be independent of the included gating covariate. Thus, to fit such a model:
 
 ```{r, eval=FALSE}
-mod1 <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights, gating=~ gcse5eq, 
+mod1 <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights, gating= ~ gcse5eq, 
                    covars=mvad.cov, control=MEDseq_control(noise.gate=FALSE))
 ```
 
@@ -109,7 +109,7 @@ mod2 <- MEDseq_fit(mvad.seq, G=10, modtype="CUN", weights=mvad$weights)
 # CC models have a single precision parameter across all clusters and time points.
 
 mod3 <- MEDseq_fit(mvad.seq, G=12, modtype="CC", weights=mvad$weights,
-                   gating=~. - Grammar - Location, covars=mvad.cov)
+                   gating= ~ . - Grammar - Location, covars=mvad.cov)
 ```
 
 Confirm that the first model is indeed optimal according to the BIC. Examine the optimal model in greater detail. 
@@ -172,26 +172,26 @@ As a second example, let's consider data on $N=2000$ 16 year-long family life st
 
 ```{r}
 data(biofam, package="MEDseq")
-biofam     <- list(covariates = biofam[2L:9L], 
-                   sequences = biofam[10L:25L] + 1L)
-biofam.cov <- biofam$covariates[,colSums(is.na(biofam$covariates)) == 0]
-biofam.seq <- seqdef(biofam$sequences,
-                     states = c("P", "L", "M", "L+M", 
-                                "C", "L+C", "L+M+C", "D"),
-                     labels = c("Parent", "Left", "Married", 
-                                "Left+Marr", "Child", "Left+Child", 
-                                "Left+Marr+Child", "Divorced"))
+biofam  <- list(covs = cbind(biofam[2L:9L], age = 2002 - biofam$birthyr), 
+                sequences = biofam[10L:25L] + 1L)
+bio.cov <- biofam$covs[,colSums(is.na(biofam$covs)) == 0]
+bio.seq <- seqdef(biofam$sequences,
+                  states = c("P", "L", "M", "L+M", 
+                             "C", "L+C", "L+M+C", "D"),
+                  labels = c("Parent", "Left", "Married", 
+                             "Left+Marr", "Child", "Left+Child", 
+                             "Left+Marr+Child", "Divorced"))
 ```
 
-While the data set contains weights, they are not appropriate for use; `biofam` is merely a subsample of the original data so the weights are not properly adapted. Thus, we will fit a model without supplying the `weights` argument. Secondly, the data set also contain some baseline covariates. As many of them contain missing values, let's only consider the `birthwt` variable, which gives the birth year of each subject. Again, we override the `noise.gate=TRUE` default so that the covariate(s) do not influence the mixing proportions of the noise component. We do so here directly, without invoking `MEDseq_control` explicitly. Thus, the noise component's mixing proportion will be constant (though estimated) across all observed sequences and covariate patterns.
+While the data set contains weights, they are not appropriate for use; `biofam` is merely a subsample of the original data so the weights are not properly adapted. Thus, we will fit a model without supplying the `weights` argument. Secondly, the data set also contain some baseline covariates. As many of them contain missing values, let's only consider the `age` variable, derived from the `birthyr` reported in 2002. Again, we override the `noise.gate=TRUE` default so that the covariate(s) do not influence the mixing proportions of the noise component. We do so here directly, without invoking `MEDseq_control` explicitly. Thus, the noise component's mixing proportion will be constant (though estimated) across all observed sequences and covariate patterns.
 
 
 ```{r, eval=FALSE}
 # The UUN model includes a noise component.
 # Otherwise, there is a precision parameter for each time point in each cluster.
 
-bio <- MEDseq_fit(biofam.seq, G=10, modtype="UUN", gating=~ birthyr, 
-                  covars=biofam.cov, noise.gate=FALSE)
+bio <- MEDseq_fit(bio.seq, G=10, modtype="UUN", gating= ~ age, 
+                  covars=bio.cov, noise.gate=FALSE)
 ```
 
 ```{r, include=FALSE}
@@ -229,7 +229,7 @@ plot(bio, type="aswvals")
 As stated above, some plot types are adapted from __TraMineR__, specifically from its `seqplot` function. Let's first look at a plot of the transversal Shannon entropies for the whole data set.
 
 ```{r}
-seqplot(biofam.seq, type="Ht")
+seqplot(bio.seq, type="Ht")
 ```
 
 Now let's use the plot function from __MEDseq__ to examine the transversal entropies within each cluster (by default weighted by the cluster membership probabilities and sampling weights, if any). Here we can see for instance that subjects assigned to Cluster 9, corresponding to those individuals who left the parental home to marry relatively early and had a child on average just one year later, do indeed exhibit greater variability. Conversely, a postponement of the transition to adulthood is evident for subjects in Cluster 5. Note that the y-axis labels are suppressed here, for clarity.

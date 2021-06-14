@@ -35,6 +35,7 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
   in cases where the `"stslist"` object passed via `seqs` has the `"weights"` attribute.
 * Added error message to `MEDseq_fit` when the number of states exceeds 9,   
   to better inform of this bug which will be rectified in future updates.
+* Fixed bug preventing inclusion of higher-order terms in `gating` formulas when there are duplicates.
 * Minor fixes to `get_MEDseq_results` and how its optional args. are internally handled by `plot.MEDseq`.
 * Stronger checks for variables in `gating` formula which are not found in `covars`.
 * `type="mean"` option renamed to `type="central"` in `plot.MEDseq`.

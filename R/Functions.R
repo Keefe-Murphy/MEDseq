@@ -316,13 +316,13 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' seqs <- seqdef(biofam[10:25] + 1L,
 #'                states = c("P", "L", "M", "L+M", "C", 
 #'                           "L+C", "L+M+C", "D"))
-#' covs <- biofam[2:3]
+#' covs <- cbind(biofam[2:3], age=2002 - biofam$birthyr)
 #' \donttest{ 
 #' # Fit a range of models
 #' # m1   <- MEDseq_fit(seqs, G=9:10)
-#' # m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex, covars=covs, noise.gate=FALSE)
-#' # m3   <- MEDseq_fit(seqs, G=9:10, gating=~birthyr, covars=covs, noise.gate=FALSE)
-#' # m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + birthyr, covars=covs, noise.gate=FALSE)
+#' # m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex,       covars=covs, noise.gate=FALSE)
+#' # m3   <- MEDseq_fit(seqs, G=9:10, gating=~age,       covars=covs, noise.gate=FALSE)
+#' # m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + age, covars=covs, noise.gate=FALSE)
 #' 
 #' # Rank only the optimal models (according to the dbs criterion)
 #' # Examine the best model in more detail
@@ -990,7 +990,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
      sum.uni < N)  {            
     if(verbose)                 message(paste0("Proceeding with ", sum.uni, " unique observation", ifelse(sum.uni == 1, "", "s"), " out of N=", N, "\n"))
     if(do.wts)     {
-      agg.DF      <- merge(data.frame(cbind(id=seq_len(N)), wts=weights, DF), data.frame(stats::aggregate(cbind(DF[0L], count=1L), DF, length)), by=colnames(DF), sort=FALSE)
+      agg.DF      <- merge(data.frame(cbind(id=seq_len(N)), DF, check.names=FALSE, wts=weights), data.frame(stats::aggregate(cbind(DF[0L], count=1L), DF, length), check.names=FALSE), by=colnames(DF), sort=FALSE)
       agg.id      <- order(agg.DF$id)
       c2          <- agg.DF$count[agg.id]
       counts      <- c2[uni.ind]
@@ -998,7 +998,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       weights     <- stats::aggregate(agg.DF$wts, by=list(grp=grp), sum)
       weights     <- weights[match(grp, weights$grp),]$x[agg.id[uni.ind]]
     } else         {
-      agg.DF      <- merge(data.frame(cbind(id=seq_len(N)), DF),              data.frame(stats::aggregate(cbind(DF[0L], count=1L), DF, length)), by=colnames(DF), sort=FALSE)
+      agg.DF      <- merge(data.frame(cbind(id=seq_len(N)), DF, check.names=FALSE),              data.frame(stats::aggregate(cbind(DF[0L], count=1L), DF, length), check.names=FALSE), by=colnames(DF), sort=FALSE)
       agg.id      <- order(agg.DF$id)
       c2          <- agg.DF$count[agg.id]
       weights     <- 
@@ -1607,10 +1607,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
        if(G > 1)   {
         z[apply(z == 0, 1L, all),] <- .Machine$double.eps
        }
-       fitG       <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial()))
+       fitG       <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial(), maxit=ctrl$g.itmax))
       } else       {
        z          <- rep(1L, N2)
-       fitG       <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial(), weights=WEIGHTS))
+       fitG       <- suppressWarnings(stats::glm(z ~ 1, family=stats::binomial(), maxit=ctrl$g.itmax, weights=WEIGHTS))
       }
       MLRconverge <- MLRconverge   && isTRUE(fitG$converged)
     }
@@ -1898,6 +1898,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' 
 #' # Use seriation to order the observations and the clusters
 #' # plot(mod1, "cluster", criterion="dbs", seriated="both")
+#' 
+#' # Use a different seriation method
+#' # seriation::list_seriation_methods("dist")
+#' # plot(mod1, "cluster", criterion="dbs", seriated="both", smeth="Spectral")
 #' 
 #' # Use the DBS values instead to sort the observations, and label the clusters
 #' # plot(mod1, "cluster", criterion="dbs", seriated="both", sortv="dbs", SPS=TRUE, size=TRUE)
