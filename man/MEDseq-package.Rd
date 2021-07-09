@@ -10,7 +10,7 @@ Fits MEDseq models: mixtures of Exponential-Distance models with gating covariat
 }
 \section{Usage}{
 
-Fits _MEDseq_ models introduced by Murphy et al. (2019) <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>, i.e. fits mixtures of exponential-distance models for clustering longitudinal life-course sequence data via the EM/CEM algorithm. 
+Fits _MEDseq_ models introduced by Murphy et al. (2021) <\doi{10.1111/rssa.12712}>, i.e. fits mixtures of exponential-distance models for clustering longitudinal life-course sequence data via the EM/CEM algorithm. 
 
 A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces.
 
@@ -32,8 +32,8 @@ Finally, the package also contains two data sets: \code{\link{biofam}} and \code
 \itemize{
 \item{Type: }{Package}
 \item{Package: }{MEDseq}
-\item{Version: }{1.2.1}
-\item{Date: }{2020-12-29 (this version), 2019-08-24 (original release)}
+\item{Version: }{1.3.0}
+\item{Date: }{2021-07-15 (this version), 2019-08-24 (original release)}
 \item{Licence: }{GPL (>=2)}
 }
 }
@@ -77,7 +77,7 @@ summary(mod2, network=TRUE)
 plot(mod2, "clusters")}
 }
 \references{
-Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 }
 \seealso{
 Useful links:

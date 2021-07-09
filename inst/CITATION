@@ -1,33 +1,31 @@
 citHeader("To cite the 'MEDseq' package in publications, please use:")
 
-citEntry(entry  = "Article",
+citEntry(entry = "Article",
   author  = personList(person(given="Keefe", family="Murphy"),
                        person(given=c("Thomas", "Brendan"), family="Murphy"),
                        person(given="Raffaella", family="Piccarreta"),
                        person(given=c("Isobel", "Claire"), family="Gormley")),
-  title   = "Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models",
-  year    = "2019",
-  journal = "To appear",
+  title   = "Clustering Longitudinal Life-Course Sequences Using Mixtures of Exponential-Distance Models",
+  year    = "2021",
+  journal = "Journal of the Royal Statistical Society: Series A (Statistics in Society)",
+  note    = "advance online publication",
   volume  = "",
   number  = "",
-  pages   = "",
-  url     = "https://arxiv.org/abs/1908.07963v2",
-  archivePrefix = "arXiv",
-  eprint  = "1908.07963v2",
-  primaryClass  = "stat.ME",
+  pages   = "1--38",
+  url     = "https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712",
+  doi     = "10.1111/rssa.12712",
 
-  textVersion   =
-    paste0("Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2019). ",
-           "Clustering Longitudinal Life-Course Sequences using Mixtures of Exponential-Distance Models. ",
-           "To appear. ",
-           "Pre-print available at arXiv. ",
-           "URL: https://arxiv.org/abs/1908.07963v2.")
+  textVersion  =
+    paste0("Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2021). ",
+           "Clustering Longitudinal Life-Course Sequences Using Mixtures of Exponential-Distance Models. ",
+           "Journal of the Royal Statistical Society: Series A (Statistics in Society), advance online publication, pp. 1-38. ",
+           "URL: https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712.")
 )
 
 year     <- sub(".*(2[[:digit:]]{3})-.*", "\\1", meta$Date)
 vers     <- paste("package version", meta$Version)
 
-citEntry(entry  = "Manual",
+citEntry(entry = "Manual",
   author  = personList(person(given="Keefe", family="Murphy"),
                        person(given=c("Thomas", "Brendan"), family="Murphy"),
                        person(given="Raffaella", family="Piccarreta"),
@@ -37,8 +35,8 @@ citEntry(entry  = "Manual",
   note    = paste0("\\textsf{R} ", vers),
   url     = "https://cran.r-project.org/package=MEDseq",
 
-  textVersion   =
+  textVersion  =
     paste0("Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (", year, "). ",
-           "MEDseq: Mixtures of Exponential-Distance Models with Covariates. ",
-           "URL: https://cran.r-project.org/package=MEDseq ", "R ", vers)
+           "MEDseq: Mixtures of Exponential-Distance Models with Covariates. ", "R ", vers,
+           ". URL: https://cran.r-project.org/package=MEDseq.")
 )

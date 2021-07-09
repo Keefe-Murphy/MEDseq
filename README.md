@@ -9,7 +9,7 @@
 ### Written by Keefe Murphy
 ## Description
 
-Fits _MEDseq_ models introduced by Murphy et al. (2019) <[arXiv:1908.07963](https://arxiv.org/abs/1908.07963)>, i.e. fits mixtures of exponential-distance models for clustering longitudinal/categorical life-course sequence data via the EM/CEM algorithm. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
+Fits _MEDseq_ models introduced by Murphy et al. (2021) <[doi:10.1111/rssa.12712](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712)>, i.e. fits mixtures of exponential-distance models for clustering longitudinal/categorical life-course sequence data via the EM/CEM algorithm. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
 
 The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via EM/CEM. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. `MEDseq_stderr` is provided for computing the standard errors of the coefficients for the covariates in the gating network.
 
@@ -53,4 +53,4 @@ devtools::install_github('Keefe-Murphy/MEDseq', build_vignettes = TRUE)
 Alternatively, the vignette is available on the package's CRAN page.
 
 ### References
-Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _To appear_. <[arXiv:1908.07963](https://arxiv.org/abs/1908.07963)>
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, advance online publication, pp. 1--38. <[doi:10.1111/rssa.12712](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712)>.

@@ -1,6 +1,7 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+## MEDseq v1.3.0 - (_7<sup>th</sup> release [minor update]: 2021-07-15_)
 ### New Features & Improvements
 * `plot.MEDseq` gains a number of new arguments:  
     * `soft` allows soft cluster membership probabilities to be used for the `"d"`, `"f"`, `"Ht"`, `"ms"`,  
@@ -45,6 +46,7 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Further robustifications to handle empty components.
 * Minor fixes to `print.MEDseq` for models where DBS &/or ASW statistics weren't computed.
 * Minor vignette edits and documentation clarifications.
+* Updated citation info after online publication in _JRSSA_.
 
 ## MEDseq v1.2.1 - (_6<sup>th</sup> release [patch update]: 2020-12-29_)
 ### Bug Fixes & Miscellaneous Edits

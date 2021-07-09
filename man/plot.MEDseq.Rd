@@ -166,12 +166,12 @@ plot(mod0, type="precision")
 # Discard this information and reproduce the per-cluster state-distributions plot
 # plot(mod2, "d", soft=FALSE)
 
-# The plots above use the observations-specific sampling weights
+# The plots above use the observation-specific sampling weights
 # Discard this information and plot the mean times per state per cluster
 # plot(mod2, "mt", weighted=FALSE)}
 }
 \references{
-Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{To appear}. <\href{https://arxiv.org/abs/1908.07963}{arXiv:1908.07963}>.
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 
 Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), \emph{Sequence Analysis and Related Approaches: Innovative Methods and Applications}, pp. 223-239. Cham: Springer International Publishing.
 

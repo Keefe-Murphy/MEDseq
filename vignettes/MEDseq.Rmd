@@ -24,7 +24,7 @@ if(isTRUE(capabilities("cairo"))) {
 ```
 
 ## Introduction
-__MEDseq__ is an R package which fits a range of models introduced by [Murphy et al. (2019)](https://arxiv.org/abs/1908.07963). These are finite mixtures of exponential-distance models for clustering longitudinal/categorical life-course sequence data. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
+__MEDseq__ is an R package which fits a range of models introduced by [Murphy et al. (2021)](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712). These are finite mixtures of exponential-distance models for clustering longitudinal/categorical life-course sequence data. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
 
 The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via the EM or CEM algorithms. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. `MEDseq_stderr` is provided for computing the standard errors of the coefficients for the covariates in the gating network.
 
@@ -32,7 +32,7 @@ A dedicated plotting function exists for visualising various aspects of the resu
 
 If you find bugs or want to suggest new features please visit the __MEDseq__ [GitHub issues page](https://github.com/Keefe-Murphy/MEDseq/issues). 
 
-This vignette mostly aims to demonstrate the __MEDseq__ models by reproducing the analysis of the MVAD data in the Murphy et al. (2019) paper. However, an additional example data set is also analysed.
+This vignette mostly aims to demonstrate the __MEDseq__ models by reproducing the analysis of the MVAD data in the Murphy et al. (2021) paper. However, an additional example data set is also analysed.
 
 ### Installing MEDseq
 __MEDseq__ will run in Windows, Mac OS X, or Linux. To install it you first need to install [R](https://cran.r-project.org/). Installing [RStudio](https://www.rstudio.com/) as a nice desktop environment for using R is also recommended.
@@ -87,7 +87,7 @@ The names of the model types are CC, UC, CU, UU, CCN, UCN, CUN, and UUN. The fir
 
 The `MEDseq_control` function allows the algorithm used for model fitting, the method used to initialise the allocations (e.g. k-medoids or Ward's hierarchical clustering), the criterion used to identify the optimal model (e.g. BIC, density-based silhouette (DBS), average silhouette width (ASW), etc.), and more to be specified. By default, the EM algorithm is employed, k-medoids is used to obtain starting values, and the BIC is used to choose the optimal model (if a range of models are fitted). In this vignette, we will mostly accept these defaults, with the exception of the `noise.gate` argument.
 
-The optimal model identified in the Murphy et al. (2019) paper has `G=11` components, the `UUN` model type, sampling weights, and one covariate (an indicator of GCSE exam performance) in the gating network, identified using a stepwise variable selection procedure. The UUN model has a specific precision parameter for each time point in each cluster. The `gating` covariates can be specified via a formula interface. The argument `covars` tells the formula where to look for the specified covariates. Here, the probability of belonging to this noise component is set to be independent of the included gating covariate. Thus, to fit such a model:
+The optimal model identified in the Murphy et al. (2021) paper has `G=11` components, the `UUN` model type, sampling weights, and one covariate (an indicator of GCSE exam performance) in the gating network, identified using a stepwise variable selection procedure. The UUN model has a specific precision parameter for each time point in each cluster. The `gating` covariates can be specified via a formula interface. The argument `covars` tells the formula where to look for the specified covariates. Here, the probability of belonging to this noise component is set to be independent of the included gating covariate. Thus, to fit such a model:
 
 ```{r, eval=FALSE}
 mod1 <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights, gating= ~ gcse5eq, 
@@ -198,7 +198,7 @@ bio <- MEDseq_fit(bio.seq, G=10, modtype="UUN", gating= ~ age,
 load(file="bio_mod.rda")
 ```
 
-Such a model was identified as optimal following the same steps as the analysis of the MVAD data in the Murphy et al. (2019) paper, albeit according to the weighted DBS criterion rather than the BIC. Print the details of the model to the screen:
+Such a model was identified as optimal following the same steps as the analysis of the MVAD data in the Murphy et al. (2021) paper, albeit according to the weighted DBS criterion rather than the BIC. Print the details of the model to the screen:
 
 ```{r}
 print(bio)
@@ -243,7 +243,7 @@ Other plot types adapted from __TraMineR__ can be produced using `type="d"` (sta
 ---------
 
 ## References
-Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley I. C. (2019). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _To appear_. Pre-print available at [arXiv:1908.07963](https://arxiv.org/abs/1908.07963).
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, advance online publication, pp. 1--38. <[doi:10.1111/rssa.12712](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712)>.
 
 Gabadinho, A., Ritschard, G., Müller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. _Journal of Statistical Software_, 40(4): 1--37.
 
