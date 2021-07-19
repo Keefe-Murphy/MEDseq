@@ -31,9 +31,9 @@ MEDseq_control(algo = c("EM", "CEM", "cemEM"),
 \arguments{
 \item{algo}{Switch controlling whether models are fit using the \code{"EM"} (the default) or \code{"CEM"} algorithm. The option \code{"cemEM"} allows running the EM algorithm starting from convergence of the CEM algorithm.}
 
-\item{init.z}{The method used to initialise the cluster labels. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward's hierarchical clustering (\code{"hc"}), \code{"random"} initialisation, and a user-supplied \code{"list"}. For weighted sequences, \code{"kmedoids"} is itself initialised using Ward's hierarchical clustering.
+\item{init.z}{The method used to initialise the cluster labels. All options respect the presence of sampling \code{weights}, if any. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward's hierarchical clustering (\code{"hc"}, via \code{\link[stats]{hclust}}), \code{"random"} initialisation, and a user-supplied \code{"list"} (see \code{z.list} below). For weighted sequences, \code{"kmedoids"} is itself initialised using Ward's hierarchical clustering.
 
-The \code{"kmodes"} and \code{"kmodes2"} options require loading the suggested \pkg{klaR} package (>= 0.6-13). They are currently only available for \strong{unweighted} sequences. Under \code{"kmodes"}, the algorithm is itself initialised via the medoids of a call to \code{\link[cluster]{pam}}. The option \code{"kmodes2"} is slightly faster, by virtue of using random initial modes. Final results are thus also subject to randomness (unless \code{\link{set.seed}} is invoked).}
+The \code{"kmodes"} and \code{"kmodes2"} options both internally call the function \code{\link{wKModes}}, which typically uses random initial modes. Under \code{"kmodes"}, the algorithm is instead initialised via the medoids of the clusters obtained from a call to \code{\link[stats]{hclust}}. The option \code{"kmodes2"} is slightly faster, by virtue of using the \emph{random} initial medoids. Final results are thus also subject to randomness under this option (unless \code{\link{set.seed}} is invoked).}
 
 \item{z.list}{A user supplied list of initial cluster allocation matrices, with number of rows given by the number of observations, and numbers of columns given by the range of component numbers being considered. Only relevant if \code{init.z == "z.list"}. These matrices are allowed correspond to both soft or hard clusterings, and will be internally normalised so that the rows sum to 1.}
 
@@ -83,7 +83,7 @@ If, for any model with gating covariates, the multinomial logistic regression in
 
 \item{verbose}{Logical indicating whether to print messages pertaining to progress to the screen during fitting. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise. If \code{FALSE}, warnings and error messages will still be printed to the screen, but everything else will be suppressed.}
 
-\item{...}{Catches unused arguments, and also allows the optional arguments \code{ztol} and \code{summ} to be passed to \code{\link{dbs}} (\code{ztol} and \code{summ}) and the ASW computation (\code{summ}).}
+\item{...}{Catches unused arguments, and also allows the optional arguments \code{ztol} and \code{summ} to be passed to \code{\link{dbs}} (\code{ztol} and \code{summ}) as well as the ASW computation (\code{summ}), and the optional \code{\link{wKModes}} arguments \code{iter.max}, \code{freq.weighted}, and \code{fast} (provided \code{init.z} is one of \code{"kmodes"} or \code{"kmodes2"}).}
 }
 \value{
 A named list in which the names are the names of the arguments and the values are the values supplied to the arguments.
@@ -118,7 +118,7 @@ Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering
 Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
 }
 \seealso{
-\code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link[cluster]{agnes}}, \code{\link[klaR]{kmodes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
+\code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link{wKModes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
 }
 \author{
 Keefe Murphy - <\email{keefe.murphy@mu.ie}>

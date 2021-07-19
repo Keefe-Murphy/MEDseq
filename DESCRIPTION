@@ -23,7 +23,6 @@ Imports:
   TraMineR (>= 1.6),
   WeightedCluster
 Suggests:
-  klaR (>= 0.6-13),
   knitr,
   rmarkdown,
   viridisLite (>= 0.4.0)

@@ -1,6 +1,14 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+### Bug Fixes & Miscellaneous Edits
+* Fixes for `init.z` options `"kmodes"` & `"kmodes2"` in `MEDseq_control`, with new function `wKModes`  
+  provided for running the k-modes algorithm on _weighted_ data: previously, k-modes initialisation  
+  was only available for _unweighted_ sequences via the now-replaced `klaR::kmodes` function  
+  (consequently, the `klaR` package has been removed from the `DESCRIPTION` `Suggests:` field).
+* Fixed minor bug causing `MEDseq_fit` to crash when `weights` are supplied and `unique=FALSE`.
+* Fixed ASW calculation when _unweighted_ sequences are aggregated (i.e. `unique=TRUE`, the default).
+
 ## MEDseq v1.3.0 - (_7<sup>th</sup> release [minor update]: 2021-07-15_)
 ### New Features & Improvements
 * `plot.MEDseq` gains a number of new arguments:  
