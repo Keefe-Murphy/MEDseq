@@ -1,13 +1,19 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+## MEDseq v1.3.1 - (_8<sup>th</sup> release [patch update]: 2021-10-14_)
 ### Bug Fixes & Miscellaneous Edits
 * Fixes for `init.z` options `"kmodes"` & `"kmodes2"` in `MEDseq_control`, with new function `wKModes`  
   provided for running the k-modes algorithm on _weighted_ data: previously, k-modes initialisation  
   was only available for _unweighted_ sequences via the now-replaced `klaR::kmodes` function  
   (consequently, the `klaR` package has been removed from the `DESCRIPTION` `Suggests:` field).
+* `plot.MEDseq` gains the arg. `subset`, for use with the `TraMineR` `type` plots:  
+  allows plotting some but not all components, e.g. only the noise component (see documentation).
 * Fixed minor bug causing `MEDseq_fit` to crash when `weights` are supplied and `unique=FALSE`.
 * Fixed ASW calculation when _unweighted_ sequences are aggregated (i.e. `unique=TRUE`, the default).
+* Fixed small bug for `type="ms"` plots for models with a noise component when `SPS=TRUE`.
+* Fixed printing of `noise.gate` in `MEDseq_compare` for `G=2` models w/ noise & gating covariates.
+* Improved checks on `G` in `MEDseq_fit`.
 
 ## MEDseq v1.3.0 - (_7<sup>th</sup> release [minor update]: 2021-07-15_)
 ### New Features & Improvements
@@ -49,7 +55,7 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Stronger checks for variables in `gating` formula which are not found in `covars`.
 * `type="mean"` option renamed to `type="central"` in `plot.MEDseq`.
 * `type="ms"` plots now work properly when `seriated="clusters"` or `seriated="both"`.
-* Removed some superfluous warnings for all but the `"mt"` `TraMineR` type plots.
+* Removed some superfluous warnings for all but the `"mt"` `TraMineR` `type` plots.
 * Fixed small bug in `MEDseq_meantime` when `MAP=FALSE`.
 * Further robustifications to handle empty components.
 * Minor fixes to `print.MEDseq` for models where DBS &/or ASW statistics weren't computed.

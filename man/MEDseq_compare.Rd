@@ -48,7 +48,7 @@ A list of class \code{"MEDseqCompare"}, for which a dedicated print function exi
 \item{\code{df}}{The numbers of estimated parameters.}
 \item{\code{iters}}{The numbers of EM/CEM iterations.}
 \item{\code{bic}}{BIC values, ranked according to \code{criterion}.}
-\item{\code{icl}}{TCL values, ranked according to \code{criterion}.}
+\item{\code{icl}}{ICL values, ranked according to \code{criterion}.}
 \item{\code{aic}}{AIC values, ranked according to \code{criterion}.}
 \item{\code{dbs}}{(Weighted) mean/median DBS values, ranked according to \code{criterion}.}
 \item{\code{asw}}{(Weighted) mean/median ASW values, ranked according to \code{criterion}.}

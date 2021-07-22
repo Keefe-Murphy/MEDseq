@@ -278,7 +278,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' \item{\code{df}}{The numbers of estimated parameters.}
 #' \item{\code{iters}}{The numbers of EM/CEM iterations.}
 #' \item{\code{bic}}{BIC values, ranked according to \code{criterion}.}
-#' \item{\code{icl}}{TCL values, ranked according to \code{criterion}.}
+#' \item{\code{icl}}{ICL values, ranked according to \code{criterion}.}
 #' \item{\code{aic}}{AIC values, ranked according to \code{criterion}.}
 #' \item{\code{dbs}}{(Weighted) mean/median DBS values, ranked according to \code{criterion}.}
 #' \item{\code{asw}}{(Weighted) mean/median ASW values, ranked according to \code{criterion}.}
@@ -518,7 +518,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
                         dbs = replace(unname(dbss[max.names]), G == 1, NA), asw = replace(unname(asws[max.names]), G == 1, NA), 
                         cv = unname(cvs[max.names]), nec = replace(unname(necs[max.names]), G == 1, NA), loglik = unname(llxs[max.names]), 
                         gating = gating, algo = unname(algo[crit.names]), opti = unname(opti[crit.names]), weights = unname(weights[crit.names]),
-                        equalPro = equalPro, noise = unname(noise), noise.gate = unname(replace(noise.gate, gating == "None" | G <= 2, NA)), 
+                        equalPro = equalPro, noise = unname(noise), noise.gate = unname(replace(noise.gate, gating == "None" | G <= 2L - noise, NA)), 
                         equalNoise = unname(replace(equalNoise, !equalPro | is.na(equalPro), NA)))
   class(comp)   <- c("MEDseqCompare", "MEDseq")
   bic.tmp       <- sapply(BICs, as.vector)
@@ -675,6 +675,8 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
      !is.logical(equalPro))      stop("'equalPro' must be a single logical indicator",      call.=FALSE)
   if(length(equalNoise)     > 1 ||
      !is.logical(equalNoise))    stop("'equalNoise' must be a single logical indicator",    call.=FALSE)
+  if(equalNoise   && !equalPro  &&
+     isTRUE(verbose))            message("'equalNoise' forced to FALSE as 'equalPro' is FALSE\n")
   equalNoise      <- equalPro   && equalNoise
   if((len.tol     <- 
       length(tol)) > 2     ||
@@ -933,7 +935,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     covars        <- covars[,unique(colnames(covars)), drop=FALSE]
     covch         <- vapply(covars, is.character, logical(1L))
     covars[covch] <- lapply(covars[covch], factor)
-    if(any(covch))               message("Character covariates coerced to factors\n")
+    if(any(covch) && verbose)    message("Character covariates coerced to factors\n")
   }
   gate.names      <- if(gate.x)  gate.names[!is.na(gate.names)]
   if(!covmiss)     {
@@ -1022,7 +1024,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     HAM.mat2      <- HAM.mat
   }
   
-  if(any(floor(G) != G)       &&
+  if(any(floor(G) != G)       ||
      any(G         < 1))         stop("'G' must be strictly positive", call.=FALSE)
   if(any(G        >= sum.uni)) {
     if(length(G)   > 1)        { warning(paste0("Removing G values >= the number of ",    ifelse(do.uni, "unique ", " "), "observations\n"), call.=FALSE, immediate.=TRUE)
@@ -1047,10 +1049,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   if(all(G  == 1)) { if(verbose) message("Silhouettes not computed as only single component models are being fitted\n")
     do.dbs        <- 
     do.asw        <- FALSE
-    if(criterion  == "dbs")    { message("DBS criterion cannot be used to select among only single-component models: defaulting to 'criterion'=\"bic\"\n")
+    if(criterion  == "dbs")    { 
+      if(isTRUE(verbose))        message("DBS criterion cannot be used to select among only single-component models: defaulting to 'criterion'=\"bic\"\n")
       criterion   <- "bic"
     }
-    if(criterion  == "asw")    { message("ASW criterion cannot be used to select among only single-component models: defaulting to 'criterion'=\"bic\"\n")
+    if(criterion  == "asw")    { 
+      if(isTRUE(verbose))        message("ASW criterion cannot be used to select among only single-component models: defaulting to 'criterion'=\"bic\"\n")
       criterion   <- "bic"
     }
     if(do.nec     && 
@@ -1787,8 +1791,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object.}
 #' \item{\code{"dbsvals"}}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster). See \code{seriated}.}
 #' \item{\code{"aswvals"}}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster). See \code{seriated}.}
-#' \item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties in the form of a bar plot.}
-#' \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties in the form of a profile plot.}
+#' \item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a bar plot.}
+#' \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a profile plot.}
 #' \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
 #' }
 #' Also available are the following options which act as wrappers to types of plots produced by the \code{\link[TraMineR]{seqplot}} function in the \pkg{TraMineR} package. All are affected by the value of \code{seriated} and all account for the sampling weights (if any) by default (see the \code{weighted} argument and the related \code{Note} below).
@@ -1817,6 +1821,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @param sortv A sorting method governing the ordering of observations for \code{"clusters"}, \code{"gating"}, \code{"i"}, or \code{"I"} \code{type} plots. Potential options include \code{"dbs"} and \code{"asw"} for sorting observations by their DBS or ASW values (if available). Only relevant if \code{seriated} is one of \code{"observations"} or \code{"both"}. Note that the \code{sortv} argument overrides the setting in \code{smeth} as it pertains to the ordering of observations if \code{sortv} is supplied; otherwise \code{sortv} is \code{NULL} and the \code{smeth} is invoked.
 #' 
 #' Additionally, when (and only when) \code{soft=TRUE} and \code{type="I"}, the additional option \code{sortv="membership"} is provided in accordance with \code{\link[WeightedCluster]{fuzzyseqplot}}, on which such plots are based.
+#' @param subset An optional numeric vector giving the indices of the clusters to be plotted. For models with a noise component, values in \code{0:x$G} are admissible, where \code{0} denotes the noise component, otherwise only values in \code{1:x$G}. Only relevant for the \pkg{TraMineR}-\code{type} plots, i.e. \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. Note however, that noise components are never plotted for \code{type="ms"} plots, so \code{subset} values of \code{0} will be ignored in this instance.
 #' @param quant.scale Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.
 #' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types (e.g. \code{border} and/or \code{ylab}) and the \code{size} argument to \code{\link{MEDseq_clustnames}}, where relevant.
 #'
@@ -1845,6 +1850,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #'      SPS = NULL,
 #'      smeth = "TSP",
 #'      sortv = NULL,
+#'      subset = NULL,
 #'      quant.scale = FALSE, 
 #'      ...)
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
@@ -1929,9 +1935,14 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' 
 #' # The plots above use the observation-specific sampling weights
 #' # Discard this information and plot the mean times per state per cluster
-#' # plot(mod2, "mt", weighted=FALSE)}
-plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "gating", "bic", "icl", "aic", "dbs", "asw", "cv", "nec", "LOGLIK", "dbsvals", "aswvals", "uncert.bar", "uncert.profile", "loglik", 
-                              "d", "f", "Ht", "i", "I", "ms", "mt"), seriated = c("observations", "both", "clusters", "none"), soft = NULL, weighted = TRUE, SPS = NULL, smeth = "TSP", sortv = NULL, quant.scale = FALSE, ...) {
+#' # plot(mod2, "mt", weighted=FALSE)
+#' 
+#' # Use type="I" and subset=0 to examine the noise component
+#' # plot(mod2, "I", subset=0, border=TRUE, weighted=FALSE, seriated="none")}
+plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "gating", "bic", "icl", "aic", "dbs", "asw", "cv", "nec", "LOGLIK", 
+                              "dbsvals", "aswvals", "uncert.bar", "uncert.profile", "loglik", "d", "f", "Ht", "i", "I", "ms", "mt"), 
+                              seriated = c("observations", "both", "clusters", "none"), soft = NULL, weighted = TRUE, 
+                              SPS = NULL, smeth = "TSP", sortv = NULL, subset = NULL, quant.scale = FALSE, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(type)           &&
      (length(type)       > 1  ||
@@ -2347,6 +2358,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
       invisible()
   }, uncert.profile=,
      uncert.bar=   {
+    if(attr(x, "Algo") == "CEM") message("No uncertainties to plot: model was fitted via CEM\n")
     graphics::par(pty="m", mar=c(5.1, 4.1, 4.1, 3.1))
     if(has.dot)    {
       z           <- do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))]))
@@ -2392,11 +2404,22 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   },               {
     if(is.null(soft))       {
       soft        <- !is.element(type, c("i", "I"))
-    } else if(length(soft)    != 1 || 
+    } else if(length(soft) != 1    || 
               !is.logical(soft)) stop("'soft' must be a single logical indicator",        call.=FALSE)
     soft          <- isTRUE(soft)  && (G > 1 && (attr(x, "Algo") != "CEM"))
-    MAP           <- factor(replace(MAP, MAP == 0, "Noise"),  levels=switch(EXPR=type, i=, I=replace(perm, perm == 0, "Noise"), perm))
     if(length(unique(MAP)) != G) warning("Model contains one or more empty components\n", call.=FALSE, immediate.=TRUE)
+    if(!is.null(subset)    &&
+      (!is.numeric(subset) ||
+      !all(subset == 
+           floor(subset))  ||
+      !all(subset %in% 
+           (!noise):G)))    {    stop(paste0("'subset', if supplied, must be a numeric vector with entries in {", 0L + !noise, ", G=", G-noise, "} for models ", ifelse(noise, "with", "without"), " a noise component"), call.=FALSE)
+    } else if(!is.null(subset))     {
+      subset      <- if(any(subset == 0)) c(sort(subset[subset != 0]), 0L) else sort(subset)
+      MAP[!(MAP   %in% 
+              subset)]     <- NA 
+    }
+    MAP           <- MAP2  <- factor(replace(MAP, MAP == 0, "Noise"), levels=switch(EXPR=type, i=, I=replace(perm, perm == 0, "Noise"), perm))
     if(isTRUE(SPS))         {
       levels(MAP) <- MEDseq_clustnames(x, ...)
     }
@@ -2405,9 +2428,12 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     if(length(weighted) != 1  ||
        !is.logical(weighted))    stop("'weighted' must be a single logical indicator",    call.=FALSE)
     weighted      <- weighted && attr(x, "Weighted")
-    attr(dat, "weights")      <- if(weighted) switch(EXPR=type, i=, I=attr(dat, "Weights")[glo.order], attr(dat, "Weights")) else rep(1L, N)
+    attr(dat, "weights")      <- if(weighted) switch(EXPR=type, i=, I=attr(dat, "Weights")[glo.order], attr(dat, "Weights"))        else rep(1L, N)
     if(type       == "ms")  {
-      noisemap    <- which(MAP     != "Noise")
+      noisemap    <- which(MAP2    != "Noise")
+      if(sum(noisemap)        == 0 &&
+         !is.null(subset))       stop("Can't plot \"ms\" type plot as there are no non-noise components available after invoking 'subset'", call.=FALSE)
+      if(any(0    == subset))    warning("'subset' value of '0' ignored for type=\"ms\" plots", call.=FALSE, immediate.=TRUE)
       MAP         <- droplevels(MAP[noisemap])
       dat         <- dat[noisemap,, drop=FALSE]
     }
@@ -2416,16 +2442,26 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
         if(has.dot)         {
           x$z     <- do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))]))
         }
-        x$z       <- if(isTRUE(weighted)) x$z * attr(dat, "Weights") else x$z
-        x$z       <- x$z[noisemap,as.numeric(replace(perm, perm == "Noise", G)), drop=FALSE]
+        x$z       <- if(isTRUE(weighted)) x$z * attr(dat, "Weights")       else x$z
+        x$z       <- x$z[noisemap,as.numeric(replace(perm, perm == "Noise", G)),   drop=FALSE]
         attr(dat, "weights")  <- sapply(seq_along(noisemap), function(i) x$z[i,MAP[i]])
         if((G - noise) == 0)     stop("Nothing to plot: no non-noise components", call.=FALSE)
       } else       {
-        dat       <- dat[rep(seq_len(N), G),]
+        group     <- if(has.dot) do.call(get_MEDseq_results, 
+                                         c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))])) else x$z
+        group     <- switch(EXPR=type, i=, I=group[glo.order,,       drop=FALSE], group)
+        if(!is.null(subset))   {
+         sub.ind  <- !is.na(MAP)
+         dat      <- dat[sub.ind,,            drop=FALSE]
+         MAP      <- droplevels(MAP[sub.ind])
+         attr(dat, "weights") <- attr(dat, "Weights")[sub.ind]
+         group    <- group[sub.ind, replace(subset, subset == 0, G), drop=FALSE]
+         N        <- nrow(dat)
+         G        <- length(unique(MAP))
+        }
+        dat       <- dat[rep(seq_len(N), G),, drop=FALSE]
         MAP       <- factor(rep(seq_len(G), each=N), labels=levels(MAP))
-        group     <- if(has.dot) do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))])) else x$z
-        group     <- switch(EXPR=type, i=, I=group[glo.order,, drop=FALSE], group)
-        attr(dat, "weights")  <- if(isTRUE(weighted)) attr(dat, "weights") * as.vector(group) else as.vector(group)
+        attr(dat, "weights")  <- if(isTRUE(weighted)) attr(dat, "weights") * as.vector(group)              else as.vector(group)
         if(type   == "I"      && 
            !is.null(sortv)    && 
            identical(sortv, "membership")) {
