@@ -8,17 +8,16 @@ citEntry(entry = "Article",
   title   = "Clustering Longitudinal Life-Course Sequences Using Mixtures of Exponential-Distance Models",
   year    = "2021",
   journal = "Journal of the Royal Statistical Society: Series A (Statistics in Society)",
-  note    = "advance online publication",
-  volume  = "",
-  number  = "",
-  pages   = "1--38",
+  volume  = "184",
+  number  = "4",
+  pages   = "1414--1451",
   url     = "https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712",
   doi     = "10.1111/rssa.12712",
 
   textVersion  =
     paste0("Keefe Murphy, T. Brendan Murphy, Raffaella Piccarreta, and I. Claire Gormley (2021). ",
            "Clustering Longitudinal Life-Course Sequences Using Mixtures of Exponential-Distance Models. ",
-           "Journal of the Royal Statistical Society: Series A (Statistics in Society), advance online publication, pp. 1-38. ",
+           "Journal of the Royal Statistical Society: Series A (Statistics in Society), 184(4): 1414-1451. ",
            "URL: https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712.")
 )
 

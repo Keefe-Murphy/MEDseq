@@ -71,7 +71,7 @@ dbs               <- function(z, ztol = 1E-100, weights = NULL, summ = c("mean",
     if(length(clusters)    != nrow(z)    ||
        any(clusters        !=
        floor(clusters)))         stop("Invalid 'clusters'", call.=FALSE)
-    cmax          <- max(clusters)
+    cmax          <- length(unique(clusters))
     if(ncol(z)    != cmax)  {    warning("Number of groups in 'clusters' differs from the number of columns in 'z'\n", call.=FALSE)
       if(ncol(z)   < cmax)  {
         z         <- cbind(z, matrix(0L, nrow=nrow(z), ncol=cmax - ncol(z)))
@@ -302,7 +302,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' @keywords clustering main
 #' @importFrom TraMineR "seqdef"
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{plot.MEDseq}}
 #' @usage
 #' MEDseq_compare(...,
@@ -355,7 +355,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
   if(len.call     == 1     && inherits(..., "list") && !inherits(..., "MEDseq")) {
     dots          <- as.list(...)
     mod.names     <- unique(names(dots))
-    comparison    <- sapply(dots, inherits, "MEDseqCompare", logical(1L))
+    comparison    <- vapply(dots, inherits,  logical(1L), "MEDseqCompare")
     dat.name      <- if(any(comparison)) dots[[1L]]$data
     dots[comparison]       <- sapply(dots[comparison], "[", "optimal")
     MEDs          <- dots[mod.names]
@@ -363,7 +363,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
   } else           {
     dots          <- list(...)
     mod.names     <- vapply(call, deparse, character(1L))
-    comparison    <- sapply(dots, inherits, "MEDseqCompare", logical(1L))
+    comparison    <- vapply(dots, inherits,  logical(1L), "MEDseqCompare")
     dat.name      <- if(any(comparison)) dots[[1L]]$data
     dots[comparison]       <- sapply(dots[comparison], "[", "optimal")
     MEDs          <- stats::setNames(dots, mod.names)
@@ -378,12 +378,12 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
      !.unique_list(data))        stop("All models being compared must have been fit to the same data set!", call.=FALSE)
   dat.name        <- if(is.null(dat.name)) deparse(MEDs[[1L]]$call$seqs) else dat.name
   gate.x          <- lapply(MEDs,   "[[", "gating")
-  algo            <- sapply(MEDs,   attr, "Algo")
-  opti            <- sapply(MEDs,   attr, "Opti")
-  equalNoise      <- sapply(MEDs,   attr, "EqualNoise")
-  equalPro        <- sapply(MEDs,   attr, "EqualPro")
-  noise.gate      <- sapply(MEDs,   attr, "NoiseGate")
-  weights         <- sapply(MEDs,   attr, "Weighted")
+  algo            <- vapply(MEDs,   attr, character(1L), "Algo")
+  opti            <- vapply(MEDs,   attr, character(1L), "Opti")
+  equalNoise      <- vapply(MEDs,   attr, logical(1L),   "EqualNoise")
+  equalPro        <- vapply(MEDs,   attr, logical(1L),   "EqualPro")
+  noise.gate      <- vapply(MEDs,   attr, logical(1L),   "NoiseGate")
+  weights         <- vapply(MEDs,   attr, logical(1L),   "Weighted")
   gating          <- lapply(gate.x, attr, "Formula")
   BICs            <- lapply(MEDs, "[[", "BIC")
   ICLs            <- lapply(MEDs, "[[", "ICL")
@@ -574,7 +574,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @keywords control
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link{wKModes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' 
 #' Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
 #' @export
@@ -772,7 +772,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @importFrom WeightedCluster "wcKMedoids" "wcSilhouetteObs"
 #' @export
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' @keywords clustering main
 #' @seealso \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{predict.MEDgating}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}
 #' @usage
@@ -840,7 +840,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(SEQ, "logV1")     <- log(V1)
   attr(SEQ, "lPV")       <- P * log(V)
   if(any(c(N, P, V)      <= 1))  stop("The number of sequences, the sequence length, and the size of the sequence alphabet must all be > 1", call.=FALSE)
-  if(V            >= 10)         stop(paste0("Sequence alphabets of size ", V, " are not currently permitted;\nfor now, only a maximum of 9 states can be accommodated"), call.=FALSE)
+  if(V            >= 10)         warning(paste0("Sequence alphabet size (V=", V, ") represents a large number of states/categories: are you sure?\n"), call.=FALSE, immediate.=TRUE)
   if(!is.null(modtype)   &&
      !is.character(modtype))     stop("'modtype' must be a character vector", call.=FALSE)
   modtype         <- if(is.null(modtype)) c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") else toupper(modtype)
@@ -871,8 +871,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   if(!zli.miss)    {
     if(!inherits(z.list,
        "list")    ||
-       !all(sapply(z.list, 
-       inherits, "matrix")))     stop("'z.list' must be a list of matrices if supplied", call.=FALSE)
+       !all(vapply(z.list, inherits,
+       logical(1L), "matrix")))  stop("'z.list' must be a list of matrices if supplied", call.=FALSE)
     if(zin.miss   &&
        init.z     != "list")   { 
       init.z      <- "list"
@@ -941,11 +941,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   if(!covmiss)     {
     if(!all(gate.names  %in% 
             colnames(covars)))   stop("Supplied gating covariates not found in supplied 'covars'", call.=FALSE)
-    covars        <- if(gate.x)  covars                                                   else as.data.frame(matrix(0L, nrow=N, ncol=0L))
+    covars        <- if(gate.x)  covars                                                               else as.data.frame(matrix(0L, nrow=N, ncol=0L))
   } else {
     if(any(grepl("\\$", 
                  gate.names)))   stop("Don't supply covariates to the gating network using the $ operator: use the 'covars' argument instead", call.=FALSE)
-    covars        <- if(gate.x)  stats::model.frame(gating[-2L], drop.unused.levels=TRUE) else as.data.frame(matrix(0L, nrow=N, ncol=0L))
+    covars        <- if(gate.x)  data.frame(stats::model.frame(gating[-2L], drop.unused.levels=TRUE)) else as.data.frame(matrix(0L, nrow=N, ncol=0L))
   }
   if(nrow(covars) != N)          stop("'gating' covariates must contain the same number of rows as 'seqs'", call.=FALSE)
   glogi           <- vapply(covars, is.logical, logical(1L))
@@ -1832,7 +1832,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, the y-axis labels (which can be suppressed using \code{ylab=NA}) always display cluster sizes which correspond to the output of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, wt.size=TRUE)}, where \code{wt.size=TRUE} is \strong{NOT} the default behaviour for \code{\link{MEDseq_meantime}}. 
 #' 
 #' Finally, the plot types borrowed from \pkg{TraMineR} may be too wide to display in the preview panel. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}. 
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' 
 #' Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), \emph{Sequence Analysis and Related Approaches: Innovative Methods and Applications}, pp. 223-239. Cham: Springer International Publishing.
 #' 
@@ -2224,6 +2224,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
       ncovs       <- length(vars) > 1
       if(isTRUE(ncovs))          warning("Function may produce undesirable plot when 'x.axis' is supplied for a model with multiple gating network covariates\n", call.=FALSE, immediate.=TRUE)
       x.axis      <- dots$x.axis
+      if(length(x.axis) != N)    stop(paste0("'x.axis' not of length N=", N), call.=FALSE)
       o.axis      <- order(x.axis, decreasing=FALSE)
       x.axis      <- x.axis[o.axis]
       Tau         <- Tau[o.axis,,        drop=FALSE]
@@ -2344,8 +2345,8 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
       switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", w.med[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2),
                           mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", w.avg[i %in% Cg] ~ ~w[i]~s[i])), adj=1.05, line=-1.2))
       silcl       <- split(sil,  cli)
-      meds        <- switch(EXPR=summ, median=sapply(seq_along(silcl), function(i) weightedMedian(silcl[[i]], weights[cli == i])),
-                                         mean=sapply(seq_along(silcl), function(i) weightedMean(silcl[[i]],   weights[cli == i])))
+      meds        <- switch(EXPR=summ, median=vapply(seq_along(silcl), function(i) weightedMedian(silcl[[i]], weights[cli == i]), numeric(1L)),
+                                         mean=vapply(seq_along(silcl), function(i) weightedMean(silcl[[i]],   weights[cli == i]), numeric(1L)))
     } else         {
       switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2),
                           mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", avg[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2))
@@ -2444,7 +2445,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
         }
         x$z       <- if(isTRUE(weighted)) x$z * attr(dat, "Weights")       else x$z
         x$z       <- x$z[noisemap,as.numeric(replace(perm, perm == "Noise", G)),   drop=FALSE]
-        attr(dat, "weights")  <- sapply(seq_along(noisemap), function(i) x$z[i,MAP[i]])
+        attr(dat, "weights")  <- vapply(seq_along(noisemap), function(i) x$z[i,MAP[i]], numeric(1L))
         if((G - noise) == 0)     stop("Nothing to plot: no non-noise components", call.=FALSE)
       } else       {
         group     <- if(has.dot) do.call(get_MEDseq_results, 
@@ -2899,7 +2900,7 @@ print.summaryMEDgate  <- function(x, ...) {
 #' @importFrom TraMineR "seqdef" "seqformat"
 #' @export
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' 
 #' O'Hagan, A., Murphy, T. B., Scrucca, L., and Gormley, I. C. (2019). Investigation of parameter uncertainty in clustering using a Gaussian mixture model via jackknife, bootstrap and weighted likelihood bootstrap. \emph{Computational Statistics}, 34(4): 1779-1813.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
@@ -3033,7 +3034,7 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #' @importFrom matrixStats "colSums2"
 #' @importFrom TraMineR "seqdef" "seqformat" "seqistatd"
 #' @export
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{MEDseq_control}}, \code{\link{plot.MEDseq}}
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @keywords utility
@@ -3136,7 +3137,7 @@ MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE,
 #' For \code{MEDseq_nameclusts}, a factor version of \code{x$MAP} with levels given by the output of \code{MEDseq_clustnames}.
 #' @note The main \code{MEDseq_clustnames} function is used internally by \code{\link{plot.MEDseq}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_stderr}}, and also other \code{print} and \code{summary} methods, where its invocation can typically controlled via a \code{SPS} logical argument. However, the optional arguments \code{cluster} and \code{size} can only be passed through \code{\link{plot.MEDseq}}; elsewhere \code{cluster=TRUE} and \code{size=FALSE} are always assumed.
 #' 
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @seealso \code{\link[TraMineR]{seqformat}}, \code{\link[WeightedCluster]{seqclustname}}, \code{\link{plot.MEDseq}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_stderr}}
 #' @keywords utility
@@ -3503,7 +3504,7 @@ print.wKModes <- function(x, ...) {
 #' @return The return value depends on whether \code{newdata} is supplied or not and whether the model includes gating covariates to begin with. When \code{newdata} is not supplied, the fitted values are returned (as matrix if the model contained gating covariates, otherwise as a vector as per \code{x$params$tau}). If \code{newdata} is supplied, the output is always a matrix with the same number of rows as the \code{newdata}.
 #' @details This function (unlike the \code{predict} method for \code{\link[nnet]{multinom}} on which \code{predict.MEDgating} is based) accounts for sampling weights and the various ways of treating gating covariates, equal mixing proportion constraints, and noise components, although its \code{type} argument defaults to \code{"probs"} rather than \code{"class"}.
 #' 
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @seealso \code{\link[nnet]{multinom}}
 #' @method predict MEDgating

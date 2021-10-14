@@ -243,7 +243,7 @@ Other plot types adapted from __TraMineR__ can be produced using `type="d"` (sta
 ---------
 
 ## References
-Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, advance online publication, pp. 1--38. <[doi:10.1111/rssa.12712](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712)>.
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 184(4): 1414--1451. <[doi:10.1111/rssa.12712](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712)>.
 
 Gabadinho, A., Ritschard, G., Müller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. _Journal of Statistical Software_, 40(4): 1--37.
 

@@ -35,7 +35,7 @@
 #' Keefe Murphy [aut, cre], Thomas Brendan Murphy [ctb], Raffaella Piccarreta [ctb], Isobel Claire Gormley [ctb]
 #'
 #' \strong{Maintainer}: Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
-#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, advance online publication, pp. 1-38. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' @examples
 #' \dontshow{suppressMessages(require(TraMineR))}
 #' # Load the MVAD data
@@ -76,7 +76,7 @@
   version <- read.dcf(path, "Version")
   name    <- read.dcf(path, "Package")
   if(interactive()) {
-    packageStartupMessage(paste("\nMixtures of Exponential-Distance Models with Covariates\n___  ___ ___________\t\t\t  version", version, "\n|  \\/  ||  ___|  _  \\\n| .  . || |__ | | | |___  ___  __ _\n| |\\/| ||  __|| | | / __|/ _ \\/ _` |\n| |  | || |___| |/ /\\__ \\  __/ (_| |\n\\_|  |_/\\____/|___/ |___/\\___|\\__, |\n                                 | |\n                                 |/\n"))                 
+    packageStartupMessage(paste("\nMixtures of Exponential-Distance Models with Covariates\n __  __ _____ _____\t\t\t  version", version, "\n|  \\/  |  ___|  __ \\\n| \\  / | |__ | |  \\ |___  ___  __ _\n| |\\/| |  __|| |  | / __|/ _ \\/ _` |\n| |  | | |___| |__/ \\__ \\  __/ (_| |\n|_|  |_|_____|_____/|___/\\___|\\__, |\n                                 | |\n                                 |/\n"))                 
   } else   {
     packageStartupMessage("\nPackage ", sQuote(name), " version ", version, ".\n")
   }

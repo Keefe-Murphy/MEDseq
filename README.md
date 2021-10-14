@@ -53,4 +53,4 @@ devtools::install_github('Keefe-Murphy/MEDseq', build_vignettes = TRUE)
 Alternatively, the vignette is available on the package's CRAN page.
 
 ### References
-Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, advance online publication, pp. 1--38. <[doi:10.1111/rssa.12712](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712)>.
+Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 184(4): 1414--1451. <[doi:10.1111/rssa.12712](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712)>.

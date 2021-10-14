@@ -5,18 +5,22 @@
   l2              <- loglik[2L]
   l3              <- loglik[3L]
   if(any(is.infinite(loglik))) {
-    linf          <- Inf
+    linf          <- 
+    ldiff         <- Inf
     a             <- NA
   } else {
-    a             <- ifelse(l2 > l1, (l3 - l2) / (l2 - l1),    0L)
+    a             <- ifelse(l2 > l1, (l3   - l2) / (l2 - l1),    0L)
     denom         <- max(1L - a, .Machine$double.eps)
-    linf          <- ifelse(a  < 1L,  l2 + (l3 - l2) / denom, Inf)
+    linf          <- ifelse(a  < 1L,  l2   + (l3 - l2) / denom, Inf)
+    ldiff         <- ifelse(is.numeric(a) && a   < 0, 0L, abs(linf - l2))
+    ldiff[is.nan(ldiff)]      <- Inf
   }
-    return(list(ll = l3, linf  = linf, a = a))
+    return(list(ll = l3, linf  = linf, 
+                a  = a, ldiff  = ldiff))
 }
 
 .char_to_num      <- function(x) {
-    as.numeric(strsplit(x, "")[[1L]])
+    utf8ToInt(x)
 }
 
 #' @importFrom matrixStats "rowMaxs"
@@ -80,7 +84,7 @@
   if(!is.data.frame(newdata))    stop("'newdata' must be a data.frame", call.=FALSE)
   dat.fac         <- vapply(newdata, is.factor, logical(1L))
   if(!any(dat.fac))              return(newdata)
-  factors         <- rep(names(fit$xlevels), vapply(fit$xlevels, length, integer(1L)))
+  factors         <- rep(names(fit$xlevels), lengths(fit$xlevels))
   factorLevels    <- unname(unlist(fit$xlevels))
   modelFactors    <- cbind.data.frame(factors, factorLevels)
   predictors      <- names(newdata[names(newdata) %in% factors])
@@ -114,24 +118,24 @@
   lambda          <- switch(EXPR=modtype, CC=, CCN=drop(params$lambda), params$lambda)
   dG.X            <- is.null(params$dG)
   opti            <- ctrl$opti
-  if(is.null(numseq)       &&
-     isFALSE(ctrl$numseq)  &&
-     ctrl$nmeth   && dG.X)  {
+  if(is.null(numseq)        &&
+     isFALSE(ctrl$numseq)   &&
+     ctrl$nmeth   && dG.X)   {
     numseq        <- sapply(seqs, .char_to_num)
   }
   
   if(G  == 1L)     { 
-    return(if(ctrl$do.wts)  {
+    return(if(ctrl$do.wts)   {
      dG <- if(dG.X)  switch(EXPR=modtype, CC=switch(EXPR=opti, medoid=HAM.mat[,attr(theta, "Ind"), drop=FALSE], .dseq(seqs, theta)), CU=numseq != .char_to_num(theta)) else params$dG
              switch(EXPR=modtype, 
-                    CC  = -ifelse(lambda == 0, attr(seqs, "W") * lPV, lambda * sum(attr(seqs, "Weights") * dG,   na.rm=TRUE) + attr(seqs, "W") * P * log1p(V1 * exp(-lambda))),
+                    CC  = -ifelse(lambda  == 0, attr(seqs, "W") * lPV, lambda * sum(attr(seqs, "Weights") * dG,  na.rm=TRUE) + attr(seqs, "W")  * P * log1p(V1 * exp(-lambda))),
                     CCN = -attr(seqs, "W") * lPV,
-                    CU  = -sum(sweep(dG * drop(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W") * sum(log1p(V1 * exp(-lambda))))
+                    CU  = -sum(sweep(dG * drop(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W")  * sum(log1p(V1 * exp(-lambda))))
            } else  {
              switch(EXPR=modtype,
-                    CC  = -ifelse(lambda == 0, N * lPV, sum(lambda * N * .dbar(seqs, theta), N * P * log1p(V1 * exp(-lambda)), na.rm=TRUE)),
+                    CC  = -ifelse(0    == lambda, N * lPV, sum(lambda * N * .dbar(seqs, theta), N * P * log1p(V1 * exp(-lambda)), na.rm=TRUE)),
                     CCN = -N * lPV,
-                    CU  = -sum((numseq != .char_to_num(theta)) * drop(lambda), na.rm=TRUE) - N * sum(log1p(V1 * exp(-lambda))))
+                    CU  = -sum((numseq != .char_to_num(theta)) * drop(lambda), na.rm=TRUE)    - N * sum(log1p(V1 * exp(-lambda))))
            })
   } else {
     dG  <- if(dG.X)  switch(EXPR=modtype, 
@@ -150,15 +154,15 @@
                             CU  = sweep(-vapply(lapply(dG, "*", drop(lambda)),     FUN=colSums2, na.rm=TRUE,  numeric(N)), 
                                         2L, sum(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE) + log.tau,
                             UU  = sweep(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)), 
-                                        2L, rowSums2(log1p(V1 * exp(-lambda))), FUN="-", check.margin=FALSE)       + log.tau,
+                                        2L, rowSums2(log1p(V1  * exp(-lambda))), FUN="-", check.margin=FALSE)      + log.tau,
                             CCN = cbind(sweep(-sweep(dG, 2L, lambda[1L],  FUN="*",  check.margin=FALSE), 
-                                              2L, P * log1p(V1 * exp(-lambda[1L])),   FUN="-", check.margin=FALSE) + log.tau, tau0  - lPV),
+                                              2L, P * log1p(V1 * exp(-lambda[1L])),   FUN="-", check.margin=FALSE) + log.tau, tau0   - lPV),
                             UCN = cbind(sweep(-sweep(dG, 2L, lambda[-G,], FUN="*",  check.margin=FALSE), 
-                                              2L, P * log1p(V1 * exp(-lambda[-G,])),  FUN="-", check.margin=FALSE) + log.tau, tau0  - lPV),
+                                              2L, P * log1p(V1 * exp(-lambda[-G,])),  FUN="-", check.margin=FALSE) + log.tau, tau0   - lPV),
                             CUN = cbind(sweep(-vapply(lapply(dG, "*", lambda[1L,]),   FUN=colSums2, na.rm=TRUE, numeric(N)), 
-                                              2L, sum(log1p(V1 * exp(-lambda[1L,]))), FUN="-", check.margin=FALSE) + log.tau, tau0  - lPV),
+                                              2L, sum(log1p(V1 * exp(-lambda[1L,]))), FUN="-", check.margin=FALSE) + log.tau, tau0   - lPV),
                             UUN = cbind(sweep(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,], na.rm=TRUE), numeric(N)),
-                                              2L, rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE]))), FUN="-", check.margin=FALSE) + log.tau, tau0 - lPV))
+                                              2L, rowSums2(log1p(V1  * exp(-lambda[-G,, drop=FALSE]))), FUN="-", check.margin=FALSE) + log.tau, tau0  - lPV))
     } else         {
       numer       <- switch(EXPR=modtype,
                             CC  = -dG * lambda - P   * log1p(V1 * exp(-lambda)),
@@ -245,20 +249,18 @@
       z           <- Estep$z
       ERR         <- any(is.nan(z))
       if(isTRUE(ERR))            break
-      if(isTRUE(emptywarn) && ctrl$warn        &&
+      if(isTRUE(emptywarn) && ctrl$warn         &&
          any(colSums2(z)
                   == 0))    {    warning(paste0("\tThere were empty components: ", modtype, " (G=", g, ")\n"), call.=FALSE, immediate.=TRUE)
         emptywarn <- FALSE
       }
       ll          <- c(ll, Estep$loglike)
       if(isTRUE(st.ait))    {
-        ait       <- .aitken(ll[seq(j - 2L, j, 1L)])
-        dX        <- ifelse(is.numeric(ait$a)  && ait$a < 0, 0L, abs(ait$linf - ll[j - 1L]))
-        dX[is.nan(dX)]     <- Inf
+        dX        <- .aitken(ll[seq(j  - 2L, j, 1L)])$ldiff
       } else       {
-        dX        <- abs(ll[j] - ll[j - 1L])/(1 + abs(ll[j]))
+        dX        <- abs(ll[j]  - ll[j - 1L])/(1 + abs(ll[j]))
       }
-      runEM       <- dX >= tol && j   < itmax  && !ERR
+      runEM       <- dX >= tol && j    < itmax  &&   !ERR
     } # while (j)
   }
     return(list(ERR = ERR, j = j, Mstep = Mstep, ll = ll, z = z, MLRconverge = MLRconverge))
@@ -413,11 +415,11 @@
   .q              <- function(map, len, x)     {
     x             <- as.character(x)
     map           <- lapply(map, as.character)
-    y             <- sapply(map, "[", 1L)
+    y             <- vapply(map, "[", character(1L), 1L)
     best          <- y != x
     if(all(len)   == 1) return(best)
     errmin        <- sum(as.numeric(best))
-    z             <- sapply(map, function(x) x[length(x)])
+    z             <- vapply(map, function(x) x[length(x)], character(1L))
     mask          <- len     != 1
     count         <- rep(0L, length(len))
     k             <- sum(as.numeric(mask))
@@ -491,7 +493,7 @@
     classification[isNA]            <- nachar
   }
   MAP             <- .mapClass(classification, class)
-  len             <- sapply(MAP[[1L]], length)
+  len             <- lengths(MAP[[1L]])
   if(all(len)     == 1) {
     CT            <- unlist(MAP[[1L]])
     I             <- match(as.character(classification), names(CT), nomatch = 0)
@@ -499,7 +501,7 @@
   } else           {
     one           <- .q(MAP[[1L]], len, class)
   }
-  len             <- sapply(MAP[[2L]], length)
+  len             <- lengths(MAP[[2L]])
   if(all(len)     == 1) {
     TC            <- unlist(MAP[[2L]])
     I             <- match(as.character(class), names(TC), nomatch = 0)
@@ -519,7 +521,7 @@
 }
 
 .num_to_char      <- function(x) {
-    paste(x, sep="", collapse="")
+    intToUtf8(as.integer(x))
 }
 
 #' @importFrom matrixStats "colSums2" "rowSums2"
@@ -648,7 +650,7 @@
                if(p.opt  > opt[g])       {
                  oi     <- which(opts == opt[g], arr.ind=TRUE)
                  if((nonu[g]     <- NROW(oi) > 1))    {
-                   oi   <- if(ctrl$random) oi[sample(nrow(oi), 1L),] else oi[1L,]
+                   oi   <- if(ctrl$random) oi[sample.int(nrow(oi), 1L),] else oi[1L,]
                  }
                  if(nonu[g]      && 
                     noties)              {
@@ -701,9 +703,9 @@
     tmp/sum(tmp)
 }
 
-.rand_mode  <- function(x) {
+.rand_mode  <- function(x)  {
   a         <- which.min(x)
-  a         <- if(length(a) > 1) sample(a, 1L) else a
+  a         <- if(length(a) > 1) sample.int(a, 1L) else a
     return(a)
 }
 
@@ -711,7 +713,7 @@
 .renorm_z         <- function(z) z/rowSums2(z)
 
 .replace_levels   <- function(seq, levels = NULL) {
-  seq             <- as.numeric(strsplit(seq, "")[[1L]])
+  seq             <- utf8ToInt(seq)
     if(is.null(levels)) factor(seq) else factor(seq, levels=seq_along(levels) - any(seq == 0), labels=as.character(levels))
 }
 

@@ -1,6 +1,13 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+### Bug Fixes & Miscellaneous Edits
+* `MEDseq_fit` & other functions now work for sequence alphabets of any size;  
+  previously, only sequences with fewer than 10 states/categories were accommodated.
+* Minor fix to `dbs` function when supplying `clusters` with a noise component.
+* `sapply` replaced with `vapply`, with other negligible speed-ups.
+* Updated citation info after final publication in _JRSSA_.
+
 ## MEDseq v1.3.1 - (_8<sup>th</sup> release [patch update]: 2021-10-14_)
 ### Bug Fixes & Miscellaneous Edits
 * Fixes for `init.z` options `"kmodes"` & `"kmodes2"` in `MEDseq_control`, with new function `wKModes`  
