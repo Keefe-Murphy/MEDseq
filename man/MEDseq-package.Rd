@@ -32,8 +32,8 @@ Finally, the package also contains two data sets: \code{\link{biofam}} and \code
 \itemize{
 \item{Type: }{Package}
 \item{Package: }{MEDseq}
-\item{Version: }{1.3.1}
-\item{Date: }{2021-10-14 (this version), 2019-08-24 (original release)}
+\item{Version: }{1.3.2}
+\item{Date: }{2021-12-19 (this version), 2019-08-24 (original release)}
 \item{Licence: }{GPL (>=2)}
 }
 }

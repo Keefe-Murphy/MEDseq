@@ -1,7 +1,13 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+## MEDseq v1.3.2 - (_9<sup>th</sup> release [patch update]: 2021-12-19_)
 ### Bug Fixes & Miscellaneous Edits
+* Modifications to `WKModes` (& thus related `MEDseq_control` `init.z`  
+  options `"kmodes"`/`"kmodes2"`), by further altering `klaR::kmodes`:  
+  * Ties for modes now broken randomly, using new `wKModes` arg. `random` (defaults to `TRUE`).
+  * All tie-breaks for cluster assignments now biased towards previous iteration's assignments.
+  * Fixed rare bug when `modes` is supplied as a number with aggregated data, e.g. `"kmodes2"`.
 * `MEDseq_fit` & other functions now work for sequence alphabets of any size;  
   previously, only sequences with fewer than 10 states/categories were accommodated.
 * Minor fix to `dbs` function when supplying `clusters` with a noise component.

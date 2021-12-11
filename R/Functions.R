@@ -535,7 +535,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @param algo Switch controlling whether models are fit using the \code{"EM"} (the default) or \code{"CEM"} algorithm. The option \code{"cemEM"} allows running the EM algorithm starting from convergence of the CEM algorithm.
 #' @param init.z The method used to initialise the cluster labels. All options respect the presence of sampling \code{weights}, if any. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward's hierarchical clustering (\code{"hc"}, via \code{\link[stats]{hclust}}), \code{"random"} initialisation, and a user-supplied \code{"list"} (see \code{z.list} below). For weighted sequences, \code{"kmedoids"} is itself initialised using Ward's hierarchical clustering.
 #' 
-#' The \code{"kmodes"} and \code{"kmodes2"} options both internally call the function \code{\link{wKModes}}, which typically uses random initial modes. Under \code{"kmodes"}, the algorithm is instead initialised via the medoids of the clusters obtained from a call to \code{\link[stats]{hclust}}. The option \code{"kmodes2"} is slightly faster, by virtue of using the \emph{random} initial medoids. Final results are thus also subject to randomness under this option (unless \code{\link{set.seed}} is invoked).
+#' The \code{"kmodes"} and \code{"kmodes2"} options both internally call the function \code{\link{wKModes}}, which \emph{typically} uses random initial modes. Under \code{"kmodes"}, the algorithm is instead initialised via the medoids of the clusters obtained from a call to \code{\link[stats]{hclust}}. The option \code{"kmodes2"} is slightly faster, by virtue of using the \emph{random} initial medoids. However, final results are by default still subject to randomness under both options (unless \code{\link{set.seed}} is invoked), as ties for modes and cluster assignments are \emph{typically} broken at random throughout the algorithm (see the \code{random} argument below, and in \code{\link{wKModes}} itself).
 #' @param z.list A user supplied list of initial cluster allocation matrices, with number of rows given by the number of observations, and numbers of columns given by the range of component numbers being considered. Only relevant if \code{init.z == "z.list"}. These matrices are allowed correspond to both soft or hard clusterings, and will be internally normalised so that the rows sum to 1.
 #' @param dist.mat An optional distance matrix to use for initialisation when \code{init.z} is one of \code{"kmedoids"} or \code{"hc"}. Defaults to a Hamming distance matrix. This is an experimental feature and should only be tampered with by expert users.
 #' @param unique A logical indicating whether the model is fit only to the unique observations (defaults to \code{TRUE}). When there are covariates, this means all unique combinations of covariate and sequence patterns, otherwise only the sequence patterns. 
@@ -548,7 +548,9 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @param criterion When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.
 #' @param tau0 Prior mixing proportion for the noise component. If supplied, a noise component will be added to the model in the estimation, with \code{tau0} giving the prior probability of belonging to the noise component for \emph{all} observations. Typically supplied as a scalar in the interval (0, 1), e.g. \code{0.1}. Can be supplied as a vector when gating covariates are present and \code{noise.gate} is \code{TRUE}.
 #' @param noise.gate A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component (i.e. the \code{"CCN"}, \code{"UCN"}, \code{"CUN"}, and \code{"UUN"} models); only affects estimation in the presence of gating covariates.
-#' @param random A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default up to version 1.1.1 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations.
+#' @param random A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default prior to version 1.2.0 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations. 
+#' 
+#' Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{init.z} is \code{"kmodes"} or \code{"kmodes2"} and that, in certain rare cases when the \code{"CEM"} \code{algo} is invoked when \code{equalPro} is \code{TRUE} and the precision parameter(s) are somehow contrained across clusters, this argument also governs ties for cluster assignments within \code{MEDseq_fit} as well.
 #' @param do.cv A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.
 #' @param do.nec A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.
 #' @param nfolds The number of folds to use when \code{isTRUE{do.cv}}.
@@ -564,7 +566,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @param ordering Experimental feature that should only be tampered with by experienced users. Allows sequences to be reordered on the basis of the column-wise entropy when \code{opti} is \code{"first"} or \code{"GA"}.
 #' @param MaxNWts The maximum allowable number of weights in the call to \code{\link[nnet]{multinom}} for the multinomial logistic regression in the gating network. There is no intrinsic limit in the code, but increasing \code{MaxNWts} will probably allow fits that are very slow and time-consuming. It may be necessary to increase \code{MaxNWts} when categorical concomitant variables with many levels are included or the number of components is high.
 #' @param verbose Logical indicating whether to print messages pertaining to progress to the screen during fitting. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise. If \code{FALSE}, warnings and error messages will still be printed to the screen, but everything else will be suppressed.
-#' @param ... Catches unused arguments, and also allows the optional arguments \code{ztol} and \code{summ} to be passed to \code{\link{dbs}} (\code{ztol} and \code{summ}) as well as the ASW computation (\code{summ}), and the optional \code{\link{wKModes}} arguments \code{iter.max}, \code{freq.weighted}, and \code{fast} (provided \code{init.z} is one of \code{"kmodes"} or \code{"kmodes2"}).
+#' @param ... Catches unused arguments, and also allows the optional arguments \code{ztol} and \code{summ} to be passed to \code{\link{dbs}} (\code{ztol} and \code{summ}) as well as the ASW computation (\code{summ}), and the optional \code{\link{wKModes}} arguments \code{iter.max}, \code{freq.weighted}, and \code{fast} (provided \code{init.z} is one of \code{"kmodes"} or \code{"kmodes2"}). In such cases, the \code{wKModes} argument \code{random} is already controlled by \code{random} above here.
 #'
 #' @return A named list in which the names are the names of the arguments and the values are the values supplied to the arguments.
 #' @details \code{\link{MEDseq_control}} is provided for assigning values and defaults within \code{\link{MEDseq_fit}}. While the \code{criterion} argument controls the choice of the optimal number of components and MEDseq model type (in terms of the constraints or lack thereof on the precision parameters), \code{\link{MEDseq_compare}} is provided for choosing between fits with different combinations of covariates or different initialisation settings.
@@ -1228,9 +1230,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
                                    random=sample(seq_len(g),  size=N, replace=TRUE),
                                    kmodes=              {
                                      Ms <- seqX[disscenter(dist.mat2, group=stats::cutree(hcZ, k=g),  medoids.index="first", weights=if(do.wts) w2),, drop=FALSE]
-                                       suppressWarnings(wKModes(seqs,     weights=if(ctrl$do.wts) weights, modes=Ms, ...)$cluster)
+                                       suppressWarnings(wKModes(seqs,     weights=if(ctrl$do.wts) weights, random=ctrl$random, modes=Ms, ...)$cluster)
                                      },
-                                   kmodes2=suppressWarnings(wKModes(seqs, weights=if(ctrl$do.wts) weights, modes=g,  ...)$cluster),
+                                   kmodes2=suppressWarnings(wKModes(seqs, weights=if(ctrl$do.wts) weights, random=ctrl$random, modes=g,  ...)$cluster),
                                    kmedoids= if(do.wts) {
                                      zz <- wcKMedoids(dist.mat, k=g,  weights=weights, cluster.only=TRUE, initialclust=stats::cutree(hcZ, k=g)[uni.ind])
                                        as.numeric(factor(zz, labels=seq_along(unique(zz))))
@@ -1248,9 +1250,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
                                    random=sample(seq_len(g0), size=N, replace=TRUE),
                                    kmodes=              {
                                      Ms <- seqX[disscenter(dist.mat2, group=stats::cutree(hcZ, k=g0), medoids.index="first", weights=if(do.wts) w2),, drop=FALSE]
-                                       suppressWarnings(wKModes(seqs,     weights=if(ctrl$do.wts) weights, modes=Ms, ...)$cluster)
+                                       suppressWarnings(wKModes(seqs,     weights=if(ctrl$do.wts) weights, random=ctrl$random, modes=Ms, ...)$cluster)
                                      },
-                                   kmodes2=suppressWarnings(wKModes(seqs, weights=if(ctrl$do.wts) weights, modes=g0, ...)$cluster),
+                                   kmodes2=suppressWarnings(wKModes(seqs, weights=if(ctrl$do.wts) weights, random=ctrl$random, modes=g0, ...)$cluster),
                                    kmedoids= if(do.wts) {
                                      zz <- wcKMedoids(dist.mat, k=g0, weights=weights, cluster.only=TRUE, initialclust=stats::cutree(hcZ, k=g0)[uni.ind])
                                        as.numeric(factor(zz, labels=seq_along(unique(zz))))
@@ -1383,6 +1385,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
           ctrl$do.cv       <- TRUE
           if(is.infinite(lCV[i] <- 
              .E_step(seqs=CVS, params=MCV, modtype=modtype, ctrl=ctrl, 
+                     z.old=if(g  > 1 && ctrl$algo == "CEM" && ctrl$equalPro && !ctrl$random &&
+                              modtype %in% c("CC", "CU", "CCN", "CUN")) zCV[testX,, drop=FALSE],
              numseq=CVn)))       break
           ctrl$do.cv       <- FALSE
         }
@@ -3236,15 +3240,18 @@ MEDseq_nameclusts.MEDnames  <- function(names) {
     factor(replace(MAP, MAP == 0, attr(names, "G")), labels=names)
 }
 
-#' Weighted K-Modes Clustering
+#' Weighted K-Modes Clustering with Tie-Breaking
 #'
-#' Perform k-modes clustering on categorical data with observation-specific sampling weights.
+#' Perform k-modes clustering on categorical data with observation-specific sampling weights and tie-breaking adjustments.
 #' @param data A matrix or data frame of categorical data. Objects have to be in rows, variables in columns.
-#' @param modes Either the number of modes or a set of initial (distinct) cluster modes (where each mode is a row and \code{modes} has the same number of colums as \code{data}). If a number, a random set of (distinct) rows in \code{data} is chosen as the initial modes.
+#' @param modes Either the number of modes or a set of initial (distinct) cluster modes (where each mode is a row and \code{modes} has the same number of columns as \code{data}). If a number, a random set of (distinct) rows in \code{data} is chosen as the initial modes.
 #' @param weights Optional numeric vector containing non-negative observation-specific case weights.
 #' @param iter.max The maximum number of iterations allowed. Defaults to \code{.Machine$integer.max}. The algorithm terminates when \code{iter.max} is reached or when the partition ceases to change between iterations.
 #' @param freq.weighted A logical indicating whether the usual simple-matching (Hamming) distance between objects is used, or a frequency weighted version of this distance. Default to \code{FALSE}; when \code{TRUE}, the frequency weights are computed within the algorithm and are \emph{not} user-specified. Distinct from the observation-level \code{weights} above, the frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.
 #' @param fast A logical indicating whether a fast version of the algorithm should be applied. Defaults to \code{TRUE}.
+#' @param random A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE} (the implied default had been \code{FALSE} prior to version 1.3.2 of this package, as per \code{klaR::kmodes}). 
+#' 
+#' Regarding the modes, ties are broken at random when \code{TRUE} and the first candidate state is always chosen for the mode when \code{FALSE}. Regarding assignments, tie-breaking is always first biased in favour of the observation's most recent cluster: regarding ties thereafter, these are broken at random when \code{TRUE} or the first other candidate cluster is always chosen when \code{FALSE}.
 #' @param ... Catches unused arguments.
 #'
 #' @details The k-modes algorithm (Huang, 1997) is an extension of the k-means algorithm by MacQueen (1967).
@@ -3257,7 +3264,9 @@ MEDseq_nameclusts.MEDnames  <- function(names) {
 #' 
 #' If called using \code{fast = TRUE}, the reassignment of the data to clusters is done for the entire data set before recomputation of the modes is done. For computational reasons, this option should be chosen for all but the most moderate of data sizes.
 #' 
-#' @note This code is adapted from the \code{kmodes} function in the \pkg{klaR} package. Specifically, modifications were made to allow for the incorporation of observation-specific sampling \code{weights}, with a view to using this function as a means to initialise the allocations for MEDseq models (see the \code{\link{MEDseq_control}} argument \code{init.z} and the related options \code{"kmodes"} and \code{"kmodes2"}). Notably, the \code{wKModes} function, when invokved inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all.
+#' @note This code is adapted from the \code{kmodes} function in the \pkg{klaR} package. Specifically, modifications were made to allow for random tie-breaking for the modes and assignments (see \code{random} above) and the incorporation of observation-specific sampling \code{weights}, with a view to using this function as a means to initialise the allocations for MEDseq models (see the \code{\link{MEDseq_control}} argument \code{init.z} and the related options \code{"kmodes"} and \code{"kmodes2"}). 
+#' 
+#' Notably, the \code{wKModes} function, when invoked inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all. Furthermore, the \code{\link{MEDseq_control}} argument \code{random} is \emph{also} passed to \code{wKmodes} when it is invoked inside \code{\link{MEDseq_fit}}.
 #' @return An object of class \code{"wKModes"} which is a list with the following components:
 #' \describe{
 #' \item{\code{cluster}}{A vector of integers indicating the cluster to which each object is allocated.}
@@ -3266,7 +3275,8 @@ MEDseq_nameclusts.MEDnames  <- function(names) {
 #' \item{\code{withindiff}}{The within-cluster (weighted) simple-matching distance for each cluster.}
 #' \item{\code{iterations}}{The number of iterations the algorithm reached.}
 #' \item{\code{weighted}}{A logical indicating whether observation-level \code{weights} were used or not throughout the algorithm.}
-#' \item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances.}}
+#' \item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances.}
+#' \item{\code{random}}{A logical indicating whether ties were broken at random or not throughout the algorithm.}}
 #' @references Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
 #' 
 #' MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In L. M. L. Cam and J. Neyman (Eds.), \emph{Proceedings of the Fifth Berkeley Symposium on  Mathematical Statistics and Probability}, Volume 1, pp. 281-297. Berkeley, CA, USA: University of California Press.
@@ -3284,6 +3294,7 @@ MEDseq_nameclusts.MEDnames  <- function(names) {
 #'         iter.max = .Machine$integer.max,
 #'         freq.weighted = FALSE,
 #'         fast = TRUE,
+#'         random = TRUE,
 #'         ...)
 #' @examples
 #' \dontshow{suppressMessages(require(TraMineR)); suppressMessages(require(WeightedCluster))}
@@ -3308,7 +3319,8 @@ MEDseq_nameclusts.MEDnames  <- function(names) {
 #' # Examine the modal sequences of both solutions
 #' seqformat(seqdef(resX$modes), from="STS", to="SPS", compress=TRUE)
 #' seqformat(seqdef(resW$modes), from="STS", to="SPS", compress=TRUE)
-wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integer.max, freq.weighted = FALSE, fast = TRUE, ...) {
+wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integer.max, 
+                          freq.weighted = FALSE, fast = TRUE, random = TRUE, ...) {
   data        <- as.data.frame(data)
   n           <- nrow(data)
   P           <- ncol(data)
@@ -3341,6 +3353,8 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
      !is.logical(freq.weighted)) stop("'freq.weighted' must be a single logical indicator",  call.=FALSE)
   if(length(fast)       > 1 ||
      !is.logical(fast))          stop("'fast' must be a single logical indicator",           call.=FALSE)
+  if(length(random)     > 1 ||
+     !is.logical(random))        stop("'random' must be a single logical indicator",         call.=FALSE)
   nseq        <- seq_len(n)
   Pseq        <- seq_len(P)
   data        <- as.data.frame(data)
@@ -3352,7 +3366,7 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
     k         <- modes
     kseq      <- seq_len(k)
     modes     <- unique(data)[sample(nrow(unique(data)), size=k, replace=FALSE),,             drop=FALSE]
-    kseq      -> cluster[rownames(modes)]
+    kseq      -> cluster[which(rownames(data) %in% rownames(modes))]
   } else       {
     if(any(duplicated(modes)))   stop("Initial modes are not distinct",                      call.=FALSE)
     if(P      != ncol(modes))    stop("'data' and 'modes' must have same number of columns", call.=FALSE)
@@ -3378,19 +3392,25 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
   if(!fast)    {
     for(j in which(cluster  == 0))   {
       dist    <- apply(modes, 1L, .km_dist, data[j,], frwts)
-      cluster[j]  <- which.min(dist)
-      modes[cluster[j],]    <- .update_mode(cluster[j], cluster, data, weights)
+      if(!random)  {
+       cluster[j] <- which.min(dist)
+      } else       {
+       mdis       <- which(dist == min(dist))
+       cluster[j] <- if(length(mdis) > 1) sample(mdis, 1L) else mdis
+      }
+      modes[cluster[j],]    <- .update_mode(cluster[j], cluster, data, random, weights)
     }
     for(i in seq_len(iter.max))      {
       continue    <- FALSE
       for(j in nseq)  {
         dist      <- apply(modes, 1L, .km_dist, data[j,], frwts)
-        clust_new <- which.min(dist)
+        clust_new <- which(dist == min(dist))
+        clust_new <- if(length(clust_new) > 1) ifelse(cluster[j] %in% clust_new, cluster[j], ifelse(random, sample(clust_new, 1L), clust_new[1L])) else clust_new
         clust_old <- cluster[j]
         if(clust_new        != clust_old) {
           cluster[j]        <- clust_new
-          modes[clust_new,] <- .update_mode(clust_new, cluster, data, weights)
-          modes[clust_old,] <- .update_mode(clust_old, cluster, data, weights)
+          modes[clust_new,] <- .update_mode(clust_new, cluster, data, random, weights)
+          modes[clust_old,] <- .update_mode(clust_old, cluster, data, random, weights)
           continue          <- TRUE
         }
       }
@@ -3414,9 +3434,9 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
         dists[,i] <- if(wtd) rowSums2(di  * wts) * weights else rowSums2(di * wts)
       }
     }
-    cluster   <- apply(dists, 1L, .rand_mode)
+    cluster   <- apply(dists, 1L, .rand_MIN, random)
     for(j in seq_len(nrow(modes)))   {
-      modes[j,]   <- .update_mode(j, cluster, data, weights)
+      modes[j,]   <- .update_mode(j, cluster, data, random, weights)
     }
     for(i in seq_len(iter.max))      {
       continue    <- FALSE
@@ -3436,9 +3456,9 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
        }
       }
       old.cluster <- cluster
-      cluster     <- apply(dists, 1L, .rand_mode)
+      cluster <- vapply(nseq, function(i) .random_ass(dists[i,], cluster[i], fun=min, random), integer(1L))
       for(j in seq_len(nrow(modes))) {
-        modes[j,] <- .update_mode(j, cluster, data, weights)
+        modes[j,] <- .update_mode(j, cluster, data, random, weights)
       }
       continue    <- any(cluster    != old.cluster)
       if(!continue)              break
@@ -3470,8 +3490,8 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
   dimnames(modes) <- list(kseq, colnames(data))
   if(any(isfactor))  for(j in which(isfactor))  modes[,j] <- factor(modes[,j], levels = levs[[j]])
   if(any(isnumeric)) for(j in which(isnumeric)) modes[,j] <- as.numeric(modes[,j])
-  result      <- list(cluster = cluster, size = cluster.size, modes = modes, 
-                      withindiff = diffs, iterations = i, weighted = wtd, freq.weighted = freq.weighted)
+  result      <- list(cluster = cluster, size = cluster.size, modes = modes, withindiff = diffs, 
+                      iterations = i, weighted = wtd, freq.weighted = freq.weighted, random = random)
   class(result)   <- "wKModes"
     return(result)
 }

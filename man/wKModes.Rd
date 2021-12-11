@@ -2,7 +2,7 @@
 % Please edit documentation in R/Functions.R
 \name{wKModes}
 \alias{wKModes}
-\title{Weighted K-Modes Clustering}
+\title{Weighted K-Modes Clustering with Tie-Breaking}
 \usage{
 wKModes(data,
         modes,
@@ -10,12 +10,13 @@ wKModes(data,
         iter.max = .Machine$integer.max,
         freq.weighted = FALSE,
         fast = TRUE,
+        random = TRUE,
         ...)
 }
 \arguments{
 \item{data}{A matrix or data frame of categorical data. Objects have to be in rows, variables in columns.}
 
-\item{modes}{Either the number of modes or a set of initial (distinct) cluster modes (where each mode is a row and \code{modes} has the same number of colums as \code{data}). If a number, a random set of (distinct) rows in \code{data} is chosen as the initial modes.}
+\item{modes}{Either the number of modes or a set of initial (distinct) cluster modes (where each mode is a row and \code{modes} has the same number of columns as \code{data}). If a number, a random set of (distinct) rows in \code{data} is chosen as the initial modes.}
 
 \item{weights}{Optional numeric vector containing non-negative observation-specific case weights.}
 
@@ -24,6 +25,10 @@ wKModes(data,
 \item{freq.weighted}{A logical indicating whether the usual simple-matching (Hamming) distance between objects is used, or a frequency weighted version of this distance. Default to \code{FALSE}; when \code{TRUE}, the frequency weights are computed within the algorithm and are \emph{not} user-specified. Distinct from the observation-level \code{weights} above, the frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.}
 
 \item{fast}{A logical indicating whether a fast version of the algorithm should be applied. Defaults to \code{TRUE}.}
+
+\item{random}{A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE} (the implied default had been \code{FALSE} prior to version 1.3.2 of this package, as per \code{klaR::kmodes}). 
+
+Regarding the modes, ties are broken at random when \code{TRUE} and the first candidate state is always chosen for the mode when \code{FALSE}. Regarding assignments, tie-breaking is always first biased in favour of the observation's most recent cluster: regarding ties thereafter, these are broken at random when \code{TRUE} or the first other candidate cluster is always chosen when \code{FALSE}.}
 
 \item{...}{Catches unused arguments.}
 }
@@ -36,10 +41,11 @@ An object of class \code{"wKModes"} which is a list with the following component
 \item{\code{withindiff}}{The within-cluster (weighted) simple-matching distance for each cluster.}
 \item{\code{iterations}}{The number of iterations the algorithm reached.}
 \item{\code{weighted}}{A logical indicating whether observation-level \code{weights} were used or not throughout the algorithm.}
-\item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances.}}
+\item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances.}
+\item{\code{random}}{A logical indicating whether ties were broken at random or not throughout the algorithm.}}
 }
 \description{
-Perform k-modes clustering on categorical data with observation-specific sampling weights.
+Perform k-modes clustering on categorical data with observation-specific sampling weights and tie-breaking adjustments.
 }
 \details{
 The k-modes algorithm (Huang, 1997) is an extension of the k-means algorithm by MacQueen (1967).
@@ -53,7 +59,9 @@ If an initial matrix of modes is supplied, it is possible that no object will be
 If called using \code{fast = TRUE}, the reassignment of the data to clusters is done for the entire data set before recomputation of the modes is done. For computational reasons, this option should be chosen for all but the most moderate of data sizes.
 }
 \note{
-This code is adapted from the \code{kmodes} function in the \pkg{klaR} package. Specifically, modifications were made to allow for the incorporation of observation-specific sampling \code{weights}, with a view to using this function as a means to initialise the allocations for MEDseq models (see the \code{\link{MEDseq_control}} argument \code{init.z} and the related options \code{"kmodes"} and \code{"kmodes2"}). Notably, the \code{wKModes} function, when invokved inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all.
+This code is adapted from the \code{kmodes} function in the \pkg{klaR} package. Specifically, modifications were made to allow for random tie-breaking for the modes and assignments (see \code{random} above) and the incorporation of observation-specific sampling \code{weights}, with a view to using this function as a means to initialise the allocations for MEDseq models (see the \code{\link{MEDseq_control}} argument \code{init.z} and the related options \code{"kmodes"} and \code{"kmodes2"}). 
+
+Notably, the \code{wKModes} function, when invoked inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all. Furthermore, the \code{\link{MEDseq_control}} argument \code{random} is \emph{also} passed to \code{wKmodes} when it is invoked inside \code{\link{MEDseq_fit}}.
 }
 \examples{
 \dontshow{suppressMessages(require(TraMineR)); suppressMessages(require(WeightedCluster))}

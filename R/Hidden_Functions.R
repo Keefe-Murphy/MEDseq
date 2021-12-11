@@ -24,7 +24,7 @@
 }
 
 #' @importFrom matrixStats "rowMaxs"
-.choice_crit      <- function(ll, seqs, z, gp, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), type=c("new", "old")) {
+.choice_crit      <- function(ll, seqs, z, gp, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), type = c("new", "old")) {
   type            <- match.arg(type)
   G               <- attr(seqs, ifelse(is.element(modtype, c("CCN", "UCN", "CUN", "UUN")), "G0", "G"))
   P               <- attr(seqs, "T")
@@ -105,7 +105,7 @@
 
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowSums2"
 #' @importFrom stringdist "stringdistmatrix"
-.E_step           <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL, HAM.mat = NULL) {
+.E_step           <- function(seqs, params, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), ctrl, numseq = NULL, HAM.mat = NULL, z.old = NULL) {
   G               <- attr(seqs, "G")
   N               <- attr(seqs, "N")
   P               <- attr(seqs, "T")
@@ -207,7 +207,17 @@
       }
     },    CEM=     {
       if(N1)       {
-        z         <- .unMAP(max.col(numer), groups=seq_len(G))
+        if(!ctrl$random && ctrl$equalPro  && 
+           is.element(modtype, c("CC", "CU", "CCN", "CUN")))    {
+          z       <- apply(numer, 1L, function(x) which(max(x) == x))
+          if(is.list(z)) {
+            ty    <- which(lengths(z) > 1)
+            z[ty] <- vapply(ty,       function(i) .random_ass(numer[i,], which.max(z.old[i,]), fun=max), integer(1L))
+          }
+          z       <- .unMAP(unlist(z),      groups=seq_len(G))
+        } else     {
+          z       <- .unMAP(max.col(numer), groups=seq_len(G))
+        }
         loglike   <- sum(if(ctrl$do.wts) z * numer * attr(seqs, "Weights")  else z * numer, na.rm=TRUE)
         if(ctrl$do.cv)       {
             return(loglike)
@@ -245,7 +255,7 @@
       ctrl$ties   <- j < 4 || 
       (noty       <- noty  && !check)
       MLRconverge <- Mstep$MLRconverge
-      Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep, HAM.mat=HAM.mat)
+      Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep, HAM.mat=HAM.mat, z.old=z)
       z           <- Estep$z
       ERR         <- any(is.nan(z))
       if(isTRUE(ERR))            break
@@ -292,7 +302,7 @@
     return(sum((n_mode + n_obj)/(n_mode * n_obj)))
 }
 
-.lab_width        <- function(x, cex = 0.67, offset = 1.5) {
+.lab_width        <- function(x, cex = 2/3, offset = 1.5)  {
     (offset + max(graphics::strwidth(x, units = "inches")) * graphics::par("mar")[1L]/graphics::par("mai")[1L]) * cex
 }
 
@@ -698,15 +708,29 @@
     return(list(crits = stats::setNames(x.val[seq_len(pick)], vapply(seq_len(pick), function(p, b=x.ind[p,]) paste0(b[2L], ",", b[1L]), character(1L))), pick = pick))
 }
 
+.rand_MIN   <- function(x, random = TRUE)    {
+  if(!random)  return(which.min(x))
+  a         <- which(min(x) == x)
+  a         <- if(length(a)  > 1) sample(a, 1L) else a
+    return(a)
+}
+
+.rand_MAX   <- function(x, random = TRUE)    {
+  if(!random)  return(which.max(x))
+  a         <- which(max(x) == x)
+  a         <- if(length(a)  > 1) sample(a, 1L) else a
+    return(a)
+}
+
+.random_ass <- function(x, y, fun = max, random = TRUE) {
+  a         <- which(fun(x) == x)
+  a         <- if(length(a)  > 1) ifelse(y %in% a, y, ifelse(random, sample(a, 1L), a[1L])) else a
+    return(a)
+}
+
 .rDirichlet <- function(G, shape = 1L) {
   tmp       <- if(all(shape == 1)) stats::rexp(G, rate=1L) else stats::rgamma(G, shape=shape, rate=1L) 
     tmp/sum(tmp)
-}
-
-.rand_mode  <- function(x)  {
-  a         <- which.min(x)
-  a         <- if(length(a) > 1) sample.int(a, 1L) else a
-    return(a)
 }
 
 #' @importFrom matrixStats "rowSums2"
@@ -834,12 +858,12 @@
     return(z)
 }
 
-.update_mode      <- function(num, cluster, data, weights = NULL)  {
-  diff            <- which(cluster == num)
+.update_mode      <- function(num, cluster, data, random = TRUE, weights = NULL)  {
+  diff            <- which(cluster  == num)
   clust           <- data[diff,, drop=FALSE]
-  apply(clust, 2L, function(cat)    {
-    cat           <- if(is.null(weights)) table(cat) else tapply(weights[diff], cat, FUN=sum)
-      return(names(cat)[which.max(cat)])
+  apply(clust, 2L,   function(cat)   {
+    cat           <- if(is.null(weights))    table(cat) else tapply(weights[diff], cat, FUN=sum)
+      return(names(cat)[.rand_MAX(cat, random)])
   })
 }
 
