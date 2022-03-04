@@ -346,7 +346,7 @@
       })
     }
     switch(EXPR=l.meth, CU=, UU=, CUN=, UUN= {
-      dG          <- lapply(seq_len(G0), function(g) unname(apply(numseq,    2L, "!=",  .char_to_num(theta[g]))))
+      dG          <- lapply(seq_len(G0), function(g) unname(numseq != .char_to_num(theta[g])))
       dGp         <- vapply(seq_len(G0), function(g) rowSums2(sweep(dG[[g]], 2L, z[,g], FUN="*", check.margin=FALSE)), numeric(P))
     },             {
       pN          <- P * switch(EXPR=l.meth, CCN=sum(z), W)

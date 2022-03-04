@@ -1,6 +1,11 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+### Bug Fixes & Miscellaneous Edits
+* Minor speed-up to distance calculations for the `"CU"`, `"CUN"`, `"UU"`, & `"UUN"` models when `G>1`.
+* Fixed mismatched plotting symbols for models with noise in model-selection criteria plot legends.
+* Minor edits for compatibility w/ latest TraMineR release, w.r.t. `"mt"` and `"ms"` plots.
+
 ## MEDseq v1.3.2 - (_9<sup>th</sup> release [patch update]: 2021-12-19_)
 ### Bug Fixes & Miscellaneous Edits
 * Modifications to `WKModes` (& thus related `MEDseq_control` `init.z`  
