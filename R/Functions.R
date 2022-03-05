@@ -1106,7 +1106,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     cvsel         <- TRUE
   }
   if(ctrl$numseq  <- any(c("CU", "UU", "CUN", "UUN") %in% all.mod, opti == "mode", ctrl$ordering != "none")) {
-    numseq        <- sapply(SEQ, .char_to_num)
+    numseq        <- unname(sapply(SEQ, .char_to_num))
     attr(numseq, "T")    <- P
     attr(numseq, "V")    <- V
   } else numseq   <- NULL
