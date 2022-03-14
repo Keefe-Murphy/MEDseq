@@ -1,10 +1,15 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
-### Bug Fixes & Miscellaneous Edits
-* Major speed-ups to E-steps for all model types.
+## MEDseq v1.3.3 - (_10<sup>th</sup> release [patch update]: 2022-03-28_)
+### Improvements, Bug Fixes & Miscellaneous Edits
+* Major speed-ups to E-steps for all model types when `G>1`.
 * Minor speed-ups to distance calculations for all model types when `G>1`.
+* `MEDseq_meantime` gains the `map.size` arg. and a related `print` method.
+* Added `summary` (and related `print`) methods for `MEDCriterion` objects.
+* New function `MoE_entropy` added.
 * Fixed mismatched plotting symbols for models with noise in model-selection criteria plot legends.
+* Minor fix to handle (rare) empty components.
 * Minor edits for compatibility w/ latest TraMineR release, w.r.t. `"mt"` and `"ms"` plots.
 
 ## MEDseq v1.3.2 - (_9<sup>th</sup> release [patch update]: 2021-12-19_)
@@ -91,7 +96,7 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Minor CRAN compliance edits to the vignette.
 
 ## MEDseq v1.2.0 - (_5<sup>th</sup> release [minor update]: 2020-11-20_)
-### Significant user-visible changes
+### Significant User-Visible Changes
 * Corrected the parameter count penalty for the BIC, ICL, and AIC model selection criteria,  
   specifically, the count is now greater for the central sequence position estimates.
 * Hence, `criterion="bic"` is now the default for `MEDseq_control`, `MEDseq_compare`, and  

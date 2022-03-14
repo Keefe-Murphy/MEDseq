@@ -258,9 +258,10 @@
       ERR         <- any(is.nan(z))
       if(isTRUE(ERR))            break
       if(isTRUE(emptywarn) && ctrl$warn         &&
-         any(colSums2(z)
-                  == 0))    {    warning(paste0("\tThere were empty components: ", modtype, " (G=", g, ")\n"), call.=FALSE, immediate.=TRUE)
+         any(zsum <- (colSums2(z)
+                  == 0)))   {    warning(paste0("\tThere were empty components: ", modtype, " (G=", g, ")\n"), call.=FALSE, immediate.=TRUE)
         emptywarn <- FALSE
+        z[,zsum]  <- sqrt(.Machine$double.neg.eps)
       }
       ll          <- c(ll, Estep$loglike)
       if(isTRUE(st.ait))    {
@@ -556,13 +557,14 @@
     attr(numseq,   "G")     <- G
     if(opti       == "mode") {
       if(G > 1    || ctrl$do.wts)    {
-        theta     <- .weighted_mode(numseq=numseq, z=if(G == 1) as.matrix(attr(seqs, "Weights")) else if(nmeth) z[,Gseq, drop=FALSE] else z)
+        theta     <- .weighted_mode(numseq=numseq, 
+                                    z=if(G == 1) as.matrix(attr(seqs, "Weights"))   else if(nmeth) z[,Gseq, drop=FALSE] else z)
         if(is.list(theta)   && 
            any(t_ties       <- apply(theta, c(1L, 2L), function(x) any(nchar(x) > 1)))) {
           noties  <- FALSE
           t_ties  <- which(t_ties, arr.ind=TRUE)
           nonu    <- replace(rep(FALSE, G), unique(t_ties[,2L]), TRUE)
-          theta[t_ties]     <- if(ctrl$random) lapply(theta[t_ties], function(x) sample(x, 1L))  else lapply(theta[t_ties], "[[", 1L)
+          theta[t_ties]     <- lapply(theta[t_ties], if(isTRUE(ctrl$random)) sample else "[[", 1L)
           if(ctrl$ties      &&
              ctrl$verbose)   {
             if(ctrl$random)  {   message("\tTie for modal sequence position broken at random\n")
@@ -575,7 +577,7 @@
         if(nonu   <- is.list(theta)) {  
           noties  <- FALSE
           unon    <- which(lengths(theta) > 1)
-          theta[unon]       <- if(ctrl$random) lapply(theta[unon],   function(x) sample(x, 1L))  else lapply(theta[unon],   "[[", 1L)
+          theta[unon]       <- lapply(theta[unon],   if(isTRUE(ctrl$random)) sample else "[[", 1L)
           if(ctrl$ties      &&
              ctrl$verbose)   {
             if(ctrl$random)  {   message("\tTie for modal sequence position broken at random\n")

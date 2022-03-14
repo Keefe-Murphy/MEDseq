@@ -764,7 +764,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @details The function effectively allows 8 different MEDseq precision parameter settings for models with or without gating network covariates. By constraining the mixing proportions to be equal (see \code{equalPro} in \code{\link{MEDseq_control}}) an extra special case is facilitated in the latter case. 
 #' 
 #' While model selection in terms of choosing the optimal number of components and the MEDseq model type is performed within \code{\link{MEDseq_fit}}, using one of the \code{criterion} options within \code{\link{MEDseq_control}}, choosing between multiple fits with different combinations of covariates or different initialisation settings can be done by supplying objects of class \code{"MEDseq"} to \code{\link{MEDseq_compare}}.
-#' @note Where \code{BIC}, \code{ICL}, \code{AIC}, \code{DBS}, \code{ASW}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{CV}, and \code{NEC} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which a dedicated printing functions exists.
+#' @note Where \code{BIC}, \code{ICL}, \code{AIC}, \code{DBS}, \code{ASW}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{CV}, and \code{NEC} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which dedicated \code{print} and \code{summary} methods exist. For plotting, please see \code{\link[=plot.MEDseq]{plot}}.
 
 #' @importFrom cluster "agnes" "pam"
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowLogSumExps" "rowMaxs" "rowMeans2" "rowSums2" "weightedMedian" "weightedMean"
@@ -1204,7 +1204,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         } else                   stop("'tau0' must be a scalar in the interval (0, 1)", call.=FALSE)
       }
     }
-
+    
     if(g  > 1)     {
       algog       <- algo
       if(init.z   == "random" &&
@@ -1215,7 +1215,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         if(isTRUE(noise))   {
           if(g0    > 1)     {
             zg0   <- replicate(nstarts, list(.unMAP(sample(seq_len(g0), size=N, replace=TRUE), groups=seq_len(g0))))
-            zg0   <- lapply(zg0, function(x) .tau_noise(x, tau0))
+            zg0   <- lapply(zg0, .tau_noise, tau0)
           } else   {
             zg0   <- matrix(tau0, nrow=N, ncol=2L)
           }
@@ -1809,7 +1809,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"i"}}{Selected sequence index plots (by cluster). By default, bar widths for each observation will be proportional to their weight (if any). However, this can be overruled by specifying \code{weighted=FALSE}.}
 #' \item{\code{"I"}}{Whole set index plots (by cluster). This plot effectively contains almost exactly the same information as \code{type="clusters"} plots, and is similarly affected by the \code{seriated} argument, albeit shown on a by-cluster basis rather than stacked in one plot. However, bar widths for each observation will (by default) be proportional to their weight (if any), which is not the case for \code{type="clusters"} plots. However, this can be overruled by specifying \code{weighted=FALSE}.}
 #' \item{\code{"ms"}}{Modal state sequence plots (by cluster). This is an alternative way of displaying the central sequences beyond the \code{type="central"} option above. Notably, this option respects arguments passed to \code{\link{get_MEDseq_results}} via the \code{...} construct (see below), while \code{type="central"} does not, although still nothing is shown for the noise component. \strong{Note}: unlike \code{type="central"}, this option always plots \emph{modal} sequences, even if another \code{opti} setting was invoked during model-fitting via \code{\link{MEDseq_control}}, in which case there will be a mismatch between the visualisation and \code{x$params$theta}. Similarly, there may be a mismatch if \code{soft} and/or \code{weighted} are modified from their default values of \code{TRUE}.}
-#' \item{\code{"mt"}}{Mean times plots (by cluster). This is equivalent to plotting the results of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, norm=TRUE, prop=FALSE, wt.size=TRUE)}. Other options for \code{norm=FALSE}, \code{prop=TRUE}, and \code{wt.size=FALSE} may be added in future versions of this package.}
+#' \item{\code{"mt"}}{Mean times plots (by cluster). This is equivalent to plotting the results of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, norm=TRUE, prop=FALSE, map.size=FALSE, wt.size=TRUE)}. Other options for \code{norm=FALSE}, \code{prop=TRUE}, \code{map.size=TRUE}, and \code{wt.size=FALSE} may be added in future versions of this package.}
 #' }
 #' @param seriated Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} and \code{sortv} arguments below. 
 #' 
@@ -1833,7 +1833,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
 #' @note Every \code{type} of plot respects the sampling weights, if any. However, those related to \code{\link[TraMineR]{seqplot}} plots from \pkg{TraMineR} (\code{"d"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, \code{"mt"}) do so only when \code{weighted=TRUE} (the default). 
 #' 
-#' For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, the y-axis labels (which can be suppressed using \code{ylab=NA}) always display cluster sizes which correspond to the output of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, wt.size=TRUE)}, where \code{wt.size=TRUE} is \strong{NOT} the default behaviour for \code{\link{MEDseq_meantime}}. 
+#' For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, the y-axis labels (which can be suppressed using \code{ylab=NA}) always display cluster sizes which correspond to the output of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, map.size=FALSE, wt.size=TRUE)}, where \code{wt.size=TRUE} is \strong{NOT} the default behaviour for \code{\link{MEDseq_meantime}}. 
 #' 
 #' Finally, the plot types borrowed from \pkg{TraMineR} may be too wide to display in the preview panel. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}. 
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
@@ -2583,6 +2583,45 @@ print.MEDcriterion       <- function(x, pick = 3L, ...) {
     invisible()
 }
 
+#' @method summary MEDcriterion
+#' @export
+summary.MEDcriterion <- function(object, G, modtype, ...) {
+  attribs            <- attributes(object) 
+  if(!missing(G))     {
+    object           <- object[rownames(object)  %in% G,,      drop=FALSE]
+    attr(object, "dim")        <- dim(object)
+    attr(object, "dimnames")   <- list(as.character(G), attribs$dimnames[[2L]])
+    attr(object, "G")          <- G
+  }
+  if(!missing(modtype))         {
+    object           <- object[,colnames(object) %in% modtype, drop=FALSE]
+    attr(object, "dim")        <- dim(object)
+    attr(object, "dimnames")   <- list(attribs$dimnames[[1L]], modtype)
+    attr(object, "modelNames") <- modtype
+  }
+  attr(object, "class")        <- "MEDcriterion"
+  attr(object, "Criterion")    <- attribs$Criterion
+  object             <- .pick_MEDCrit(object, ...)
+  attr(object, "class")        <- "MEDcriterion"
+  attr(object, "Criterion")    <- attribs$Criterion
+  class(object)      <- "summary.MEDcriterion"
+    return(object)
+}
+
+#' @method print summary.MEDcriterion
+#' @export
+print.summary.MEDcriterion <- function(x, digits = 3L, ...){
+  if(length(digits) > 1   || !is.numeric(digits) ||
+     digits   <= 0)              stop("Invalid 'digits'", call.=FALSE)
+  crit        <- attr(x, "Criterion")
+  cat(paste0("Best ", crit, " values:\n"))
+  x           <- drop(as.matrix(x$crits))
+  x           <- rbind(x, x - switch(EXPR=crit, DF=, ITERS=, NEC=min(x), max(x)))
+  rownames(x) <- list(crit, paste0(crit, " diff"))
+  print(x, digits = digits)
+    invisible()
+}
+
 #' @method print MEDgating
 #' @export
 print.MEDgating    <- function(x, call = FALSE, SPS = FALSE, ...) {
@@ -3025,11 +3064,12 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #'
 #' Computes the mean time (per cluster) spent in each sequence category (i.e. state value) for a fitted \code{MEDseq} model.
 #' @param x An object of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}} or an object of class \code{"MEDseqCompare"} generated by \code{\link{MEDseq_compare}}.
-#' @param MAP A logical indicating whether to use the MAP classification in the computation of the averages, or the 'soft' clustering assignment probabilities given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}). See \code{weighted} for incorporating the sampling weights (regardless of the value of \code{MAP}).
+#' @param MAP A logical indicating whether to use the MAP classification in the computation of the averages, or the 'soft' clustering assignment probabilities given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}). See \code{weighted} for incorporating the sampling weights (regardless of the value of \code{MAP}). See \code{map.size} below.
 #' @param weighted A logical indicating whether the sampling weights (if used during model fitting) are used to compute the weighted averages. These can be used alone (when \code{MAP} is \code{TRUE}) or in conjunction with the 'soft' clustering assignment probabilities (when \code{MAP} is \code{FALSE}). Defaults to \code{TRUE}. Note that, \emph{by default}, the first column of the output is not affected by the value of \code{weighted} (see \code{wt.size}).
 #' @param norm A logical indicating whether the mean times (outputted values after the first column) are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries beyond the first column give the total (weighted) number of times a given sequence category was observed in a given cluster.
 #' @param prop A logical (defaulting to \code{FALSE} and only invoked when \code{norm} is also \code{TRUE}) which further normalises the output to give the \emph{proportions} of time spent in each state on average instead of the absolute values.
-#' @param wt.size A logical (default to \code{FALSE} and only invoked when when \code{weighted} is also \code{TRUE}) which toggles whether the weights are \emph{also} used in the computation of the cluster sizes in the first column of the output (regardless of the value of \code{MAP}).
+#' @param map.size A logical (defaulting to \code{FALSE}, unless the model was fitted by the CEM algorithm (see \code{\link{MEDseq_control}})) which overrides \code{MAP} in the \code{Size} column (or \code{Weighted.Size} column, see \code{wt.size}) of the output, e.g. if \code{MAP=FALSE} and \code{map.size=TRUE}, the MAP classification is used to determine the cluster sizes but the soft cluster-membership probabilities are used to calculate quantities in remaining columns. Only relevant when \code{MAP=FALSE} or \code{wt.size=TRUE}.
+#' @param wt.size A logical (default to \code{FALSE} and only invoked when when \code{weighted} is also \code{TRUE}) which toggles whether the weights are \emph{also} used in the computation of the cluster sizes in the first column of the output (regardless of the values of \code{MAP} or \code{map.size}).
 #' @param SPS A logical indicating whether the output should be labelled according to the state-permanence-sequence representation of the central sequences. Defaults to \code{FALSE}. See \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}.
 #' 
 #' @details Models with weights, covariates, &/or a noise component are also accounted for.
@@ -3048,6 +3088,7 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #'                 weighted = TRUE, 
 #'                 norm = TRUE,
 #'                 prop = FALSE, 
+#'                 map.size = FALSE,
 #'                 wt.size = FALSE,
 #'                 SPS = FALSE)
 #' @examples
@@ -3058,16 +3099,19 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #'                           "L+C", "L+M+C", "D"))
 #' mod <- MEDseq_fit(seqs, G=10, modtype="UUN")
 #' 
-#' round(MEDseq_meantime(mod), 2)
-#' round(MEDseq_meantime(mod, prop=TRUE), 2)
+#' MEDseq_meantime(mod)
+#' MEDseq_meantime(mod, prop=TRUE)
+#' MEDseq_meantime(mod, map.size=TRUE)
 #' MEDseq_meantime(mod, MAP=TRUE, norm=FALSE, SPS=TRUE)}
-MEDseq_meantime        <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE, prop = FALSE, wt.size = FALSE, SPS = FALSE) {
+MEDseq_meantime        <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE, prop = FALSE, 
+                                   map.size = FALSE, wt.size = FALSE, SPS = FALSE) {
     UseMethod("MEDseq_meantime")
 }
 
 #' @method MEDseq_meantime MEDseq
 #' @export
-MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE, prop = FALSE, wt.size = FALSE, SPS = FALSE) {
+MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE, prop = FALSE, 
+                                   map.size = FALSE, wt.size = FALSE, SPS = FALSE) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(length(MAP)   > 1 ||
      !is.logical(MAP))           stop("'MAP' must be a single logical indicator",         call.=FALSE)
@@ -3077,12 +3121,16 @@ MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE,
      !is.logical(norm))          stop("'norm' must be a single logical indicator",        call.=FALSE)
   if(length(prop)  > 1 ||
      !is.logical(prop))          stop("'prop' must be a single logical indicator",        call.=FALSE)
+  if(length(map.size)   > 1 ||
+     !is.logical(map.size))      stop("'map.size' must be a single logical indicator",    call.=FALSE)
   if(length(wt.size)    > 1 ||
      !is.logical(wt.size))       stop("'wt.size' must be a single logical indicator",     call.=FALSE)
   if(length(SPS)   > 1 ||
      !is.logical(SPS))           stop("'SPS' must be a single logical indicator",         call.=FALSE)
   if(attr(x, "EmptyWarn"))       warning("Model contains one or more empty components\n", call.=FALSE, immediate.=TRUE)
   MAP             <- isTRUE(MAP)      && attr(x, "Algo")    != "CEM"
+  map.size        <- isTRUE(map.size) || attr(x, "Algo")    == "CEM"
+  map.size        <- isTRUE(map.size) && (isTRUE(wt.size)   || isFALSE(MAP)) 
   weighted        <- isTRUE(weighted) && attr(x, "Weighted")
   wt.size         <- isTRUE(weighted) && isTRUE(wt.size)
   weights         <- attr(x, "Weights")
@@ -3096,15 +3144,16 @@ MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE,
     gnames        <- attr(x, "Gname")
   } else           {
     gnames        <- paste0("Cluster", seq_len(G))
-    gnames        <- if(isTRUE(noise)) replace(gnames, G, "Noise")   else gnames
+    gnames        <- if(isTRUE(noise))    replace(gnames, G, "Noise") else gnames
   }
-  class           <- if(isTRUE(noise)) replace(x$MAP, x$MAP == 0, G) else x$MAP 
-  tabMAP          <- if(isTRUE(MAP))   tabulate(class, nbins=G)      else colSums2(z)
-  z               <- if(isTRUE(weighted)) z * weights                else z
-  tabMAPw         <- if(any(weighted, wt.size)) colSums2(z)          else tabMAP
+  class           <- if(isTRUE(noise))  replace(x$MAP, x$MAP == 0, G) else x$MAP 
+  tabMAP          <- if(isTRUE(MAP))         tabulate(class, nbins=G) else colSums2(z)
+  z               <- if(isTRUE(weighted))                 z * weights else z
+  tabMAPw         <- if(any(weighted, wt.size))           colSums2(z) else tabMAP
   if(isTRUE(wt.size))     {
-    wtabMAP       <- if(isTRUE(MAP))   tapply(weights, class, sum)   else tabMAPw
-  } else wtabMAP  <- tabMAP
+    wtabMAP       <- if(isTRUE(map.size)) tapply(weights, class, sum) else tabMAPw
+  } else wtabMAP  <- if(map.size && 
+                        isFALSE(MAP))        tabulate(class, nbins=G) else tabMAP
   if(isTRUE(MAP))  {
     if(isTRUE(weighted))  {
       temp        <- suppressMessages(seqistatd(x$data)) * weights
@@ -3123,7 +3172,26 @@ MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE,
   } else if(isTRUE(norm)) {
     temp          <- if(isTRUE(prop))  temp / (tabMAP    * P)         else temp / tabMAP
   }
-    provideDimnames(unname(cbind(wtabMAP, temp)), base=list(gnames, c(ifelse(isTRUE(wt.size), "Weighted.Size", "Size"), alph)))
+    res           <- provideDimnames(unname(cbind(wtabMAP, temp)), base=list(gnames, c(ifelse(isTRUE(wt.size), "Weighted.Size", "Size"), alph)))
+    class(res)    <- "MEDseqMeanTime"
+      return(res)
+}
+
+#' @method print MEDseqMeanTime
+#' @param digits Minimum number of significant digits to be printed in values.
+#' @param ... Catches unused arguments.
+#' @rdname MEDseq_meantime
+#' @usage
+#' \method{print}{MEDseqMeanTime}(x,
+#'       digits = 3L,
+#'       ...)
+#' @export
+print.MEDseqMeanTime <- function(x, digits = 3L, ...) {
+  if(length(digits)   > 1 || 
+     !is.numeric(digits)  ||
+     digits          <= 0)       stop("Invalid 'digits'", call.=FALSE)
+  print(unclass(x), digits = digits)
+    invisible()
 }
 
 #' Automatic labelling of clusters using central sequences
@@ -3238,6 +3306,61 @@ MEDseq_nameclusts <- function(names) {
 MEDseq_nameclusts.MEDnames  <- function(names) {
   MAP             <- attr(names, "MAP")
     factor(replace(MAP, MAP == 0, attr(names, "G")), labels=names)
+}
+
+#' Entropy of a fitted MEDseq model
+#'
+#' Calculates the normalised entropy of a fitted MEDseq model.
+#' @param x An object of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}} or an object of class \code{"MEDseqCompare"} generated by \code{\link{MEDseq_compare}}.
+#'
+#' @details This function calculates the normalised entropy via \deqn{H=-\frac{1}{n\log(G)}\sum_{i=1}^n\sum_{g=1}^G\hat{z}_{ig}\log(\hat{z}_{ig}),}
+#' where \eqn{n} and \eqn{G} are the sample size and number of components, respectively, and \eqn{\hat{z}_{ig}} is the estimated posterior probability at convergence that observation \eqn{i} belongs to component \eqn{g}.
+#' @return A single number, given by \eqn{1-H}, in the range [0,1], such that \emph{larger} values indicate clearer separation of the clusters.
+#' @note This function will always return a normalised entropy of \code{1} for models fitted using the \code{"CEM"} algorithm (see \code{\link{MEDseq_control}}), or models with only one component.
+#' @seealso \code{\link{MEDseq_fit}}, \code{\link{MEDseq_control}}
+#' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
+#' @keywords utility
+#' @usage
+#' MEDseq_entropy(x)
+#' @export
+#'
+#' @examples
+#' \dontshow{suppressMessages(require(TraMineR))}
+#' # Load the MVAD data
+#' data(mvad)
+#' mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
+#'                  which(x == "yes")), labels = colnames(mvad[,5:9]))
+#' mvad          <- list(covariates = mvad[c(3:4,10:14,87)],
+#'                       sequences = mvad[,15:86], 
+#'                       weights = mvad[,2])
+#' mvad.cov      <- mvad$covariates
+#' 
+#' # Create a state sequence object with the first two (summer) time points removed
+#' states        <- c("EM", "FE", "HE", "JL", "SC", "TR")
+#' labels        <- c("Employment", "Further Education", "Higher Education", 
+#'                    "Joblessness", "School", "Training")
+#' mvad.seq      <- seqdef(mvad$sequences[-c(1,2)], states=states, labels=labels)
+#' 
+#' # Fit a model with weights and a gating covariate
+#' # Have the probability of noise-component membership be constant
+#' mod           <- MEDseq_fit(mvad.seq, G=11, modtype="UUN", weights=mvad$weights, 
+#'                             gating=~ gcse5eq, covars=mvad.cov, noise.gate=FALSE)
+#' 
+#' # Calculate the normalised entropy
+#' MEDseq_entropy(mod)                             
+MEDseq_entropy <- function(x) {
+    UseMethod("MEDseq_entropy")
+}
+
+#' @method MEDseq_entropy MEDseq
+#' @export
+MEDseq_entropy.MEDseq      <- function(x) {
+  x           <- if(inherits(x, "MEDseqCompare")) x$optimal else x
+  z           <- x$z
+  G           <- ncol(z)
+  n           <- nrow(z)
+    ifelse(attr(x, "Algo") == "CEM" || G == 1, 1L, pmax(0L, 1 - .entropy(z)/(n * log(G))))
 }
 
 #' Weighted K-Modes Clustering with Tie-Breaking
