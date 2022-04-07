@@ -99,7 +99,6 @@ For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, th
 Finally, the plot types borrowed from \pkg{TraMineR} may be too wide to display in the preview panel. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 # Load the MVAD data
 data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 

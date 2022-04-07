@@ -42,7 +42,6 @@ The data set contains also ids (\code{id}) and sample weights (\code{weights}) a
 The first two months of the observation period coincide with summer holidays from school. Hence, documented examples throughout this package extract only the states in columns 17 to 86; i.e. sequences of length 70 from \code{Sep.93} to \code{Jun.99}.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 data(mvad, package="MEDseq")
 
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 

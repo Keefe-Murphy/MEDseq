@@ -1,16 +1,23 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+### Improvements, Bug Fixes & Miscellaneous Edits
+* Function `seqdef` added as an exact copy of `TraMineR::seqdef`, to enable experienced  
+  users of `MEDseq` & `TraMineR` to use the former without needing to explicitly load the latter.
+* `wKModes` now also returns `x$tot.withindiff` (i.e. `sum(x$withindiff)`).
+* Fixed rare bug in tie-breaking for modal sequence estimate.
+* New function `MEDseq_AvePP` added.
+
 ## MEDseq v1.3.3 - (_10<sup>th</sup> release [patch update]: 2022-03-28_)
 ### Improvements, Bug Fixes & Miscellaneous Edits
 * Major speed-ups to E-steps for all model types when `G>1`.
 * Minor speed-ups to distance calculations for all model types when `G>1`.
 * `MEDseq_meantime` gains the `map.size` arg. and a related `print` method.
 * Added `summary` (and related `print`) methods for `MEDCriterion` objects.
-* New function `MoE_entropy` added.
+* New function `MEDseq_entropy` added.
 * Fixed mismatched plotting symbols for models with noise in model-selection criteria plot legends.
 * Minor fix to handle (rare) empty components.
-* Minor edits for compatibility w/ latest TraMineR release, w.r.t. `"mt"` and `"ms"` plots.
+* Minor edits for compatibility w/ latest `TraMineR` release, w.r.t. `"mt"` and `"ms"` plots.
 
 ## MEDseq v1.3.2 - (_9<sup>th</sup> release [patch update]: 2021-12-19_)
 ### Bug Fixes & Miscellaneous Edits

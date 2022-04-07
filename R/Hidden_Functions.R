@@ -560,11 +560,22 @@
         theta     <- .weighted_mode(numseq=numseq, 
                                     z=if(G == 1) as.matrix(attr(seqs, "Weights"))   else if(nmeth) z[,Gseq, drop=FALSE] else z)
         if(is.list(theta)   && 
-           any(t_ties       <- apply(theta, c(1L, 2L), function(x) any(nchar(x) > 1)))) {
+           (any(ties_t      <- vapply(theta, is.matrix, logical(1L)))) ||
+           (any(t_ties      <- apply(theta, c(1L, 2L), function(x) any(nchar(x) > 1))))) {
           noties  <- FALSE
-          t_ties  <- which(t_ties, arr.ind=TRUE)
-          nonu    <- replace(rep(FALSE, G), unique(t_ties[,2L]), TRUE)
-          theta[t_ties]     <- lapply(theta[t_ties], if(isTRUE(ctrl$random)) sample else "[[", 1L)
+          if(any(ties_t))    {
+            nonu  <- ties_t
+            theta[ties_t]   <- lapply(theta[ties_t], apply, 2L, if(isTRUE(ctrl$random)) sample else "[[", 1L)
+            theta           <- do.call(cbind, theta)
+            t_ties          <- vapply(as.list(theta),  function(x) any(nchar(x) > 1), logical(1L))
+            t_ties          <- matrix(t_ties, nrow=nrow(theta), ncol=ncol(theta))
+          }
+          if(any(t_ties))    {
+            t_ties          <- which(t_ties, arr.ind=TRUE)
+            nonu  <- replace(rep(FALSE, G), unique(t_ties[,2L]), TRUE)
+            nonu  <- if(any(ties_t)) ties_t | nonu else nonu
+            theta[t_ties]   <- lapply(theta[t_ties], if(isTRUE(ctrl$random)) sample else "[[", 1L)
+          }
           if(ctrl$ties      &&
              ctrl$verbose)   {
             if(ctrl$random)  {   message("\tTie for modal sequence position broken at random\n")

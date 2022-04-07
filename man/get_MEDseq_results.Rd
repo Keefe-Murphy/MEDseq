@@ -44,7 +44,6 @@ The arguments \code{rank} and \code{criterion} are invoked when one or more of t
 Arguments to this function can be supplied to \code{\link{plot.MEDseq}} via the \code{...} construct.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 \donttest{data(biofam)
 # mod <- MEDseq_fit(seqdef(biofam[10:25] + 1L), G=9:10)
 

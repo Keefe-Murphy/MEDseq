@@ -37,7 +37,6 @@
 #' \strong{Maintainer}: Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' @examples
-#' \dontshow{suppressMessages(require(TraMineR))}
 #' # Load the MVAD data
 #' data(mvad)
 #' mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 

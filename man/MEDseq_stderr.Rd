@@ -37,7 +37,6 @@ A progress bar is displayed as the function iterates over the \code{N} samples. 
 The \code{symmetric} argument is an experimental feature. More generally, caution is advised in interpreting the standard error estimates under \emph{either} the \code{"WLBS"} \strong{or} the \code{"Jackknife"} \code{method} when there are existing sampling weights which arise from complex/stratified sampling designs.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 # Load the MVAD data
 data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 

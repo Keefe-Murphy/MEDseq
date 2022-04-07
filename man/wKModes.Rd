@@ -16,7 +16,7 @@ wKModes(data,
 \arguments{
 \item{data}{A matrix or data frame of categorical data. Objects have to be in rows, variables in columns.}
 
-\item{modes}{Either the number of modes or a set of initial (distinct) cluster modes (where each mode is a row and \code{modes} has the same number of columns as \code{data}). If a number, a random set of (distinct) rows in \code{data} is chosen as the initial modes.}
+\item{modes}{Either the number of modes or a set of initial (distinct) cluster modes (where each mode is a row and \code{modes} has the same number of columns as \code{data}). If a number, a random set of (distinct) rows in \code{data} is chosen as the initial modes. Note, this randomness is always present, and is not governed by \code{random} below.}
 
 \item{weights}{Optional numeric vector containing non-negative observation-specific case weights.}
 
@@ -26,7 +26,7 @@ wKModes(data,
 
 \item{fast}{A logical indicating whether a fast version of the algorithm should be applied. Defaults to \code{TRUE}.}
 
-\item{random}{A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE} (the implied default had been \code{FALSE} prior to version 1.3.2 of this package, as per \code{klaR::kmodes}). 
+\item{random}{A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE} (the implied default had been \code{FALSE} prior to version 1.3.2 of this package, as per \code{klaR::kmodes}). Note that when \code{modes} is specified as the number of modes, the algorithm \emph{always} is always randomly initialised, regardless of the specification of \code{random}.
 
 Regarding the modes, ties are broken at random when \code{TRUE} and the first candidate state is always chosen for the mode when \code{FALSE}. Regarding assignments, tie-breaking is always first biased in favour of the observation's most recent cluster: regarding ties thereafter, these are broken at random when \code{TRUE} or the first other candidate cluster is always chosen when \code{FALSE}.}
 
@@ -39,6 +39,7 @@ An object of class \code{"wKModes"} which is a list with the following component
 \item{\code{size}}{The number of objects in each cluster.}
 \item{\code{modes}}{A matrix of cluster modes.}
 \item{\code{withindiff}}{The within-cluster (weighted) simple-matching distance for each cluster.}
+\item{\code{tot.withindiff}}{The total within-cluster (weighted) distance over all clusters. \code{tot.withindiff} can be used to guide the choice of the number of clusters, but beware of inherent randomness in the algorithm, which is liable to yield a jagged elbow plot (see examples).}
 \item{\code{iterations}}{The number of iterations the algorithm reached.}
 \item{\code{weighted}}{A logical indicating whether observation-level \code{weights} were used or not throughout the algorithm.}
 \item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances.}
@@ -64,28 +65,38 @@ This code is adapted from the \code{kmodes} function in the \pkg{klaR} package. 
 Notably, the \code{wKModes} function, when invoked inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all. Furthermore, the \code{\link{MEDseq_control}} argument \code{random} is \emph{also} passed to \code{wKmodes} when it is invoked inside \code{\link{MEDseq_fit}}.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR)); suppressMessages(require(WeightedCluster))}
+suppressMessages(require(WeightedCluster))
 # Load the MVAD data & aggregate the state sequences
 data(mvad)
-aggMVAD  <- wcAggregateCases(mvad[,17:86], weights=mvad$weight)
+agg      <- wcAggregateCases(mvad[,17:86], weights=mvad$weight)
 
 # Create a state sequence object without the first two (summer) time points
 states   <- c("EM", "FE", "HE", "JL", "SC", "TR")
 labels   <- c("Employment", "Further Education", "Higher Education", 
               "Joblessness", "School", "Training")
-mvad.seq <- seqdef(mvad[aggMVAD$aggIndex, 17:86], 
+mvad.seq <- seqdef(mvad[agg$aggIndex, 17:86], 
                    states=states, labels=labels, 
-                   weights=aggMVAD$aggWeights)
+                   weights=agg$aggWeights)
 
 # Run k-modes without the weights
 resX     <- wKModes(mvad.seq, 2)
 
 # Run k-modes with the weights
-resW     <- wKModes(mvad.seq, 2, weights=aggMVAD$aggWeights)
+resW     <- wKModes(mvad.seq, 2, weights=agg$aggWeights)
 
 # Examine the modal sequences of both solutions
 seqformat(seqdef(resX$modes), from="STS", to="SPS", compress=TRUE)
 seqformat(seqdef(resW$modes), from="STS", to="SPS", compress=TRUE)
+
+# Using tot.withindiff to choose the number of clusters
+\donttest{
+TWdiffs   <- sapply(1:5, function(k) wKModes(mvad.seq, k, weights=agg$aggWeights)$tot.withindiff)
+plot(TWdiffs, type="b", xlab="K")
+
+# Use multiple random starts to account for inherent randomness
+TWDiff    <- sapply(1:5, function(k) min(replicate(10, 
+                    wKModes(mvad.seq, k, weights=agg$aggWeights)$tot.withindiff)))
+plot(TWDiff, type="b", xlab="K")}
 }
 \references{
 Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.

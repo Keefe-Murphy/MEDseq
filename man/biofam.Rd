@@ -50,7 +50,6 @@ Two additional weights variables are inserted for illustrative purpose ONLY (sin
 }
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 data(biofam, package="MEDseq")
 
 biofam         <- list(covariates = biofam[2L:9L], sequences = biofam[10L:25L] + 1L)

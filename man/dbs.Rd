@@ -38,7 +38,6 @@ Computes the Density-based Silhouette for a 'soft' clustering assignment matrix.
 When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the \code{dbs} and \code{asw} criteria.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 # Generate a toy z matrix
 z <- abs(matrix(rnorm(50), ncol=2))
 z <- z/rowSums(z)

@@ -82,7 +82,6 @@ If random starts had been used via \code{init.z="random"} the \code{optimal} mod
 A dedicated \code{print} function exists for objects of class \code{"MEDseqCompare"} and \code{\link{plot.MEDseq}} can also be called on objects of class \code{"MEDseqCompare"}.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 data(biofam)
 seqs <- seqdef(biofam[10:25] + 1L,
                states = c("P", "L", "M", "L+M", "C", 

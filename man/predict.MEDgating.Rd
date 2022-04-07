@@ -42,7 +42,6 @@ Predicts mixing proportions from MEDseq gating networks. Effectively akin to pre
 This function (unlike the \code{predict} method for \code{\link[nnet]{multinom}} on which \code{predict.MEDgating} is based) accounts for sampling weights and the various ways of treating gating covariates, equal mixing proportion constraints, and noise components, although its \code{type} argument defaults to \code{"probs"} rather than \code{"class"}.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 # Load the MVAD data
 data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 

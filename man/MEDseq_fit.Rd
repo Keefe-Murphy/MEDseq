@@ -103,7 +103,6 @@ While model selection in terms of choosing the optimal number of components and 
 Where \code{BIC}, \code{ICL}, \code{AIC}, \code{DBS}, \code{ASW}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{CV}, and \code{NEC} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which dedicated \code{print} and \code{summary} methods exist. For plotting, please see \code{\link[=plot.MEDseq]{plot}}.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 # Load the MVAD data
 data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 

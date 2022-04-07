@@ -45,7 +45,6 @@ Further details and examples are given in the associated vignette document:\cr
 }
 
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 # Load the MVAD data
 data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 

@@ -55,7 +55,7 @@ In both cases, the results will be unchanged, but setting \code{unique} to \code
 
 \item{random}{A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default prior to version 1.2.0 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations. 
 
-Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{init.z} is \code{"kmodes"} or \code{"kmodes2"} and that, in certain rare cases when the \code{"CEM"} \code{algo} is invoked when \code{equalPro} is \code{TRUE} and the precision parameter(s) are somehow contrained across clusters, this argument also governs ties for cluster assignments within \code{MEDseq_fit} as well.}
+Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{init.z} is \code{"kmodes"} or \code{"kmodes2"} and that, in certain rare cases when the \code{"CEM"} \code{algo} is invoked when \code{equalPro} is \code{TRUE} and the precision parameter(s) are somehow constrained across clusters, this argument also governs ties for cluster assignments within \code{MEDseq_fit} as well.}
 
 \item{do.cv}{A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.}
 
@@ -97,7 +97,6 @@ Supplies a list of arguments (with defaults) for use with \code{\link{MEDseq_fit
 \code{\link{MEDseq_control}} is provided for assigning values and defaults within \code{\link{MEDseq_fit}}. While the \code{criterion} argument controls the choice of the optimal number of components and MEDseq model type (in terms of the constraints or lack thereof on the precision parameters), \code{\link{MEDseq_compare}} is provided for choosing between fits with different combinations of covariates or different initialisation settings.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 # The CC MEDseq model is almost equivalent to k-medoids when the
 # CEM algorithm is employed, mixing proportions are constrained,
 # and the central sequences are restricted to the observed sequences

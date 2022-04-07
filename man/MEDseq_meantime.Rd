@@ -52,7 +52,6 @@ Models with weights, covariates, &/or a noise component are also accounted for.
 The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be used to visualise the mean times (by cluster). However, the results displayed therein (at present) always assume \code{norm=TRUE}, \code{prop=FALSE}, and \code{wt.size=TRUE}, while the \code{MAP} argument is renamed to \code{soft}, where \code{MAP=!soft}.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 \donttest{data(biofam)
 seqs <- seqdef(biofam[10:25] + 1L,
                states = c("P", "L", "M", "L+M", "C", 

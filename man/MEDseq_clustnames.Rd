@@ -38,7 +38,6 @@ Unlike the \code{\link[WeightedCluster]{seqclustname}} function from the \pkg{We
 The main \code{MEDseq_clustnames} function is used internally by \code{\link{plot.MEDseq}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_stderr}}, and also other \code{print} and \code{summary} methods, where its invocation can typically controlled via a \code{SPS} logical argument. However, the optional arguments \code{cluster} and \code{size} can only be passed through \code{\link{plot.MEDseq}}; elsewhere \code{cluster=TRUE} and \code{size=FALSE} are always assumed.
 }
 \examples{
-\dontshow{suppressMessages(require(TraMineR))}
 # Load the MVAD data
 data(mvad)
 mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
@@ -66,9 +65,9 @@ names  <- MEDseq_clustnames(mod, cluster=FALSE, size=TRUE)
 group  <- MEDseq_nameclusts(names)
 
 # Use the output in plots
-seqplot(mvad.seq, type="d", group=group)
+plot(mod, type="d", soft=FALSE, weighted=FALSE, cluster=FALSE, size=TRUE, border=TRUE)
 # same as:
-# plot(mod, type="d", soft=FALSE, weighted=FALSE, cluster=FALSE, size=TRUE, border=TRUE)
+# seqplot(mvad.seq, type="d", group=group)
 
 # Indeed, this function is invoked by default for certain plot types
 plot(mod, type="d", soft=TRUE, weighted=TRUE)
