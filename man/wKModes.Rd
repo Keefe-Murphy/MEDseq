@@ -22,11 +22,11 @@ wKModes(data,
 
 \item{iter.max}{The maximum number of iterations allowed. Defaults to \code{.Machine$integer.max}. The algorithm terminates when \code{iter.max} is reached or when the partition ceases to change between iterations.}
 
-\item{freq.weighted}{A logical indicating whether the usual simple-matching (Hamming) distance between objects is used, or a frequency weighted version of this distance. Default to \code{FALSE}; when \code{TRUE}, the frequency weights are computed within the algorithm and are \emph{not} user-specified. Distinct from the observation-level \code{weights} above, the frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.}
+\item{freq.weighted}{A logical indicating whether the usual simple-matching (Hamming) distance between objects is used, or a frequency weighted version of this distance. Defaults to \code{FALSE}; when \code{TRUE}, the frequency weights are computed within the algorithm and are \emph{not} user-specified. Distinct from the observation-level \code{weights} above, the frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.}
 
 \item{fast}{A logical indicating whether a fast version of the algorithm should be applied. Defaults to \code{TRUE}.}
 
-\item{random}{A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE} (the implied default had been \code{FALSE} prior to version 1.3.2 of this package, as per \code{klaR::kmodes}). Note that when \code{modes} is specified as the number of modes, the algorithm \emph{always} is always randomly initialised, regardless of the specification of \code{random}.
+\item{random}{A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE} (the implied default had been \code{FALSE} prior to version 1.3.2 of this package, as per \code{klaR::kmodes}). Note that when \code{modes} is specified as the number of modes, the algorithm is \emph{always} randomly initialised, regardless of the specification of \code{random}.
 
 Regarding the modes, ties are broken at random when \code{TRUE} and the first candidate state is always chosen for the mode when \code{FALSE}. Regarding assignments, tie-breaking is always first biased in favour of the observation's most recent cluster: regarding ties thereafter, these are broken at random when \code{TRUE} or the first other candidate cluster is always chosen when \code{FALSE}.}
 
@@ -53,7 +53,7 @@ The k-modes algorithm (Huang, 1997) is an extension of the k-means algorithm by 
 
 The data given by \code{data} is clustered by the k-modes method (Huang, 1997) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
 
-By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted}n argument (see Huang, 1997, for details).
+By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, for details).
 
 If an initial matrix of modes is supplied, it is possible that no object will be closest to one or more modes. In this case, fewer clusters than the number of supplied modes will be returned and a warning will be printed.
 
@@ -108,5 +108,6 @@ MacQueen, J. (1967). Some methods for classification and analysis of multivariat
 }
 \author{
 Keefe Murphy - <\email{keefe.murphy@mu.ie}>
+(adapted from \code{klaR::kmodes})
 }
 \keyword{utility}

@@ -210,7 +210,7 @@
           z       <- apply(numer, 1L, function(x) which(max(x) == x))
           if(is.list(z)) {
             ty    <- which(lengths(z) > 1)
-            z[ty] <- vapply(ty,       function(i) .random_ass(numer[i,], which.max(z.old[i,]), fun=max), integer(1L))
+            z[ty] <- vapply(ty,       function(i) .random_ass(numer[i,], which.max(z.old[i,]), fun=max, na.rm=TRUE), integer(1L))
           }
           z       <- .unMAP(unlist(z),      groups=seq_len(G))
         } else     {
@@ -524,9 +524,9 @@
 }
 
 .modal            <- function(x) {
-  ux              <- unique(x[x != 0])
+  ux              <- unique(x)
   tab             <- tabulate(match(x, ux))
-    ux[which(tab  == max(tab))]
+    ux[max(tab)   == tab]
 }
 
 .num_to_char      <- function(x) {
@@ -719,23 +719,23 @@
     return(list(crits = stats::setNames(x.val[seq_len(pick)], vapply(seq_len(pick), function(p, b=x.ind[p,]) paste0(b[2L], ",", b[1L]), character(1L))), pick = pick))
 }
 
-.rand_MIN   <- function(x, random = TRUE)    {
-  if(!random)  return(which.min(x))
-  a         <- which(min(x) == x)
-  a         <- if(length(a)  > 1) sample(a, 1L) else a
+.rand_MIN   <- function(dist, random = TRUE) {
+  if(!random)  return(which.min(dist))
+  a         <- which(dist  == min(dist, na.rm=TRUE))
+  a         <- if(length(a) > 1) sample(a, 1L) else a
     return(a)
 }
 
-.rand_MAX   <- function(x, random = TRUE)    {
-  if(!random)  return(which.max(x))
-  a         <- which(max(x) == x)
-  a         <- if(length(a)  > 1) sample(a, 1L) else a
+.rand_MAX   <- function(dist, random = TRUE) {
+  if(!random)  return(which.max(dist))
+  a         <- which(dist  == max(dist, na.rm=TRUE))
+  a         <- if(length(a) > 1) sample(a, 1L) else a
     return(a)
 }
 
-.random_ass <- function(x, y, fun = max, random = TRUE) {
-  a         <- which(fun(x) == x)
-  a         <- if(length(a)  > 1) ifelse(y %in% a, y, ifelse(random, sample(a, 1L), a[1L])) else a
+.random_ass <- function(x, y, fun = max, random = TRUE, ...) {
+  a         <- which(fun(x, ...) == x)
+  a         <- if(length(a) > 1) ifelse(y %in% a, y, ifelse(random, sample(a, 1L), a[1L])) else a
     return(a)
 }
 
