@@ -6,6 +6,7 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
   users of `MEDseq` & `TraMineR` to use the former without needing to explicitly load the latter.
 * The `plot.MEDseq` function's `type` arg. gains the option `"dH"`,  
 provided version `2.2-4` or later of the `TraMineR` package is installed.
+* `plot.MEDseq` also gains the `similarity` option for its `type` argument.
 * `wKModes` now also returns `x$tot.withindiff` (i.e. `sum(x$withindiff)`).
 * Fixed rare bugs in tie-breaking for modal sequence estimate.
 * New function `MEDseq_AvePP` added.

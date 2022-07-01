@@ -285,6 +285,38 @@
     as.data.frame(lapply(x, function(y) { levels(y) <- Vseq; y} ))
 }
 
+.heat_legend      <- function(data, col = NULL, cex.lab = 1, ...) {
+  if(length(cex.lab) > 1     || 
+     (!is.numeric(cex.lab)   ||
+     cex.lab      <= 0))         stop("Invalid 'cex.lab' supplied", call.=FALSE)
+  if(!is.numeric(data))          stop("'data' must be numeric",     call.=FALSE)
+  if(missing(col)) {
+    col           <- grDevices::heat.colors(30L, rev=TRUE)
+  }
+  bx              <- graphics::par("usr")
+  xpd             <- graphics::par()$xpd
+  box.cx          <- c(bx[2L] + (bx[2L]  - bx[1L])/1000, bx[2L] + (bx[2L] - bx[1L])/1000 + (bx[2L] - bx[1L])/50)
+  box.cy          <- c(bx[3L],   bx[3L])
+  box.sy          <- (bx[4L]  -  bx[3L]) / length(col)
+  xx              <- rep(box.cx, each    = 2L)
+  graphics::par(xpd = TRUE)
+  
+  for(i in seq_along(col)) {
+    yy            <- c(box.cy[1L] + (box.sy * (i - 1L)),
+                       box.cy[1L] + (box.sy * (i)),
+                       box.cy[1L] + (box.sy * (i)),
+                       box.cy[1L] + (box.sy * (i - 1L)))
+    graphics::polygon(xx, yy, col =  col[i], border = col[i])
+  }
+  
+  graphics::par(new = TRUE)
+  yrange          <- range(data, na.rm = TRUE)
+  base::plot(0, 0, type = "n",  ylim = yrange, yaxt = "n", ylab = "", xaxt = "n", xlab = "", frame.plot = FALSE)
+  graphics::axis(side = 4, las = 2, tick = FALSE, line = 0.1, cex.axis = cex.lab)
+  suppressWarnings(graphics::par(xpd = xpd))
+    invisible()
+}
+
 .km_dist          <- function(mode, obj, frwts = NULL)     {
   if(is.null(frwts)) return(sum(mode   != obj))
   obj             <- as.character(obj)
@@ -745,7 +777,7 @@
 }
 
 #' @importFrom matrixStats "rowSums2"
-.renorm_z         <- function(z) z/rowSums2(z)
+.renorm_z   <- function(z) z / rowSums2(z)
 
 .replace_levels   <- function(seq, levels = NULL) {
   seq             <- utf8ToInt(seq)

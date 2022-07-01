@@ -1790,6 +1790,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object.}
 #' \item{\code{"dbsvals"}}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster). See \code{seriated}.}
 #' \item{\code{"aswvals"}}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster). See \code{seriated}.}
+#' \item{\code{"similarity"}}{Produces a heatmap of the similarity matrix constructed from the \code{x$z} matrix at convergence, with observations reordered via \code{seriated} for visual clarity. The (potentially seriated) similarity matrix can also be invisibly returned.}
 #' \item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a bar plot.}
 #' \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a profile plot.}
 #' \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
@@ -1809,21 +1810,21 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' }
 #' @param seriated Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} and \code{sortv} arguments below. 
 #' 
-#' The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"central"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. 
+#' The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"central"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. 
 #' 
-#' Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, \code{"i"} or \code{"I"}, which are also the only options for which \code{"both"} is relevant.
+#' Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, \code{"similarity"}, \code{"i"} or \code{"I"}, which are also the only options for which \code{"both"} is relevant.
 #' @param soft This argument is a single logical indicator which is only relevant for the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. When \code{soft=TRUE} (the default for all but the \code{"i"} and \code{"I"} \code{type} plots) the soft cluster membership probabilities are used in a manner akin to \code{\link[WeightedCluster]{fuzzyseqplot}}. Otherwise, when \code{FALSE} (the default for \code{"i"} and \code{"I"} \code{type} plots), the soft information is discarded and the hard MAP partition is used instead. 
 #' 
 #' Note that soft cluster membership probabilities will not be available if \code{x$G=1} or the model was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}}. Plots may still be weighted when \code{soft} is \code{FALSE}, according to the observation-specific sampling weights, when \code{weighted=TRUE}. Note also that \code{type="Ht"} can be used in conjunction with \code{soft=TRUE}, unlike \code{\link[WeightedCluster]{fuzzyseqplot}} for which \code{type="Ht"} is not permissible. Finally, be advised that plotting may be time-consuming when \code{soft=TRUE} for \code{"i"} and \code{"I"} \code{type} plots.
 #' @param weighted This argument is a single logical indicator which is only relevant for the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. When \code{TRUE} (the default), the weights (if any) are accounted for in such plots. Note that when \code{soft} is \code{TRUE}, plots will still be weighted according to the soft cluster membership probabilities; thus \code{weighted=TRUE} and \code{soft=TRUE} allows both these and the observation-specific weights to be used simultaneously (the default behaviour for both arguments).
 #' @param SPS A logical indicating whether clusters should be labelled according to the state-permanence-sequence representation of their central sequence. See \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}. Defaults to \code{TRUE} for the plot types adapted from \pkg{TraMineR}, i.e. the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. The \code{SPS} argument is also relevant for the following \code{type} plots: \code{"clusters"}, \code{"central"}, and \code{"precision"}, though \code{SPS} defaults to \code{FALSE} in those instances.
 #' @param smeth A character string with the name of the seriation method to be used. Defaults to \code{"TSP"}. See \code{\link[seriation]{seriate}} and \code{seriation::list_seriation_methods("dist")} for further details and the available methods. Only relevant when \code{seriated != "none"}. When \code{seriated == "obs"} or \code{seriated == "both"}, the ordering of observations can be governed by \code{smeth} or \emph{instead} governed by the \code{sortv} argument below.
-#' @param sortv A sorting method governing the ordering of observations for \code{"clusters"}, \code{"gating"}, \code{"i"}, or \code{"I"} \code{type} plots. Potential options include \code{"dbs"} and \code{"asw"} for sorting observations by their DBS or ASW values (if available). Only relevant if \code{seriated} is one of \code{"observations"} or \code{"both"}. Note that the \code{sortv} argument overrides the setting in \code{smeth} as it pertains to the ordering of observations if \code{sortv} is supplied; otherwise \code{sortv} is \code{NULL} and the \code{smeth} is invoked.
+#' @param sortv A sorting method governing the ordering of observations for \code{"clusters"}, \code{"gating"}, \code{"similarity"}, \code{"i"}, or \code{"I"} \code{type} plots. Potential options include \code{"dbs"} and \code{"asw"} for sorting observations by their DBS or ASW values (if available). Only relevant if \code{seriated} is one of \code{"observations"} or \code{"both"}. Note that the \code{sortv} argument overrides the setting in \code{smeth} as it pertains to the ordering of observations if \code{sortv} is supplied; otherwise \code{sortv} is \code{NULL} and the \code{smeth} is invoked.
 #' 
 #' Additionally, when (and only when) \code{soft=TRUE} and \code{type="I"}, the additional option \code{sortv="membership"} is provided in accordance with \code{\link[WeightedCluster]{fuzzyseqplot}}, on which such plots are based.
 #' @param subset An optional numeric vector giving the indices of the clusters to be plotted. For models with a noise component, values in \code{0:x$G} are admissible, where \code{0} denotes the noise component, otherwise only values in \code{1:x$G}. Only relevant for the \pkg{TraMineR}-\code{type} plots, i.e. \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. Note however, that noise components are never plotted for \code{type="ms"} plots, so \code{subset} values of \code{0} will be ignored in this instance.
 #' @param quant.scale Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.
-#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \code{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types (e.g. \code{border} and/or \code{ylab}, \code{serr} where \code{type="mt"}, and \code{info} where \code{type="ms"}) and the \code{size} argument to \code{\link{MEDseq_clustnames}}, where relevant.
+#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \pkg{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types (e.g. \code{border} and/or \code{ylab}, \code{serr} where \code{type="mt"}, and \code{info} where \code{type="ms"}) and the \code{size} argument to \code{\link{MEDseq_clustnames}}, where relevant.
 #'
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
 #' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
@@ -1836,12 +1837,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' 
 #' Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), \emph{Sequence Analysis and Related Approaches: Innovative Methods and Applications}, pp. 223-239. Cham: Springer International Publishing.
 #' 
-#' Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. \emph{Journal of Statistical Software}, 40(4): 1-37.
+#' Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with \pkg{TraMineR}. \emph{Journal of Statistical Software}, 40(4): 1-37.
 #' @usage 
 #' \method{plot}{MEDseq}(x,
 #'      type = c("clusters", "central", "precision", "gating", 
 #'               "bic", "icl", "aic", "dbs", "asw", "cv", 
-#'               "nec", "LOGLIK", "dbsvals", "aswvals", 
+#'               "nec", "LOGLIK", "dbsvals", "aswvals", "similarity",
 #'               "uncert.bar", "uncert.profile", "loglik", 
 #'               "d", "dH", "f", "Ht", "i", "I", "ms", "mt"), 
 #'      seriated = c("observations", "both", "clusters", "none"), 
@@ -1909,6 +1910,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' # Plot the observation-specific ASW values of the best CCN model (according to the asw criterion)
 #' # plot(mod1, "aswvals", modtype="CCN", criterion="asw")
 #' 
+#' # Plot the similarity matrix (as a heatmap) of the best G=9 model (according to the icl criterion)
+#' # plot(mod1, "similarity", G=9, criterion="icl")
+#' 
 #' # Fit a model with weights and gating covariates
 #' # mod2        <- MEDseq_fit(mvad.seq, G=10, modtype="UCN", weights=mvad$weights, 
 #' #                           gating=~ fmpr + gcse5eq + livboth, covars=mvad.cov)
@@ -1940,7 +1944,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' # Use type="I" and subset=0 to examine the noise component
 #' # plot(mod2, "I", subset=0, border=TRUE, weighted=FALSE, seriated="none")}
 plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "gating", "bic", "icl", "aic", "dbs", "asw", "cv", "nec", "LOGLIK", 
-                              "dbsvals", "aswvals", "uncert.bar", "uncert.profile", "loglik", "d", "dH", "f", "Ht", "i", "I", "ms", "mt"), 
+                              "dbsvals", "aswvals", "similarity", "uncert.bar", "uncert.profile", "loglik", "d", "dH", "f", "Ht", "i", "I", "ms", "mt"), 
                               seriated = c("observations", "both", "clusters", "none"), soft = NULL, weighted = TRUE, 
                               SPS = NULL, smeth = "TSP", sortv = NULL, subset = NULL, quant.scale = FALSE, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
@@ -1955,9 +1959,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
      !.version_above("TraMineR", 
                      "2.2-4"))   stop("'type'=\"dH\" is only available if version 2.2-4 or later of the TraMineR package is installed", call.=FALSE)
   seriated        <- match.arg(seriated)
-  sericlus        <- is.element(seriated, c("both", "clusters"))     && is.element(type, c("clusters", "central", "precision", "gating", 
+  sericlus        <- is.element(seriated, c("both", "clusters"))     && is.element(type, c("clusters", "central", "precision", "gating", "similarity",
                                                                                            "dbsvals", "aswvals", "d", "dH", "f", "Ht", "i", "I", "ms", "mt"))
-  seriobs         <- is.element(seriated, c("both", "observations")) && is.element(type, c("clusters", "gating", "i", "I"))
+  seriobs         <- is.element(seriated, c("both", "observations")) && is.element(type, c("clusters", "gating", "similarity", "i", "I"))
   if(seriated     != "none")   {
     if(!missing(smeth)        &&
        (length(smeth)    > 1  ||
@@ -2011,9 +2015,10 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
        !is.numeric(MAP)       ||
        MAP        != floor(MAP)) stop(paste0("'MAP' must be an integer vector of length N=", N),  call.=FALSE)
   } else MAP      <- x$MAP
-  if(is.element(type, c("clusters", "d", "dH", "f", "Ht", "i", "I", "ms", "mt")) ||
+  if(is.element(type, c("clusters", "similarity", 
+                        "d", "dH", "f", "Ht", "i", "I", "ms", "mt"))   ||
     (isTRUE(sericlus) && 
-    (is.element(type, c("central", "precision", "dbsvals", "aswvals"))           ||
+    (is.element(type, c("central", "precision", "dbsvals", "aswvals")) ||
     (type == "gating" && attr(x, "Gating"))))) {
     if(!is.element(type, c("gating", "central", "precision"))) {
       if(has.MAP)  {
@@ -2024,6 +2029,11 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
         G         <- attr(MAP, "G")
         noise     <- attr(MAP, "Noise")
       }
+    }
+    if(type       == "similarity") {
+      z           <- if(has.dot) do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))])) else x$z
+      sim         <- tcrossprod(z)
+      dmat        <- 1 - sim
     }
     if(isTRUE(sericlus)       &&
        !all((unip <- 
@@ -2047,13 +2057,11 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   Gseq            <- seq_len(G)
   perm            <- if(isTRUE(sericlus))  perm                         else Gseq
   perm            <- if(length(perm) != G) c(perm, setdiff(Gseq, perm)) else perm
-  perm            <- if(isTRUE(noise))     replace(perm, G, ifelse(is.element(type, c("clusters", "gating", "i", "I")), 0L, "Noise"))  else perm
-
-  if(type == "clusters" || 
-     type == "i"        ||
-     type == "I"        ||
+  perm            <- if(isTRUE(noise))     replace(perm, G, ifelse(is.element(type, c("clusters", "gating", "similarity", "i", "I")), 0L, "Noise"))  else perm
+  
+  if(is.element(type, c("clusters", "similarity", "i", "I")) ||
     (type == "gating"   && 
-    attr(x,  "Gating"))) {
+     attr(x, "Gating"))) {
     if((vsort     <- isTRUE(seriobs)    && 
        !is.null(sortv)  &&
        !identical(sortv, "membership"))) {
@@ -2360,6 +2368,20 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
       graphics::text(1, medy[g], paste(ifelse(g == G && noise, "Noise", g), ":  ", ng[g], " | ", format(meds[g], digits=1, nsmall=2)), xpd=NA, adj=0.8)
     }
       invisible()
+  }, similarity=   {
+    sim           <- sim[glo.order,glo.order]
+    col           <- grDevices::heat.colors(30L, rev=TRUE)
+    oldpar        <- suppressWarnings(graphics::par(no.readonly=TRUE))
+    oldpar$new    <- FALSE
+    on.exit(suppressWarnings(graphics::par(oldpar)))
+    graphics::par(mar=c(5.1, 4.1, 4.1, 3.1))
+    graphics::image(t(sim[seq(from=N, to=1L, by=-1L),]), col=col, main="Similarity Matrix",
+                    xlab=paste0("Observation 1:N", if(seriated != "none") " (Reordered)"),
+                    ylab=paste0("Observation 1:N", if(seriated != "none") " (Reordered)"))
+    graphics::title(switch(EXPR=seriated, clusters="(Ordered by Clusters)", observations="(Ordered by Observations)", both="(Ordered by Clusters and Observations)", ""), cex.main=0.8, line=0.5)
+    graphics::box(lwd=2)
+    suppressWarnings(.heat_legend(data=sim, col=col, cex.lab=0.8))
+      invisible(if(seriated == "none") sim else provideDimnames(sim, base=list(as.character(glo.order), as.character(glo.order))))
   }, uncert.profile=,
      uncert.bar=   {
     if(attr(x, "Algo") == "CEM") message("No uncertainties to plot: model was fitted via CEM\n")
@@ -2431,7 +2453,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     dat           <- switch(EXPR=type, i=, I=dat[glo.order,], dat)
     if(length(weighted) != 1  ||
        !is.logical(weighted))    stop("'weighted' must be a single logical indicator",    call.=FALSE)
-    weighted      <- weighted && attr(x, "Weighted")
+    weighted      <- weighted && Weighted
     attr(dat, "weights")      <- if(weighted) switch(EXPR=type, i=, I=attr(dat, "Weights")[glo.order], attr(dat, "Weights"))        else rep(1L, N)
     if(type       == "ms")  {
       noisemap    <- which(MAP2    != "Noise")
@@ -3860,9 +3882,9 @@ MEDseq_news       <- function() {
 #' @return An object of class \code{"stslist"}, for which dedicated \code{print} and \code{summary} methods are inherited from \pkg{TraMineR}.
 #' @details This function exists only so experienced users of \pkg{MEDseq} and \pkg{TraMineR} can use the former without explicitly requiring the latter to be loaded. In particular, \code{\link{MEDseq_fit}} requires a state-sequence object of class \code{"stslist"} (as created by \code{seqdef}) as input. Users are encouraged to see the documentation at \code{\link[TraMineR:seqdef]{TraMineR::seqdef}} for complete details and further examples.
 #' @keywords utility
-#' @references Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with TraMineR. \emph{Journal of Statistical Software}, 40(4): 1-37.
+#' @references Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with \pkg{TraMineR}. \emph{Journal of Statistical Software}, 40(4): 1-37.
 #' 
-#' Gabadinho, A., Ritschard, G., Studer, M., and Mueller, N. S. (2010). Mining sequence data in \code{R} with the \code{TraMineR} package: a user's guide. \emph{Department of Econometrics and Laboratory of Demography, University of Geneva}.
+#' Gabadinho, A., Ritschard, G., Studer, M., and Mueller, N. S. (2010). Mining sequence data in \code{R} with the \pkg{TraMineR} package: a user's guide. \emph{Department of Econometrics and Laboratory of Demography, University of Geneva}.
 #' @author Alexis Gabadinho and Gilbert Ritschard
 #' @seealso \code{\link[TraMineR:seqdef]{TraMineR::seqdef}}, \code{\link{MEDseq_fit}}
 #' @importFrom TraMineR "seqdef"
