@@ -330,7 +330,7 @@
     n_mode[i]     <- frwt[which(names  == mode[different[i]])]
     n_obj[i]      <- frwt[which(names  ==  obj[different[i]])]
   }
-    return(sum((n_mode + n_obj)/(n_mode * n_obj)))
+    return(sum(1/n_mode + 1/n_obj))
 }
 
 .lab_width        <- function(x, cex = 2/3, offset = 1.5)  {

@@ -4,12 +4,16 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 ### Improvements, Bug Fixes & Miscellaneous Edits
 * Function `seqdef` added as an exact copy of `TraMineR::seqdef`, to enable experienced  
   users of `MEDseq` & `TraMineR` to use the former without needing to explicitly load the latter.
+* `MEDseq_clustnames` gains the arg. `weighted=FALSE` for use when `size=TRUE`:  
+  this is now respected by the `weighted` arg. to `plot.MEDseq` where relevant.
 * The `plot.MEDseq` function's `type` arg. gains the option `"dH"`,  
-provided version `2.2-4` or later of the `TraMineR` package is installed.
-* `plot.MEDseq` also gains the `similarity` option for its `type` argument.
+  provided version `2.2-4` or later of the `TraMineR` package is installed.
+* `plot.MEDseq` also gains the `"similarity"` option for its `type` argument.
 * `wKModes` now also returns `x$tot.withindiff` (i.e. `sum(x$withindiff)`).
-* Fixed rare bugs in tie-breaking for modal sequence estimate.
+* Minor speed-ups to `wKModes` when `freq.weighted=TRUE`.
+* Minor cosmetic changes to `type="dbsvals"` & `type="aswvals"` in `plot.MEDseq`.
 * New function `MEDseq_AvePP` added.
+* Fixed rare bugs in tie-breaking for modal sequence estimate in `MEDseq_fit` & `wKModes`.
 * Fixed documentation typos.
 
 ## MEDseq v1.3.3 - (_10<sup>th</sup> release [patch update]: 2022-03-28_)

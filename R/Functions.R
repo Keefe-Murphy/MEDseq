@@ -1816,8 +1816,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @param soft This argument is a single logical indicator which is only relevant for the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. When \code{soft=TRUE} (the default for all but the \code{"i"} and \code{"I"} \code{type} plots) the soft cluster membership probabilities are used in a manner akin to \code{\link[WeightedCluster]{fuzzyseqplot}}. Otherwise, when \code{FALSE} (the default for \code{"i"} and \code{"I"} \code{type} plots), the soft information is discarded and the hard MAP partition is used instead. 
 #' 
 #' Note that soft cluster membership probabilities will not be available if \code{x$G=1} or the model was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}}. Plots may still be weighted when \code{soft} is \code{FALSE}, according to the observation-specific sampling weights, when \code{weighted=TRUE}. Note also that \code{type="Ht"} can be used in conjunction with \code{soft=TRUE}, unlike \code{\link[WeightedCluster]{fuzzyseqplot}} for which \code{type="Ht"} is not permissible. Finally, be advised that plotting may be time-consuming when \code{soft=TRUE} for \code{"i"} and \code{"I"} \code{type} plots.
-#' @param weighted This argument is a single logical indicator which is only relevant for the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. When \code{TRUE} (the default), the weights (if any) are accounted for in such plots. Note that when \code{soft} is \code{TRUE}, plots will still be weighted according to the soft cluster membership probabilities; thus \code{weighted=TRUE} and \code{soft=TRUE} allows both these and the observation-specific weights to be used simultaneously (the default behaviour for both arguments).
-#' @param SPS A logical indicating whether clusters should be labelled according to the state-permanence-sequence representation of their central sequence. See \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}. Defaults to \code{TRUE} for the plot types adapted from \pkg{TraMineR}, i.e. the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. The \code{SPS} argument is also relevant for the following \code{type} plots: \code{"clusters"}, \code{"central"}, and \code{"precision"}, though \code{SPS} defaults to \code{FALSE} in those instances.
+#' @param weighted This argument is a single logical indicator which is only relevant for the \code{"clusters"}, \code{"central"}, and \code{"precision"} plot types, as well as the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. For plots borrowed from \pkg{TraMineR}, when \code{TRUE} (the default), the weights (if any) are accounted for in such plots. Note that when \code{soft} is \code{TRUE}, plots will still be weighted according to the soft cluster membership probabilities; thus \code{weighted=TRUE} and \code{soft=TRUE} allows both these and the observation-specific weights to be used simultaneously (the default behaviour for both arguments). 
+#' 
+#' Additionally, for these plots and the \code{"clusters"}, \code{"central"}, and \code{"precision"} types, \code{weighted} is passed through to \code{\link{MEDseq_clustnames}} in the rare case where \code{SPS=TRUE} (see below) and the optional \code{\link{MEDseq_clustnames}} argument \code{size=TRUE} is invoked (again, see below).
+#' @param SPS A logical indicating whether clusters should be labelled according to the state-permanence-sequence representation of their central sequence. See \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}. Defaults to \code{TRUE} for the plot types adapted from \pkg{TraMineR}, i.e. the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. The \code{SPS} argument is also relevant for the following \code{type} plots: \code{"clusters"}, \code{"central"}, and \code{"precision"}, though \code{SPS} defaults to \code{FALSE} in those instances. Note that if \code{SPS=TRUE} for any relevant plot type, the \code{weighted} argument above is relevant if the optional \code{\link{MEDseq_clustnames}} argument \code{size=TRUE} is invoked (see below).
 #' @param smeth A character string with the name of the seriation method to be used. Defaults to \code{"TSP"}. See \code{\link[seriation]{seriate}} and \code{seriation::list_seriation_methods("dist")} for further details and the available methods. Only relevant when \code{seriated != "none"}. When \code{seriated == "obs"} or \code{seriated == "both"}, the ordering of observations can be governed by \code{smeth} or \emph{instead} governed by the \code{sortv} argument below.
 #' @param sortv A sorting method governing the ordering of observations for \code{"clusters"}, \code{"gating"}, \code{"similarity"}, \code{"i"}, or \code{"I"} \code{type} plots. Potential options include \code{"dbs"} and \code{"asw"} for sorting observations by their DBS or ASW values (if available). Only relevant if \code{seriated} is one of \code{"observations"} or \code{"both"}. Note that the \code{sortv} argument overrides the setting in \code{smeth} as it pertains to the ordering of observations if \code{sortv} is supplied; otherwise \code{sortv} is \code{NULL} and the \code{smeth} is invoked.
 #' 
@@ -2032,6 +2034,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     }
     if(type       == "similarity") {
       z           <- if(has.dot) do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))])) else x$z
+      G           <- ncol(z)
       sim         <- tcrossprod(z)
       dmat        <- 1 - sim
     }
@@ -2112,7 +2115,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     graphics::layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
     OrderedStates <- data.matrix(.fac_to_num(dat))[glo.order,]
     if(isTRUE(SPS)) {
-      tmp_labs    <- MEDseq_clustnames(x, cluster=FALSE, ...)[replace(perm, perm == 0, G)]
+      tmp_labs    <- MEDseq_clustnames(x, cluster=FALSE, weighted=weighted, ...)[replace(perm, perm == 0, G)]
       graphics::par(mar=c(5.1, 4.1, 4.1, .lab_width(tmp_labs)))
     }
     if(any(num.cl == 0))         warning("Model has one or more empty components\n", call.=FALSE, immediate.=TRUE)
@@ -2149,7 +2152,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     attr(dat, "names")  <- attr(x$data, "names")
     graphics::layout(rbind(1, 2), heights=c(0.85, 0.15), widths=1)
     if(isTRUE(SPS)) {
-      tmp_labs    <- MEDseq_clustnames(x, cluster=FALSE, ...)[as.numeric(replace(perm, G, G))]
+      tmp_labs    <- MEDseq_clustnames(x, cluster=FALSE, weighted=weighted, ...)[as.numeric(replace(perm, G, G))]
       graphics::par(mar=c(5.1, 4.1, 4.1, .lab_width(tmp_labs)))
     }
     seqplot(dat, type="I", with.legend=FALSE, main="Central Sequences Plot", border=NA, missing.color=graphics::par()$bg, 
@@ -2172,7 +2175,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     graphics::layout(rbind(1, 2), heights=c(0.85, 0.15))
     graphics::par(mar=c(4.1, 4.1, 4.1, ifelse(isTRUE(quant.scale), 5.1, 3.1)))
     if(isTRUE(SPS)) {
-      tmp_labs    <- MEDseq_clustnames(x, cluster=TRUE, ...)[as.numeric(replace(perm, G, G))]
+      tmp_labs    <- MEDseq_clustnames(x, cluster=TRUE, weighted=weighted, ...)[as.numeric(replace(perm, G, G))]
       graphics::par(mar=replace(graphics::par()$mar, 2L, .lab_width(tmp_labs)))
     }
     i.ind         <- is.infinite(lambda)
@@ -2318,6 +2321,8 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
       if(is.null(object))        stop("ASW values cannot be plotted as the model only has 1 non-empty component", call.=FALSE)
     })
     rownames(object)       <- as.character(Nseq)
+    G             <- attr(object, "G")
+    modtype       <- attr(object, "ModelType")
     cl            <- object[,"cluster"]
     X             <- object[order(cl, -object[,2L]),, drop=FALSE]
     if(isTRUE(sericlus))    {
@@ -2330,8 +2335,6 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     space[space   != 0]    <- 0.5
     ng            <- table(cl)
     if(length(ng) != G)          warning("Model has one or more empty components", call.=FALSE, immediate.=TRUE)
-    G             <- attr(object, "G")
-    modtype       <- attr(object, "ModelType")
     noise         <- modtype %in% c("CCN", "UCN", "CUN", "UUN")
     if(identical(palette, grDevices::palette("default"))) {
       palette     <- if(isTRUE(has_viridis)) viridisLite::viridis(G, option="H", direction=1) else rep(c("#E41A1C", "#377EB8", "#4DAF4A", "#984EA3", "#FF7F00", "#FFFF33", "#A65628", "#F781BF", "#999999"), length.out=G)
@@ -2344,11 +2347,13 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     summ          <- attr(object, "Summ")
     if(Weighted)   {
       weights     <- attr(x, "Weights")[order(cl, -object[,2L])]
-      switch(EXPR=summ, median=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot", ifelse(isTRUE(sericlus), " (Ordered by Cluster)", "")), sub=paste0("(Weighted) Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(weightedMedian(sil, weights), digits=3)), adj=0),
-                          mean=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot", ifelse(isTRUE(sericlus), " (Ordered by Cluster)", "")), sub=paste0("(Weighted) Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(weightedMean(sil,   weights), digits=3)), adj=0))
+      wSIL        <- switch(EXPR=summ, median=weightedMedian(sil, weights), mean=weightedMean(sil, weights))
+      switch(EXPR=summ, median=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot", ifelse(isTRUE(sericlus), " (Ordered by Cluster)", "")), sub=paste0("(Weighted) Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(wSIL, digits=3)), adj=0),
+                          mean=graphics::title(main=paste0("(Weighted) ", switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot", ifelse(isTRUE(sericlus), " (Ordered by Cluster)", "")), sub=paste0("(Weighted) Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(wSIL, digits=3)), adj=0))
     } else         {
-      switch(EXPR=summ, median=graphics::title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(stats::median(sil), digits=3)), adj=0),
-                          mean=graphics::title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(mean(sil),          digits=3)), adj=0))
+      wSIL        <- switch(EXPR=summ, median=stats::median(sil), mean=mean(sil))
+      switch(EXPR=summ, median=graphics::title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Median ", switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(wSIL, digits=3)), adj=0),
+                          mean=graphics::title(main=paste0(switch(EXPR=type, dbsvals="Density-based ", ""), "Silhouette Plot"), sub=paste0("Mean ",   switch(EXPR=type, dbsvals="DBS", "Silhouette"), " Width : ", round(wSIL, digits=3)), adj=0))
     }
     graphics::mtext(paste0("n = ", N),  adj=0)
     graphics::mtext(substitute(G~modtype~"clusters"~C[g], list(G=G, modtype=modtype)), adj=1)
@@ -2367,6 +2372,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     for(g in seq_len(G)) {
       graphics::text(1, medy[g], paste(ifelse(g == G && noise, "Noise", g), ":  ", ng[g], " | ", format(meds[g], digits=1, nsmall=2)), xpd=NA, adj=0.8)
     }
+    w.r           <- cumsum(space + 1L)
+    w.l           <- w.r - 1L
+    graphics::segments(x0=wSIL, y0=min(w.l), y1=max(w.r), lty=2)
       invisible()
   }, similarity=   {
     sim           <- sim[glo.order,glo.order]
@@ -2447,7 +2455,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     }
     MAP           <- MAP2  <- factor(replace(MAP, MAP == 0, "Noise"), levels=switch(EXPR=type, i=, I=replace(perm, perm == 0, "Noise"), perm))
     if(isTRUE(SPS))         {
-      levels(MAP) <- MEDseq_clustnames(x, ...)
+      levels(MAP) <- MEDseq_clustnames(x, weighted=weighted, ...)
     }
     MAP           <- switch(EXPR=type, i=, I=MAP[glo.order],  MAP)
     dat           <- switch(EXPR=type, i=, I=dat[glo.order,], dat)
@@ -3223,6 +3231,7 @@ print.MEDseqMeanTime <- function(x, digits = 3L, ...) {
 #' @param x An object of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}} or an object of class \code{"MEDseqCompare"} generated by \code{\link{MEDseq_compare}}.
 #' @param cluster A logical indicating whether names should be prepended with the text "\code{Cluster g: }", where \code{g} is the cluster number. Defaults to \code{TRUE}. 
 #' @param size A logical indicating whether the (typically 'soft') size of each cluster is appended to the label of each group, expressed as a percentage of the total number of observations. Defaults to \code{FALSE}. 
+#' @param weighted A logical indicating whether the sampling weights (if any) are used when appending the \code{size} of each cluster to the labels. Defaults to \code{FALSE}.
 #' @param ... Catches unused arguments. 
 #' @param names The output of \code{MEDseq_clustnames} to be passed to the convenience function \code{MEDseq_nameclusts} (see \code{Details}).
 #' 
@@ -3230,7 +3239,7 @@ print.MEDseqMeanTime <- function(x, digits = 3L, ...) {
 #' @return For \code{MEDseq_clustnames}, a character vector containing the names for each component defined by their central sequence, and optionally the cluster name (see \code{cluster} above) and cluster size (see \code{size} above). The name for the noise component, if any, will always be simply \code{"Noise"} (or \code{"Cluster 0: Noise"}).
 #' 
 #' For \code{MEDseq_nameclusts}, a factor version of \code{x$MAP} with levels given by the output of \code{MEDseq_clustnames}.
-#' @note The main \code{MEDseq_clustnames} function is used internally by \code{\link{plot.MEDseq}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_stderr}}, and also other \code{print} and \code{summary} methods, where its invocation can typically controlled via a \code{SPS} logical argument. However, the optional arguments \code{cluster} and \code{size} can only be passed through \code{\link{plot.MEDseq}}; elsewhere \code{cluster=TRUE} and \code{size=FALSE} are always assumed.
+#' @note The main \code{MEDseq_clustnames} function is used internally by \code{\link{plot.MEDseq}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_stderr}}, and also other \code{print} and \code{summary} methods, where its invocation can typically controlled via a \code{SPS} logical argument. However, the optional arguments \code{cluster}, \code{size}, and \code{weighted} can only be passed through \code{\link{plot.MEDseq}}; elsewhere \code{cluster=TRUE}, \code{size=FALSE}, and \code{weighted=FALSE} are always assumed.
 #' 
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
@@ -3244,6 +3253,7 @@ print.MEDseqMeanTime <- function(x, digits = 3L, ...) {
 #' MEDseq_clustnames(x,
 #'                   cluster = TRUE,
 #'                   size = FALSE,
+#'                   weighted = FALSE,
 #'                   ...)
 #' @examples
 #' # Load the MVAD data
@@ -3291,13 +3301,13 @@ print.MEDseqMeanTime <- function(x, digits = 3L, ...) {
 #' # Invoke this function in other plots
 #' plot(mod, type="clusters", SPS=TRUE)
 #' plot(mod, type="precision", SPS=TRUE)}
-MEDseq_clustnames        <- function(x, cluster = TRUE, size = FALSE, ...) {
+MEDseq_clustnames        <- function(x, cluster = TRUE, size = FALSE, weighted = FALSE, ...) {
     UseMethod("MEDseq_clustnames")
 }
 
 #' @method MEDseq_clustnames MEDseq
 #' @export
-MEDseq_clustnames.MEDseq <- function(x, cluster = TRUE, size = FALSE, ...) {
+MEDseq_clustnames.MEDseq <- function(x, cluster = TRUE, size = FALSE, weighted = FALSE, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(length(cluster)     != 1 ||
      !is.logical(cluster))       stop("'cluster' must be a single logical indicator", call.=FALSE)
@@ -3306,9 +3316,9 @@ MEDseq_clustnames.MEDseq <- function(x, cluster = TRUE, size = FALSE, ...) {
   X               <- utils::capture.output(print(x$params$theta, SPS=TRUE))[-1L]
   X               <- paste0("(", sub("^.*?\\((.*)\\)[^)]*$", "\\1", X), ")")
   noise           <- vapply(X, function(x) grepl("*", x, fixed = TRUE), logical(1L))
-  X               <- if(any(noise))      c(X[!noise], "Noise")                                                        else X
-  X               <- if(isTRUE(cluster)) paste0("Cluster ", replace(seq_len(x$G), noise, 0L), ": ", X)                else X
-  X               <- if(isTRUE(size))    paste0(X, "~[", round(colMeans2(x$z * attr(x, "Weights")) * 100L, 1L), "%]") else X
+  X               <- if(any(noise))      c(X[!noise], "Noise")                                                         else X
+  X               <- if(isTRUE(cluster)) paste0("Cluster ", replace(seq_len(x$G), noise, 0L), ": ", X)                 else X
+  X               <- if(isTRUE(size))    paste0(X, "~[", round(colMeans2(x$z * if(isTRUE(weighted)) attr(x, "Weights") else 1L) * 100L, 1L), "%]") else X
   attr(X, "MAP")  <- x$MAP
   attr(X, "G")    <- x$G
   class(X)        <- "MEDnames"
@@ -3639,7 +3649,7 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
       for(j in Pseq)     n_mode[,j] <- frwts[[j]][vapply(as.character(modes[,j]), function(z) return(which(names(frwts[[j]]) == z)), numeric(1L))]
       for(i in kseq)   {
         di    <- vapply(Pseq, function(j) return(data[,j] != rep(modes[i,j], n)), logical(n))
-        wts   <- (n_mode[rep(i, n),] + n_obj)/(n_mode[rep(i, n),] * n_obj)
+        wts   <- 1/n_mode[rep(i, n),] + 1/n_obj
         dists[,i] <- if(wtd) rowSums2(di  * wts) * weights else rowSums2(di * wts)
       }
     }
@@ -3660,7 +3670,7 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
        for(j in Pseq)    n_mode[,j] <- frwts[[j]][vapply(as.character(modes[,j]), function(z) return(which(names(frwts[[j]]) == z)), numeric(1L))]
        for(i in kseq) {
         di    <- vapply(Pseq, function(j) return(data[,j] != rep(modes[i,j], n)), logical(n))
-        wts   <- (n_mode[rep(i, n),] + n_obj)/(n_mode[rep(i, n),] * n_obj)
+        wts   <- 1/n_mode[rep(i, n),] + 1/n_obj
         dists[,i] <- if(wtd) rowSums2(di  * wts) * weights else rowSums2(di * wts)
        }
       }
@@ -3687,7 +3697,7 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
         n_obj     <- matrix(NA, nrow = n, ncol = P)
         for(j in Pseq)    n_obj[,j] <- frwts[[j]][vapply(as.character(data[,j]),  function(z) return(which(names(frwts[[j]]) == z)), numeric(1L))]
       }
-      wts     <- (n_mode[rep(i, n),] + n_obj)/(n_mode[rep(i, n),] * n_obj)
+      wts     <- 1/n_mode[rep(i, n),] + 1/n_obj
       di      <- rowSums2(di * wts)
     } else di <- rowSums2(di)
     dists[,i] <- if(wtd)  di * weights else di
