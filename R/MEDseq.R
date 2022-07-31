@@ -22,8 +22,8 @@
 #' \itemize{
 #' \item{Type: }{Package}
 #' \item{Package: }{MEDseq}
-#' \item{Version: }{1.3.3}
-#' \item{Date: }{2022-03-28 (this version), 2019-08-24 (original release)}
+#' \item{Version: }{1.4.0}
+#' \item{Date: }{2022-12-20 (this version), 2019-08-24 (original release)}
 #' \item{Licence: }{GPL (>=2)}
 #' }
 #'

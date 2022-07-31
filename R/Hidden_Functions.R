@@ -512,7 +512,7 @@
     k             <- nrow(Tab)
     Map           <- rep(0L, k)
     Max           <- rowMaxs(Tab)
-    for(i in (1L:k))    {
+    for(i in seq_len(k))    {
       I           <- match(Max[i], Tab[i,], nomatch = 0)
       aTOb[[i]]   <- Ub[I]
     }
@@ -520,7 +520,7 @@
     k             <- ncol(Tab)
     Map           <- rep(0L, k)
     Max           <- apply(Tab, 2L, max)
-    for(j in (1L:k))    {
+    for(j in seq_len(k))    {
       J           <- match(Max[j], Tab[,j])
       bTOa[[j]]   <- Ua[J] 
     }

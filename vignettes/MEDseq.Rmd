@@ -35,7 +35,7 @@ If you find bugs or want to suggest new features please visit the __MEDseq__ [Gi
 This vignette mostly aims to demonstrate the __MEDseq__ models by reproducing the analysis of the MVAD data in the Murphy et al. (2021) paper. However, an additional example data set is also analysed.
 
 ### Installing MEDseq
-__MEDseq__ will run in Windows, Mac OS X, or Linux. To install it you first need to install [R](https://cran.r-project.org/). Installing [RStudio](https://www.rstudio.com/) as a nice desktop environment for using R is also recommended.
+__MEDseq__ will run in Windows, Mac OS X, or Linux. To install it you first need to install [R](https://cran.r-project.org/). Installing [RStudio](https://posit.co/) as a nice desktop environment for using R is also recommended.
 
 Once in R you can type at the R command prompt:
 
@@ -251,4 +251,4 @@ McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessfu
 
 Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007), Paris, 5-7 septembre 2007_, pp. 157--160.
 
-Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), _Sequence Analysis and Related Approaches: Innovative Methods and Applications_, pp. 223--239. Cham: Springer International Publishing.
+Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), _Sequence Analysis and Related Approaches: Innovative Methods and Applications_, pp. 223--239. Cham, Switzerland: Springer International Publishing.

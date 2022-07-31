@@ -22,11 +22,11 @@ wKModes(data,
 
 \item{iter.max}{The maximum number of iterations allowed. Defaults to \code{.Machine$integer.max}. The algorithm terminates when \code{iter.max} is reached or when the partition ceases to change between iterations.}
 
-\item{freq.weighted}{A logical indicating whether the usual simple-matching (Hamming) distance between objects is used, or a frequency weighted version of this distance. Defaults to \code{FALSE}; when \code{TRUE}, the frequency weights are computed within the algorithm and are \emph{not} user-specified. Distinct from the observation-level \code{weights} above, the frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.}
+\item{freq.weighted}{A logical indicating whether the usual simple-matching (Hamming) distance between objects is used, or a frequency weighted version of this distance. Defaults to \code{FALSE}; when \code{TRUE}, the frequency weights are computed within the algorithm and are \emph{not} user-specified. Distinct from the observation-level \code{weights} above, the frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}. For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.}
 
 \item{fast}{A logical indicating whether a fast version of the algorithm should be applied. Defaults to \code{TRUE}.}
 
-\item{random}{A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE} (the implied default had been \code{FALSE} prior to version 1.3.2 of this package, as per \code{klaR::kmodes}). Note that when \code{modes} is specified as the number of modes, the algorithm is \emph{always} randomly initialised, regardless of the specification of \code{random}.
+\item{random}{A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE}: the implied default had been \code{FALSE} prior to version \code{1.3.2} of this package, as per \code{klaR::kmodes} prior to version \code{1.7-1} (see Note). Note that when \code{modes} is specified as the number of modes, the algorithm is \emph{always} randomly initialised, regardless of the specification of \code{random}.
 
 Regarding the modes, ties are broken at random when \code{TRUE} and the first candidate state is always chosen for the mode when \code{FALSE}. Regarding assignments, tie-breaking is always first biased in favour of the observation's most recent cluster: regarding ties thereafter, these are broken at random when \code{TRUE} or the first other candidate cluster is always chosen when \code{FALSE}.}
 
@@ -42,7 +42,7 @@ An object of class \code{"wKModes"} which is a list with the following component
 \item{\code{tot.withindiff}}{The total within-cluster (weighted) distance over all clusters. \code{tot.withindiff} can be used to guide the choice of the number of clusters, but beware of inherent randomness in the algorithm, which is liable to yield a jagged elbow plot (see examples).}
 \item{\code{iterations}}{The number of iterations the algorithm reached.}
 \item{\code{weighted}}{A logical indicating whether observation-level \code{weights} were used or not throughout the algorithm.}
-\item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances.}
+\item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances. For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.}
 \item{\code{random}}{A logical indicating whether ties were broken at random or not throughout the algorithm.}}
 }
 \description{
@@ -53,7 +53,7 @@ The k-modes algorithm (Huang, 1997) is an extension of the k-means algorithm by 
 
 The data given by \code{data} is clustered by the k-modes method (Huang, 1997) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
 
-By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, for details).
+By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, for details). For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
 
 If an initial matrix of modes is supplied, it is possible that no object will be closest to one or more modes. In this case, fewer clusters than the number of supplied modes will be returned and a warning will be printed.
 
@@ -62,10 +62,13 @@ If called using \code{fast = TRUE}, the reassignment of the data to clusters is 
 \note{
 This code is adapted from the \code{kmodes} function in the \pkg{klaR} package. Specifically, modifications were made to allow for random tie-breaking for the modes and assignments (see \code{random} above) and the incorporation of observation-specific sampling \code{weights}, with a view to using this function as a means to initialise the allocations for MEDseq models (see the \code{\link{MEDseq_control}} argument \code{init.z} and the related options \code{"kmodes"} and \code{"kmodes2"}). 
 
-Notably, the \code{wKModes} function, when invoked inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all. Furthermore, the \code{\link{MEDseq_control}} argument \code{random} is \emph{also} passed to \code{wKmodes} when it is invoked inside \code{\link{MEDseq_fit}}.
+Notably, the \code{wKModes} function, when invoked inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all. Furthermore, the \code{\link{MEDseq_control}} argument \code{random} is \emph{also} passed to \code{wKModes} when it is invoked inside \code{\link{MEDseq_fit}}.
+
+\strong{Update}: as of version \code{1.7-1} of \pkg{klaR}, \code{klaR::kmodes} now breaks assignment ties at random only when \code{fast=TRUE}. It still breaks assignment ties when \code{fast=FALSE} and all ties for modal values in the non-random manner described above. Thus, the old behaviour of \code{klaR::kmodes} can be recovered by specifying \code{random=FALSE} here, but \code{random=TRUE} allows random tie-breaking for both types of ties in all situations.
 }
 \examples{
 suppressMessages(require(WeightedCluster))
+set.seed(99)
 # Load the MVAD data & aggregate the state sequences
 data(mvad)
 agg      <- wcAggregateCases(mvad[,17:86], weights=mvad$weight)
@@ -104,7 +107,7 @@ Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical 
 MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In L. M. L. Cam and J. Neyman (Eds.), \emph{Proceedings of the Fifth Berkeley Symposium on  Mathematical Statistics and Probability}, Volume 1, pp. 281-297. Berkeley, CA, USA: University of California Press.
 }
 \seealso{
-\code{\link{MEDseq_control}}, \code{\link{MEDseq_fit}}
+\code{\link{MEDseq_control}}, \code{\link{MEDseq_fit}}, \code{\link{dist_freqwH}}
 }
 \author{
 Keefe Murphy - <\email{keefe.murphy@mu.ie}>

@@ -81,7 +81,7 @@ dbs               <- function(z, ztol = 1E-100, weights = NULL, summ = c("mean",
     indX          <- .misclass(clusters, ordered[1L,])$misclassified
     ind           <- setdiff(seq_len(nrow(z)), indX)
     l2            <-
-    zz            <- rep(0L, nrow(z))
+    zz            <- integer(nrow(z))
     l2[indX]      <- log(diag(z[indX,ordered[1L,indX]]))
     zz[indX]      <- log(diag(z[indX,clusters]))       - l2[indX]
     l2[ind]       <- log(diag(z[ind,ordered[2L,ind]]))
@@ -545,7 +545,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @param criterion When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.
 #' @param tau0 Prior mixing proportion for the noise component. If supplied, a noise component will be added to the model in the estimation, with \code{tau0} giving the prior probability of belonging to the noise component for \emph{all} observations. Typically supplied as a scalar in the interval (0, 1), e.g. \code{0.1}. Can be supplied as a vector when gating covariates are present and \code{noise.gate} is \code{TRUE}.
 #' @param noise.gate A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component (i.e. the \code{"CCN"}, \code{"UCN"}, \code{"CUN"}, and \code{"UUN"} models); only affects estimation in the presence of gating covariates.
-#' @param random A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default prior to version 1.2.0 of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations. 
+#' @param random A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default prior to version \code{1.2.0} of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations. 
 #' 
 #' Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{init.z} is \code{"kmodes"} or \code{"kmodes2"} and that, in certain rare cases when the \code{"CEM"} \code{algo} is invoked when \code{equalPro} is \code{TRUE} and the precision parameter(s) are somehow constrained across clusters, this argument also governs ties for cluster assignments within \code{MEDseq_fit} as well.
 #' @param do.cv A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.
@@ -1001,7 +1001,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     if(ctrl$do.wts       <- (length(unique(weights)) < N)) {
       dist.mat2   <- dist.mat
       HAM.mat2    <- HAM.mat[uni.ind,uni.ind]
-      w2          <- rep(0L, N)
+      w2          <- integer(N)
       w2[uni.ind] <- weights
       dist.mat    <- stats::as.dist(as.matrix(dist.mat)[uni.ind,uni.ind])
       seqs        <- seqs[uni.ind,,   drop=FALSE]
@@ -1340,7 +1340,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
         CVll      <- -N * P * log(V)
       } else if(cvsel.X)    {
         ctrl$warn <- FALSE
-        lCV       <- vector("numeric", nfolds)
+        lCV       <- numeric(nfolds)
         zCV       <- z[cv.ind,,    drop=FALSE]
         for(i in foldseq)   {
           testX   <- which(cv.folds == i)
@@ -1737,7 +1737,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   results         <- if(do.nec && G > 1) c(results, list(nec = x.nec)) else results
   results         <- c(results, list(
                           ZS      = stats::setNames(ZS, rG),
-                          uncert  = if(G > 1) 1 - rowMaxs(x.z) else vector("integer", N2),
+                          uncert  = if(G > 1) 1 - rowMaxs(x.z) else integer(N2),
                           covars  = covars))
   attr(results, "Algo")         <- algo
   attr(results, "ASW")          <- do.asw
@@ -1837,7 +1837,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' Please note that \code{type="dH"} will be unavailable if versions of \pkg{TraMineR} prior to \code{2.2-4} are in use. The colour of the entropy line(s) will be \code{"blue"} for \code{type="Ht"} and \code{"black"} for \code{type="dH"}. Finally, the plot types borrowed from \pkg{TraMineR} may be too wide to display in the preview panel. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}. 
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' 
-#' Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), \emph{Sequence Analysis and Related Approaches: Innovative Methods and Applications}, pp. 223-239. Cham: Springer International Publishing.
+#' Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), \emph{Sequence Analysis and Related Approaches: Innovative Methods and Applications}, pp. 223-239. Cham, Switzerland: Springer International Publishing.
 #' 
 #' Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with \pkg{TraMineR}. \emph{Journal of Statistical Software}, 40(4): 1-37.
 #' @usage 
@@ -1964,6 +1964,10 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   sericlus        <- is.element(seriated, c("both", "clusters"))     && is.element(type, c("clusters", "central", "precision", "gating", "similarity",
                                                                                            "dbsvals", "aswvals", "d", "dH", "f", "Ht", "i", "I", "ms", "mt"))
   seriobs         <- is.element(seriated, c("both", "observations")) && is.element(type, c("clusters", "gating", "similarity", "i", "I"))
+  seriated        <- switch(EXPR=seriated, 
+                            clusters=ifelse(sericlus, "clusters", "none"),
+                            observations=ifelse(seriobs, "observations", "none"),
+                            both=ifelse(sericlus && seriobs, "both", ifelse(sericlus, "clusters", ifelse(seriobs, "observations", "none"))))
   if(seriated     != "none")   {
     if(!missing(smeth)        &&
        (length(smeth)    > 1  ||
@@ -2035,8 +2039,12 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     if(type       == "similarity") {
       z           <- if(has.dot) do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))])) else x$z
       G           <- ncol(z)
-      sim         <- tcrossprod(z)
-      dmat        <- 1 - sim
+      sim         <- if(G > 1) tcrossprod(z)      else matrix(1L, nrow=N, ncol=N)
+      dmat        <- if(G > 1) 1 - sim            else matrix(0L, nrow=N, ncol=N)
+    }
+    if(G == 1)     {
+      sericlus    <- FALSE  
+      seriated    <- switch(EXPR=seriated, clusters="none", both="observations", seriated)
     }
     if(isTRUE(sericlus)       &&
        !all((unip <- 
@@ -2397,7 +2405,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     if(has.dot)    {
       z           <- do.call(get_MEDseq_results, c(list(x=x, what="z"), dots[!(names(dots) %in% c("x", "what"))]))
       G           <- ncol(z)
-      uncX        <- 1 - rowMaxs(z)
+      uncX        <- if(G > 1) 1 - rowMaxs(z) else integer(N)
     } else uncX   <- x$uncert
     oneG          <- 1/G
     min1G         <- 1 - oneG
@@ -3456,9 +3464,9 @@ MEDseq_AvePP.MEDseq        <- function(x) {
 #' @param modes Either the number of modes or a set of initial (distinct) cluster modes (where each mode is a row and \code{modes} has the same number of columns as \code{data}). If a number, a random set of (distinct) rows in \code{data} is chosen as the initial modes. Note, this randomness is always present, and is not governed by \code{random} below.
 #' @param weights Optional numeric vector containing non-negative observation-specific case weights.
 #' @param iter.max The maximum number of iterations allowed. Defaults to \code{.Machine$integer.max}. The algorithm terminates when \code{iter.max} is reached or when the partition ceases to change between iterations.
-#' @param freq.weighted A logical indicating whether the usual simple-matching (Hamming) distance between objects is used, or a frequency weighted version of this distance. Defaults to \code{FALSE}; when \code{TRUE}, the frequency weights are computed within the algorithm and are \emph{not} user-specified. Distinct from the observation-level \code{weights} above, the frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.
+#' @param freq.weighted A logical indicating whether the usual simple-matching (Hamming) distance between objects is used, or a frequency weighted version of this distance. Defaults to \code{FALSE}; when \code{TRUE}, the frequency weights are computed within the algorithm and are \emph{not} user-specified. Distinct from the observation-level \code{weights} above, the frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}. For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
 #' @param fast A logical indicating whether a fast version of the algorithm should be applied. Defaults to \code{TRUE}.
-#' @param random A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE} (the implied default had been \code{FALSE} prior to version 1.3.2 of this package, as per \code{klaR::kmodes}). Note that when \code{modes} is specified as the number of modes, the algorithm is \emph{always} randomly initialised, regardless of the specification of \code{random}.
+#' @param random A logical indicating whether ties for the modal values &/or assignments are broken at random. Defaults to \code{TRUE}: the implied default had been \code{FALSE} prior to version \code{1.3.2} of this package, as per \code{klaR::kmodes} prior to version \code{1.7-1} (see Note). Note that when \code{modes} is specified as the number of modes, the algorithm is \emph{always} randomly initialised, regardless of the specification of \code{random}.
 #' 
 #' Regarding the modes, ties are broken at random when \code{TRUE} and the first candidate state is always chosen for the mode when \code{FALSE}. Regarding assignments, tie-breaking is always first biased in favour of the observation's most recent cluster: regarding ties thereafter, these are broken at random when \code{TRUE} or the first other candidate cluster is always chosen when \code{FALSE}.
 #' @param ... Catches unused arguments.
@@ -3467,7 +3475,7 @@ MEDseq_AvePP.MEDseq        <- function(x) {
 #' 
 #' The data given by \code{data} is clustered by the k-modes method (Huang, 1997) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
 #' 
-#' By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, for details).
+#' By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, for details). For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
 #' 
 #' If an initial matrix of modes is supplied, it is possible that no object will be closest to one or more modes. In this case, fewer clusters than the number of supplied modes will be returned and a warning will be printed.
 #' 
@@ -3475,7 +3483,9 @@ MEDseq_AvePP.MEDseq        <- function(x) {
 #' 
 #' @note This code is adapted from the \code{kmodes} function in the \pkg{klaR} package. Specifically, modifications were made to allow for random tie-breaking for the modes and assignments (see \code{random} above) and the incorporation of observation-specific sampling \code{weights}, with a view to using this function as a means to initialise the allocations for MEDseq models (see the \code{\link{MEDseq_control}} argument \code{init.z} and the related options \code{"kmodes"} and \code{"kmodes2"}). 
 #' 
-#' Notably, the \code{wKModes} function, when invoked inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all. Furthermore, the \code{\link{MEDseq_control}} argument \code{random} is \emph{also} passed to \code{wKmodes} when it is invoked inside \code{\link{MEDseq_fit}}.
+#' Notably, the \code{wKModes} function, when invoked inside \code{\link{MEDseq_fit}}, is used regardless of whether the weights are true sampling weights, or the weights are merely aggregation weights, or there are no weights at all. Furthermore, the \code{\link{MEDseq_control}} argument \code{random} is \emph{also} passed to \code{wKModes} when it is invoked inside \code{\link{MEDseq_fit}}.
+#' 
+#' \strong{Update}: as of version \code{1.7-1} of \pkg{klaR}, \code{klaR::kmodes} now breaks assignment ties at random only when \code{fast=TRUE}. It still breaks assignment ties when \code{fast=FALSE} and all ties for modal values in the non-random manner described above. Thus, the old behaviour of \code{klaR::kmodes} can be recovered by specifying \code{random=FALSE} here, but \code{random=TRUE} allows random tie-breaking for both types of ties in all situations.
 #' @return An object of class \code{"wKModes"} which is a list with the following components:
 #' \describe{
 #' \item{\code{cluster}}{A vector of integers indicating the cluster to which each object is allocated.}
@@ -3485,14 +3495,14 @@ MEDseq_AvePP.MEDseq        <- function(x) {
 #' \item{\code{tot.withindiff}}{The total within-cluster (weighted) distance over all clusters. \code{tot.withindiff} can be used to guide the choice of the number of clusters, but beware of inherent randomness in the algorithm, which is liable to yield a jagged elbow plot (see examples).}
 #' \item{\code{iterations}}{The number of iterations the algorithm reached.}
 #' \item{\code{weighted}}{A logical indicating whether observation-level \code{weights} were used or not throughout the algorithm.}
-#' \item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances.}
+#' \item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances. For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.}
 #' \item{\code{random}}{A logical indicating whether ties were broken at random or not throughout the algorithm.}}
 #' @references Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
 #' 
 #' MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In L. M. L. Cam and J. Neyman (Eds.), \emph{Proceedings of the Fifth Berkeley Symposium on  Mathematical Statistics and Probability}, Volume 1, pp. 281-297. Berkeley, CA, USA: University of California Press.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' (adapted from \code{klaR::kmodes})
-#' @seealso \code{\link{MEDseq_control}}, \code{\link{MEDseq_fit}}
+#' @seealso \code{\link{MEDseq_control}}, \code{\link{MEDseq_fit}}, \code{\link{dist_freqwH}}
 #' @keywords utility
 #' @importFrom matrixStats "colMeans2"
 #' @importFrom TraMineR "seqdef" "seqformat"
@@ -3509,6 +3519,7 @@ MEDseq_AvePP.MEDseq        <- function(x) {
 #'         ...)
 #' @examples
 #' suppressMessages(require(WeightedCluster))
+#' set.seed(99)
 #' # Load the MVAD data & aggregate the state sequences
 #' data(mvad)
 #' agg      <- wcAggregateCases(mvad[,17:86], weights=mvad$weight)
@@ -3578,7 +3589,6 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
      !is.logical(random))        stop("'random' must be a single logical indicator",         call.=FALSE)
   nseq        <- seq_len(n)
   Pseq        <- seq_len(P)
-  data        <- as.data.frame(data)
   cluster     <- numeric(n)
   names(cluster)  <- nseq
   if(missing(modes))             stop("'modes' must be a number or a data frame",            call.=FALSE)
@@ -3639,7 +3649,7 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
     dists     <- matrix(NA, nrow = n, ncol = k)
     if(!freq.weighted)       {
       for(i in kseq)         {
-        di    <- vapply(Pseq, function(j) return(data[,j] != rep(modes[i,j], n)), logical(n))
+        di    <- vapply(Pseq, function(j) return(data[,j] != rep.int(modes[i,j], n)), logical(n))
         dists[,i] <- if(wtd) rowSums2(di) * weights        else rowSums2(di)
       }
     }   else   {
@@ -3648,8 +3658,8 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
       for(j in Pseq)      n_obj[,j] <- frwts[[j]][vapply(as.character(data[,j]),  function(z) return(which(names(frwts[[j]]) == z)), numeric(1L))]
       for(j in Pseq)     n_mode[,j] <- frwts[[j]][vapply(as.character(modes[,j]), function(z) return(which(names(frwts[[j]]) == z)), numeric(1L))]
       for(i in kseq)   {
-        di    <- vapply(Pseq, function(j) return(data[,j] != rep(modes[i,j], n)), logical(n))
-        wts   <- 1/n_mode[rep(i, n),] + 1/n_obj
+        di    <- vapply(Pseq, function(j) return(data[,j] != rep.int(modes[i,j], n)), logical(n))
+        wts   <- 1/n_mode[rep.int(i, n),] + 1/n_obj
         dists[,i] <- if(wtd) rowSums2(di  * wts) * weights else rowSums2(di * wts)
       }
     }
@@ -3662,15 +3672,15 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
       dists   <- matrix(NA, nrow = n, ncol = k)
       if(!freq.weighted)     {
        for(i in kseq)        {
-        di    <- vapply(Pseq, function(j) return(data[,j] != rep(modes[i,j], n)), logical(n))
+        di    <- vapply(Pseq, function(j) return(data[,j] != rep.int(modes[i,j], n)), logical(n))
         dists[,i] <- if(wtd) rowSums2(di) * weights        else rowSums2(di)
        }
       } else   {
        n_mode <- matrix(NA, nrow = nrow(modes), ncol = P)
        for(j in Pseq)    n_mode[,j] <- frwts[[j]][vapply(as.character(modes[,j]), function(z) return(which(names(frwts[[j]]) == z)), numeric(1L))]
        for(i in kseq) {
-        di    <- vapply(Pseq, function(j) return(data[,j] != rep(modes[i,j], n)), logical(n))
-        wts   <- 1/n_mode[rep(i, n),] + 1/n_obj
+        di    <- vapply(Pseq, function(j) return(data[,j] != rep.int(modes[i,j], n)), logical(n))
+        wts   <- 1/n_mode[rep.int(i, n),] + 1/n_obj
         dists[,i] <- if(wtd) rowSums2(di  * wts) * weights else rowSums2(di * wts)
        }
       }
@@ -3691,13 +3701,13 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
     for(j in Pseq)       n_mode[,j] <- frwts[[j]][vapply(as.character(modes[,j]), function(z) return(which(names(frwts[[j]]) == z)), numeric(1L))]
   }
   for(i in kseq)      {
-    di        <- vapply(Pseq, function(j) return(data[,j] != rep(modes[i,j], n)), logical(n))
+    di        <- vapply(Pseq, function(j) return(data[,j] != rep.int(modes[i,j], n)), logical(n))
     if(freq.weighted) {
       if(!fast)    {
         n_obj     <- matrix(NA, nrow = n, ncol = P)
         for(j in Pseq)    n_obj[,j] <- frwts[[j]][vapply(as.character(data[,j]),  function(z) return(which(names(frwts[[j]]) == z)), numeric(1L))]
       }
-      wts     <- 1/n_mode[rep(i, n),] + 1/n_obj
+      wts     <- 1/n_mode[rep.int(i, n),] + 1/n_obj
       di      <- rowSums2(di * wts)
     } else di <- rowSums2(di)
     dists[,i] <- if(wtd)  di * weights else di
@@ -3714,6 +3724,82 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
                       weighted = wtd, freq.weighted = freq.weighted, random = random)
   class(result)   <- "wKModes"
     return(result)
+}
+
+#' Pairwise frequency-Weighted Hamming distance matrix for categorical data
+#'
+#' Computes the matrix of pairwise distance using a frequency-weighted variant of the Hamming distance often used in k-modes clustering.
+#' @param data A matrix or data frame of categorical data. Objects have to be in rows, variables in columns.
+#' @param full.matrix Logical. If \code{TRUE} (the default), the full pairwise distance matrix is returned, otherwise an object of class \code{\link[stats]{dist}} is returned, i.e. a vector containing only values from the upper triangle of the distance matrix. Objects of class \code{dist} are smaller and can be passed directly as arguments to most clustering functions.
+#'
+#' @details As per \code{\link{wKModes}}, the frequency weights are computed within the function and are \emph{not} user-specified. These frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.
+#' @return The whole matrix of pairwise distances if \code{full.matrix=TRUE}, otherwise the corresponding \code{\link[stats]{dist}} object.
+#' @references Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
+#' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
+#' @seealso \code{\link{wKModes}}
+#' @keywords utility
+#' @importFrom matrixStats "rowSums2"
+#' @importFrom WeightedCluster "wcAggregateCases" "wcSilhouetteObs"
+#' @export
+#' @usage 
+#' dist_freqwH(data,
+#'             full.matrix = TRUE)
+#' @examples
+#' suppressMessages(require(WeightedCluster))
+#' set.seed(99)
+#' # Load the MVAD data & aggregate the state sequences
+#' data(mvad)
+#' agg      <- wcAggregateCases(mvad[,17:86], weights=mvad$weight)
+#' 
+#' # Create a state sequence object without the first two (summer) time points
+#' states   <- c("EM", "FE", "HE", "JL", "SC", "TR")
+#' labels   <- c("Employment", "Further Education", "Higher Education", 
+#'               "Joblessness", "School", "Training")
+#' weights  <- agg$aggWeights
+#' mvad.seq <- seqdef(mvad[agg$aggIndex, 17:86], 
+#'                    states=states, labels=labels, weights=agg$aggWeights)
+#' 
+#' # Run k-modes with weights
+#' resW     <- wKModes(mvad.seq, 2, weights=agg$aggWeights)
+#' 
+#' # Run k-modes with additional frequency weights
+#' resF     <- wKModes(mvad.seq, 2, weights=agg$aggWeights, freq.weighted=TRUE)
+#' 
+#' # Examine the average silhouette widths of both weighted solutions
+#' weighted.mean(wcSilhouetteObs(seqdist(mvad.seq, method="HAM"), resW$cluster, weights), weights)
+#' # weighted.mean(wcSilhouetteObs(seqdist(mvad.seq, method="HAM"), resF$cluster, weights), weights)
+#' weighted.mean(wcSilhouetteObs(dist_freqwH(mvad.seq), resF$cluster, weights), weights)
+dist_freqwH   <- function(data, full.matrix = TRUE) {
+  data        <- as.data.frame(data)
+  n           <- nrow(data)
+  P           <- ncol(data)
+  isnumeric   <- vapply(data, is.numeric, logical(1L))
+  isfactor    <- vapply(data, is.factor,  logical(1L))
+  if(any(isfactor))             {
+    levs      <- vector("list", P)
+    for(j in which(isfactor))   {
+      levsj   <- levels(data[,j])
+      data[,j]    <- levsj[data[,j]]
+      levs[[j]]   <- levsj
+    }
+  }
+  if(any(isnumeric))            {
+    lengths   <- vapply(data[,isnumeric], function(z) length(unique(z)), numeric(1L))
+    if(any(lengths > 30))        warning("data has numeric columns with more than 30 different levels!", call.=FALSE, immediate.=TRUE)
+  }
+  Pseq        <- seq_len(P)
+  frwts       <- lapply(Pseq, function(i) table(data[,i]))
+  nX          <- matrix(NA, nrow=n, ncol=P)
+  dX          <- matrix(NA, nrow=n, ncol=n)
+  for(j in Pseq)       {
+    nX[,j]    <- frwts[[j]][vapply(as.character(data[,j]), function(z) which(names(frwts[[j]]) == z), numeric(1L))]
+  }    
+  for(i in seq_len(n)) {
+    di        <- vapply(Pseq, function(j) data[,j] != data[i,j], logical(n))
+    wts       <- 1/nX[rep.int(i, n),] + 1/nX
+    dX[i,]    <- rowSums2(di * wts)
+  }
+    if(isTRUE(full.matrix)) dX else stats::as.dist(dX)
 }
 
 #' @method print wKModes
