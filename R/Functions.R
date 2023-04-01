@@ -1790,14 +1790,14 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object.}
 #' \item{\code{"dbsvals"}}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster). See \code{seriated}.}
 #' \item{\code{"aswvals"}}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster). See \code{seriated}.}
-#' \item{\code{"similarity"}}{Produces a heatmap of the similarity matrix constructed from the \code{x$z} matrix at convergence, with observations reordered via \code{seriated} for visual clarity. The (potentially seriated) similarity matrix can also be invisibly returned.}
+#' \item{\code{"similarity"}}{Produces a heatmap of the similarity matrix constructed from the \code{x$z} matrix at convergence, with observations reordered via \code{seriated} for visual clarity. The (potentially \code{seriated}) similarity matrix can also be invisibly returned.}
 #' \item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a bar plot.}
 #' \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a profile plot.}
 #' \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
 #' }
 #' Also available are the following options which act as wrappers to types of plots produced by the \code{\link[TraMineR]{seqplot}} function in the \pkg{TraMineR} package. All are affected by the value of \code{seriated} and all account for the sampling weights (if any) by default (see the \code{weighted} argument and the related \code{Note} below).
 #' 
-#' Note also that all of the plot types below can be made to either work with the hard MAP partition, or to use the soft cluster membership probabilities, via the \code{soft} argument below. The soft information is used by default for all but the \code{"i"} and \code{"I"} plot types, which (by default) discard this information to instead use the MAP partition: see the \code{soft} argument below for modifying this default behaviour for all of the following plot types.
+#' Note also that all of the plot types below can be made to either work with the hard MAP partition (as per \code{\link[TraMineR]{seqplot}}), or to use the soft cluster membership probabilities, via the \code{soft} argument below. The soft information is used by default for all but the \code{"i"} and \code{"I"} plot types, which (by default) discard this information to instead use the MAP partition: see the \code{soft} argument below for modifying this default behaviour for all of the following plot types.
 #' \describe{
 #' \item{\code{"d"}}{State distribution plots (chronograms, by cluster).}
 #' \item{\code{"dH"}}{State distribution plots (chronograms, by cluster) with overlaid entropy line as per \code{type="Ht"}. Note that this option is only available if version \code{2.2-4} or later of \pkg{TraMineR} is installed.}
@@ -1967,7 +1967,8 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   seriated        <- switch(EXPR=seriated, 
                             clusters=ifelse(sericlus, "clusters", "none"),
                             observations=ifelse(seriobs, "observations", "none"),
-                            both=ifelse(sericlus && seriobs, "both", ifelse(sericlus, "clusters", ifelse(seriobs, "observations", "none"))))
+                            both=ifelse(sericlus && seriobs, "both", ifelse(sericlus, "clusters", ifelse(seriobs, "observations", "none"))),
+                            "none")
   if(seriated     != "none")   {
     if(!missing(smeth)        &&
        (length(smeth)    > 1  ||
@@ -2514,7 +2515,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     }
     attr(dat, "Weights")      <- NULL
     dots          <- c(list(seqdata=dat, group=MAP, with.legend=type != "Ht", with.missing=FALSE, type=type, weighted=weighted), 
-                       dots[!(names(dots) %in% c("G", "modtype", "noise", "cluster", "size"))])
+                       dots[!(names(dots) %in% c("G", "modtype", "noise", "cluster", "size", "criterion", "what", "rank"))])
     dots          <- switch(EXPR=type, Ht=dots[names(dots) != "border"], if(!any(names(dots) == "border")) c(list(border=NA), dots) else dots)
     if(type       == "dH"     && 
        !("cols" %in% names(dots))) {

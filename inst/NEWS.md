@@ -1,6 +1,12 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+### Improvements, Bug Fixes & Miscellaneous Edits
+* Minor fixes to `plot.MEDseq`:
+  * Removed spurious warnings in `TraMineR` `type` plots when using extra args. via `...`.
+  * Remedied labelling issues introduced in previous update when `seriated="none"` is supplied.
+* Now using newer `CITATION` commands.
+
 ## MEDseq v1.4.0 - (_11<sup>th</sup> release [minor update]: 2022-12-20_)
 ### New Features & Improvements
 * Function `seqdef` added as an exact copy of `TraMineR::seqdef`, to enable experienced  
