@@ -5,6 +5,9 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 * Minor fixes to `plot.MEDseq`:
   * Removed spurious warnings in `TraMineR` `type` plots when using extra args. via `...`.
   * Remedied labelling issues introduced in previous update when `seriated="none"` is supplied.
+  * Seriation is now explicitly probihited when `type="gating"` when:
+    * models contain no gating covariates: previously an error was returned in such cases.
+    * `x.axis` is supplied via the `...` construct.
 * Now using newer `CITATION` commands.
 
 ## MEDseq v1.4.0 - (_11<sup>th</sup> release [minor update]: 2022-12-20_)

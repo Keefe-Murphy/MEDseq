@@ -1779,7 +1779,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"clusters"}}{Visualise the data set with sequences grouped into their respective clusters. See \code{seriated}. Similar to the \code{type="I"} plot (see below). However, \code{type="clusters"} always plots the hard MAP partition and is unaffected by the \code{soft} argument below.}
 #' \item{\code{"central"}}{Visualise the central sequences (typically modal sequences, but this depends on the \code{opti} argument to \code{\link{MEDseq_control}} used during model-fitting). See \code{seriated}. The central sequence for the noise component, if any, is not shown as it doesn't contribute in any way to the likelihood. See the \code{type="ms"} option below for an alternative means of displaying the central sequences.}
 #' \item{\code{"precision"}}{Visualise the precision parameters in the form of a heatmap. Values of \code{0} and \code{Inf} are shown in \code{"white"} and \code{"black"} respectively (see \code{quant.scale} and \code{seriated}).}
-#' \item{\code{"gating"}}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. See \code{seriated}. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
+#' \item{\code{"gating"}}{Visualise the gating network, i.e. the observation index (by default) against the mixing proportions for that observation, coloured by cluster. Such plots can be produced with or without the gating network actually having had covariates included during model-fitting. See \code{seriated}, but note that this argument is only relevant for models \emph{with} gating network covariates, provided \code{x.axis} is not supplied. The optional argument \code{x.axis} can be passed via the \code{...} construct to change the x-axis against which mixing proportions are plotted (only advisable for models with a single gating network covariate, when \code{x.axis} is a quantity related to the gating network of the fitted model).}
 #' \item{\code{"bic"}}{Plots all BIC values in a fitted \code{MEDseq} object.}
 #' \item{\code{"icl"}}{Plots all ICL values in a fitted \code{MEDseq} object.}
 #' \item{\code{"aic"}}{Plots all AIC values in a fitted \code{MEDseq} object.}
@@ -1810,9 +1810,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' }
 #' @param seriated Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} and \code{sortv} arguments below. 
 #' 
-#' The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"central"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. 
+#' The \code{"clusters"} option (and the cluster-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"central"}, \code{"precision"}, \code{"gating"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"} and the model has more than one component.
 #' 
 #' Additionally, the \code{"observations"} option (and the observation-related part of \code{"both"}) is only invoked when \code{type} is one of \code{"clusters"}, \code{"gating"}, \code{"similarity"}, \code{"i"} or \code{"I"}, which are also the only options for which \code{"both"} is relevant.
+#' 
+#' Though all \code{seriated} options can be specified when \code{type} is \code{"gating"}, they are only invoked and relevant when the model actually contains gating network covariates and \code{x.axis} is not supplied via the \code{...} construct.
 #' @param soft This argument is a single logical indicator which is only relevant for the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. When \code{soft=TRUE} (the default for all but the \code{"i"} and \code{"I"} \code{type} plots) the soft cluster membership probabilities are used in a manner akin to \code{\link[WeightedCluster]{fuzzyseqplot}}. Otherwise, when \code{FALSE} (the default for \code{"i"} and \code{"I"} \code{type} plots), the soft information is discarded and the hard MAP partition is used instead. 
 #' 
 #' Note that soft cluster membership probabilities will not be available if \code{x$G=1} or the model was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}}. Plots may still be weighted when \code{soft} is \code{FALSE}, according to the observation-specific sampling weights, when \code{weighted=TRUE}. Note also that \code{type="Ht"} can be used in conjunction with \code{soft=TRUE}, unlike \code{\link[WeightedCluster]{fuzzyseqplot}} for which \code{type="Ht"} is not permissible. Finally, be advised that plotting may be time-consuming when \code{soft=TRUE} for \code{"i"} and \code{"I"} \code{type} plots.
@@ -1960,10 +1962,16 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   if(type == "dH" && 
      !.version_above("TraMineR", 
                      "2.2-4"))   stop("'type'=\"dH\" is only available if version 2.2-4 or later of the TraMineR package is installed", call.=FALSE)
+  dots            <- list(...)
+  dots            <- dots[unique(names(dots))]
+  has.dot         <- length(names(dots)[names(dots) %in% setdiff(names(formals(get_MEDseq_results)), c("x", "what", "..."))]) > 0
+  miss.x          <- length(dots) > 0   && any(names(dots) == "x.axis")
   seriated        <- match.arg(seriated)
-  sericlus        <- is.element(seriated, c("both", "clusters"))     && is.element(type, c("clusters", "central", "precision", "gating", "similarity",
-                                                                                           "dbsvals", "aswvals", "d", "dH", "f", "Ht", "i", "I", "ms", "mt"))
-  seriobs         <- is.element(seriated, c("both", "observations")) && is.element(type, c("clusters", "gating", "similarity", "i", "I"))
+  sericlus        <- is.element(seriated, c("both", "clusters"))     && ((type == "gating" && attr(x, "Gating") && isFALSE(miss.x)) ||
+                                                                        is.element(type, c("clusters", "central", "precision", "similarity",
+                                                                                           "dbsvals", "aswvals", "d", "dH", "f", "Ht", "i", "I", "ms", "mt"))) 
+  seriobs         <- is.element(seriated, c("both", "observations")) && ((type == "gating" && attr(x, "Gating") && isFALSE(miss.x)) ||
+                                                                        is.element(type, c("clusters", "similarity", "i", "I")))
   seriated        <- switch(EXPR=seriated, 
                             clusters=ifelse(sericlus, "clusters", "none"),
                             observations=ifelse(seriobs, "observations", "none"),
@@ -2013,9 +2021,6 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
                          isTRUE(.version_above("viridisLite", switch(EXPR=type, precision="0.2.0", "0.4.0"))))
     if(isFALSE(has_viridis))     message(paste0("Nicer colour palettes are invoked for the '", type, "' plot types if the suggested \"viridisLite\" library is installed\n"))
   }
-  dots            <- list(...)
-  dots            <- dots[unique(names(dots))]
-  has.dot         <- length(names(dots)[names(dots) %in% setdiff(names(formals(get_MEDseq_results)), c("x", "what", "..."))]) > 0
   if((has.MAP     <- length(dots) > 0 && any(names(dots)  == "MAP")))             {
     MAP           <- dots$MAP
     if(length(MAP)      != N  ||
@@ -2023,10 +2028,10 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
        MAP        != floor(MAP)) stop(paste0("'MAP' must be an integer vector of length N=", N),  call.=FALSE)
   } else MAP      <- x$MAP
   if(is.element(type, c("clusters", "similarity", 
-                        "d", "dH", "f", "Ht", "i", "I", "ms", "mt"))   ||
+                        "d", "dH", "f", "Ht", "i", "I", "ms", "mt")) ||
     (isTRUE(sericlus) && 
-    (is.element(type, c("central", "precision", "dbsvals", "aswvals")) ||
-    (type == "gating" && attr(x, "Gating"))))) {
+    (is.element(type, c("central", "precision", "gating", 
+                        "dbsvals", "aswvals"))))) {
     if(!is.element(type, c("gating", "central", "precision"))) {
       if(has.MAP)  {
         G         <- length(unique(MAP))
@@ -2238,12 +2243,10 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   }, gating=       {
     suppressWarnings(graphics::par(pty="m"))
     Tau           <- .mat_byrow(x$params$tau, nrow=N, ncol=ncol(x$z))
-    sericlus      <- isTRUE(sericlus)   && attr(x, "Gating")
-    seriobs       <- isTRUE(seriobs)    && attr(x, "Gating")
     perm          <- replace(perm, G, G)
     Tau           <- if(isTRUE(sericlus))  Tau[,perm,      drop=FALSE] else Tau
     vars          <- all.vars(stats::as.formula(attr(x$gating, "Formula")))
-    if(miss.x     <- length(dots) > 0   && any(names(dots) == "x.axis")) {
+    if(isTRUE(miss.x))   {
       ncovs       <- length(vars) > 1
       if(isTRUE(ncovs))          warning("Function may produce undesirable plot when 'x.axis' is supplied for a model with multiple gating network covariates\n", call.=FALSE, immediate.=TRUE)
       x.axis      <- dots$x.axis
@@ -2269,7 +2272,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
       xaxt        <- "n"
     } else         {
       type        <- ifelse(any(vars %in% names(x$gating$xlevels)), "p", type)
-      xaxt        <- ifelse(any(seriobs, sericlus), "n", "s")
+      xaxt        <- ifelse(sericlus, "n", "s")
     }
     graphics::matplot(x=x.axis, y=Tau, type=type, main="Gating Network", xaxt=xaxt, xlab=xlab, ylab="", col=col, pch=1, lty=perm)
     graphics::mtext(expression(widehat(tau)[g]), side=2, las=2, line=3)
