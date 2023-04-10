@@ -77,7 +77,7 @@ Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{
 
 If, for any model with gating covariates, the multinomial logistic regression in the gating network fails to converge in \code{itmax[2]} iterations at any stage of the EM/CEM algorithm, an appropriate warning will be printed, prompting the user to modify this argument.}
 
-\item{opti}{Character string indicating how central sequence parameters should be estimated. The default \code{"mode"} is exact and thus this experimental argument should only be tampered with by expert users. The option \code{"medoid"} fixes the central sequence(s) to be one of the observed sequences (like k-medoids). The other options \code{"first"} and \code{"GA"} use the first-improvement and genetic algorithms, respectively, to mutate the medoid. Pre-computation of the Hamming distance matrix for the observed sequences speeds-up computation of all options other than \code{"mode"}.}
+\item{opti}{Character string indicating how central sequence parameters should be estimated. The default \code{"mode"} is exact and thus this experimental argument should only be tampered with by expert users. The option \code{"medoid"} fixes the central sequence(s) to be one of the observed sequences (like k-medoids). The other options \code{"first"} and \code{"GA"} use stochastic local search with the first-improvement and genetic algorithms, respectively, to mutate the medoid. Pre-computation of the Hamming distance matrix for the observed sequences speeds-up computation of all options other than \code{"mode"}.}
 
 \item{ordering}{Experimental feature that should only be tampered with by experienced users. Allows sequences to be reordered on the basis of the column-wise entropy when \code{opti} is \code{"first"} or \code{"GA"}.}
 
@@ -116,7 +116,9 @@ mod   <- MEDseq_fit(seqdef(mvad[,17:86]), G=11, modtype="CC", weights=mvad$weigh
 \references{
 Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 
-Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
+Menardi, G. (2011). Density-based silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
+
+Hoos, H. and T. Stützle (2004). \emph{Stochastic Local Search: Foundations and Applications}. The Morgan Kaufman Series in Artificial Intelligence. San Francisco, CA, USA: Morgan Kaufman Publishers Inc.
 }
 \seealso{
 \code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link{wKModes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}

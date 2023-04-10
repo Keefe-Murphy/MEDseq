@@ -85,7 +85,7 @@
 #' \code{wp00tbgp} \tab (weights inflating to the Swiss population) \cr
 #' \code{wp00tbgs} \tab (weights respecting sample size) \cr
 #'}
-#' @references Mueller, N. S., Studer, M. and Ritschard, G. (2007). Classification de parcours de vie a l'aide de l'optimal matching. In \emph{XIVe Rencontre de la Societe francophone de classification (SFC 2007), Paris, 5-7 septembre 2007}, pp. 157-160.
+#' @references Müller, N. S., Studer, M. and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In \emph{XIVe Rencontre de la Société francophone de classification (SFC 2007)}, Paris, 5-7 septembre 2007, pp. 157-160.
 #' @examples
 #' data(biofam, package="MEDseq")
 #' 

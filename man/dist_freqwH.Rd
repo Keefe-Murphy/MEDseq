@@ -49,6 +49,8 @@ weighted.mean(wcSilhouetteObs(dist_freqwH(mvad.seq), resF$cluster, weights), wei
 }
 \references{
 Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
+
+Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. \emph{Data Mining and Knowledge Discovery}, 2(3): 283-304.
 }
 \seealso{
 \code{\link{wKModes}}

@@ -161,7 +161,7 @@ Use the following code to see the observation-specific (weighted) density-based 
 plot(opt, type="dbsvals")
 ```
 
-Finally, we can quantify the type of observation characterising each cluster by computing the mean time spent in each state within each cluster. By specifying `MAP=TRUE` here, we are computing the mean time based on the hard MAP partition rather than weighted by the soft cluster membership probabilities (albeit still weighted by the sampling weights used during model fitting, by default). By specifying `norm=TRUE` (which is the default), the mean times are normalised to sum to the sequence length within each cluster. The size of each cluster in terms of the number of observations assigned to it is also reported.
+Finally, we can quantify the type of observation characterising each cluster by computing the mean time spent in each state within each cluster. Specifying `MAP=TRUE` computes the mean times based on the hard MAP partition rather than weighted by the soft cluster membership probabilities (albeit still weighted by the sampling weights used during model fitting, by default). Specifying `norm=TRUE` (the default), normalises the mean times to sum to the sequence length within each cluster. The size of each cluster in terms of the number of observations assigned to it is also reported.
 
 ```{r}
 MEDseq_meantime(opt, MAP=TRUE, norm=TRUE)
@@ -176,8 +176,7 @@ biofam  <- list(covs = cbind(biofam[2L:9L], age = 2002 - biofam$birthyr),
                 sequences = biofam[10L:25L] + 1L)
 bio.cov <- biofam$covs[,colSums(is.na(biofam$covs)) == 0]
 bio.seq <- seqdef(biofam$sequences,
-                  states = c("P", "L", "M", "L+M", 
-                             "C", "L+C", "L+M+C", "D"),
+                  states = c("P", "L", "M", "L+M", "C", "L+C", "L+M+C", "D"),
                   labels = c("Parent", "Left", "Married", 
                              "Left+Marr", "Child", "Left+Child", 
                              "Left+Marr+Child", "Divorced"))
@@ -249,6 +248,6 @@ Gabadinho, A., Ritschard, G., Müller, N. S., and Studer, M. (2011). Analyzing a
 
 McVicar, D. and Anyadike-Danes, M. (2002). Predicting successful and unsuccessful transitions from school to work by using sequence methods. _Journal of the Royal Statistical Society: Series A (Statistics in Society)_, 165(2): 317--334.
 
-Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007), Paris, 5-7 septembre 2007_, pp. 157--160.
+Müller, N. S., Studer, M., and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In _XIVe Rencontre de la Société francophone de classification (SFC 2007)_, Paris, 5-7 septembre 2007, pp. 157--160.
 
-Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), _Sequence Analysis and Related Approaches: Innovative Methods and Applications_, pp. 223--239. Cham, Switzerland: Springer International Publishing.
+Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), _Sequence Analysis and Related Approaches: Innovative Methods and Applications_, Volume 10 of _Life Course Research and Social Policies_, pp. 223--239. Cham, Switzerland: Springer.

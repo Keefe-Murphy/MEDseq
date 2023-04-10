@@ -16,7 +16,7 @@
 #' @note When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the \code{dbs} and \code{asw} criteria.
 #' @importFrom matrixStats "rowSums2" "weightedMedian" "weightedMean"
 #' @importFrom TraMineR "seqdef"
-#' @references Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
+#' @references Menardi, G. (2011). Density-based silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
 #' @export 
 #' @seealso \code{\link{MEDseq_fit}}
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
@@ -559,7 +559,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @param itmax A vector of length two giving integer limits on the number of iterations for 1) the EM/CEM algorithm, and 2) the multinomial logistic regression in the gating network, respectively. The default is \code{c(.Machine$integer.max, 1000)}. This allows termination of the EM/CEM algorithm to be completely governed by \code{tol[1]}. If only one number is supplied, it is used as the iteration limit for the EM/CEM algorithm only and the other element of \code{itmax} retains its usual default.
 #' 
 #' If, for any model with gating covariates, the multinomial logistic regression in the gating network fails to converge in \code{itmax[2]} iterations at any stage of the EM/CEM algorithm, an appropriate warning will be printed, prompting the user to modify this argument.
-#' @param opti Character string indicating how central sequence parameters should be estimated. The default \code{"mode"} is exact and thus this experimental argument should only be tampered with by expert users. The option \code{"medoid"} fixes the central sequence(s) to be one of the observed sequences (like k-medoids). The other options \code{"first"} and \code{"GA"} use the first-improvement and genetic algorithms, respectively, to mutate the medoid. Pre-computation of the Hamming distance matrix for the observed sequences speeds-up computation of all options other than \code{"mode"}.
+#' @param opti Character string indicating how central sequence parameters should be estimated. The default \code{"mode"} is exact and thus this experimental argument should only be tampered with by expert users. The option \code{"medoid"} fixes the central sequence(s) to be one of the observed sequences (like k-medoids). The other options \code{"first"} and \code{"GA"} use stochastic local search with the first-improvement and genetic algorithms, respectively, to mutate the medoid. Pre-computation of the Hamming distance matrix for the observed sequences speeds-up computation of all options other than \code{"mode"}.
 #' @param ordering Experimental feature that should only be tampered with by experienced users. Allows sequences to be reordered on the basis of the column-wise entropy when \code{opti} is \code{"first"} or \code{"GA"}.
 #' @param MaxNWts The maximum allowable number of weights in the call to \code{\link[nnet]{multinom}} for the multinomial logistic regression in the gating network. There is no intrinsic limit in the code, but increasing \code{MaxNWts} will probably allow fits that are very slow and time-consuming. It may be necessary to increase \code{MaxNWts} when categorical concomitant variables with many levels are included or the number of components is high.
 #' @param verbose Logical indicating whether to print messages pertaining to progress to the screen during fitting. By default is \code{TRUE} if the session is interactive, and \code{FALSE} otherwise. If \code{FALSE}, warnings and error messages will still be printed to the screen, but everything else will be suppressed.
@@ -575,7 +575,9 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link{dbs}}, \code{\link[WeightedCluster]{wcKMedoids}}, \code{\link[cluster]{pam}}, \code{\link{wKModes}}, \code{\link[stats]{hclust}}, \code{\link[TraMineR]{seqdist}}, \code{\link[nnet]{multinom}}, \code{\link{MEDseq_compare}}
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' 
-#' Menardi, G. (2011). Density-based Silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
+#' Menardi, G. (2011). Density-based silhouette diagnostics for clustering methods. \emph{Statistics and Computing}, 21(3): 295-308.
+#' 
+#' Hoos, H. and T. Stützle (2004). \emph{Stochastic Local Search: Foundations and Applications}. The Morgan Kaufman Series in Artificial Intelligence. San Francisco, CA, USA: Morgan Kaufman Publishers Inc.
 #' @export
 #' @usage 
 #' MEDseq_control(algo = c("EM", "CEM", "cemEM"), 
@@ -1822,8 +1824,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' 
 #' Additionally, for these plots and the \code{"clusters"}, \code{"central"}, and \code{"precision"} types, \code{weighted} is passed through to \code{\link{MEDseq_clustnames}} in the rare case where \code{SPS=TRUE} (see below) and the optional \code{\link{MEDseq_clustnames}} argument \code{size=TRUE} is invoked (again, see below).
 #' @param SPS A logical indicating whether clusters should be labelled according to the state-permanence-sequence representation of their central sequence. See \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}. Defaults to \code{TRUE} for the plot types adapted from \pkg{TraMineR}, i.e. the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. The \code{SPS} argument is also relevant for the following \code{type} plots: \code{"clusters"}, \code{"central"}, and \code{"precision"}, though \code{SPS} defaults to \code{FALSE} in those instances. Note that if \code{SPS=TRUE} for any relevant plot type, the \code{weighted} argument above is relevant if the optional \code{\link{MEDseq_clustnames}} argument \code{size=TRUE} is invoked (see below).
-#' @param smeth A character string with the name of the seriation method to be used. Defaults to \code{"TSP"}. See \code{\link[seriation]{seriate}} and \code{seriation::list_seriation_methods("dist")} for further details and the available methods. Only relevant when \code{seriated != "none"}. When \code{seriated == "obs"} or \code{seriated == "both"}, the ordering of observations can be governed by \code{smeth} or \emph{instead} governed by the \code{sortv} argument below.
-#' @param sortv A sorting method governing the ordering of observations for \code{"clusters"}, \code{"gating"}, \code{"similarity"}, \code{"i"}, or \code{"I"} \code{type} plots. Potential options include \code{"dbs"} and \code{"asw"} for sorting observations by their DBS or ASW values (if available). Only relevant if \code{seriated} is one of \code{"observations"} or \code{"both"}. Note that the \code{sortv} argument overrides the setting in \code{smeth} as it pertains to the ordering of observations if \code{sortv} is supplied; otherwise \code{sortv} is \code{NULL} and the \code{smeth} is invoked.
+#' @param smeth A character string with the name of the seriation method to be used. Defaults to \code{"TSP"}. See \code{\link[seriation]{seriate}} and \code{seriation::list_seriation_methods("dist")} for further details and the available methods. Only relevant when \code{seriated != "none"}. When \code{seriated == "obs"} or \code{seriated == "both"}, the ordering of observations can be governed by \code{smeth} or \emph{instead} governed by the \code{sortv} argument below, but the ordering of clusters (when \code{seriated="clusters"} or \code{seriated="both"}) is always governed by \code{smeth}.
+#' @param sortv A sorting method governing the ordering of observations for \code{"clusters"}, \code{"gating"}, \code{"similarity"}, \code{"i"}, or \code{"I"} \code{type} plots. Potential options include \code{"dbs"} and \code{"asw"}, for sorting observations by their DBS or ASW values (if available), as well as \code{"from.start"} and \code{"from.end"} (only when \code{type} is \code{"clusters"}, \code{"i"}, or \code{"I"}), under which sequences are sorted by the elements of the alphabet at the successive positions starting from the start/end of the sequences (as per \pkg{TraMineR}). Only relevant if \code{seriated} is one of \code{"observations"} or \code{"both"}. Note that the \code{sortv} argument overrides the setting in \code{smeth} as it pertains to the ordering of observations if \code{sortv} is supplied; otherwise \code{sortv} is \code{NULL} and \code{smeth} is invoked. Note that \code{smeth} always dictates the ordering of clusters (i.e. when \code{seriated="clusters"} or \code{seriated="both"}).
 #' 
 #' Additionally, when (and only when) \code{soft=TRUE} and \code{type="I"}, the additional option \code{sortv="membership"} is provided in accordance with \code{\link[WeightedCluster]{fuzzyseqplot}}, on which such plots are based.
 #' @param subset An optional numeric vector giving the indices of the clusters to be plotted. For models with a noise component, values in \code{0:x$G} are admissible, where \code{0} denotes the noise component, otherwise only values in \code{1:x$G}. Only relevant for the \pkg{TraMineR}-\code{type} plots, i.e. \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. Note however, that noise components are never plotted for \code{type="ms"} plots, so \code{subset} values of \code{0} will be ignored in this instance.
@@ -1839,7 +1841,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' Please note that \code{type="dH"} will be unavailable if versions of \pkg{TraMineR} prior to \code{2.2-4} are in use. The colour of the entropy line(s) will be \code{"blue"} for \code{type="Ht"} and \code{"black"} for \code{type="dH"}. Finally, the plot types borrowed from \pkg{TraMineR} may be too wide to display in the preview panel. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}. 
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\href{https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712}{doi:10.1111/rssa.12712}>.
 #' 
-#' Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), \emph{Sequence Analysis and Related Approaches: Innovative Methods and Applications}, pp. 223-239. Cham, Switzerland: Springer International Publishing.
+#' Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), \emph{Sequence Analysis and Related Approaches: Innovative Methods and Applications}, Volume 10 of \emph{Life Course Research and Social Policies}, pp. 223-239. Cham, Switzerland: Springer.
 #' 
 #' Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with \pkg{TraMineR}. \emph{Journal of Statistical Software}, 40(4): 1-37.
 #' @usage 
@@ -2075,22 +2077,23 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   perm            <- if(isTRUE(sericlus))  perm                         else Gseq
   perm            <- if(length(perm) != G) c(perm, setdiff(Gseq, perm)) else perm
   perm            <- if(isTRUE(noise))     replace(perm, G, ifelse(is.element(type, c("clusters", "gating", "similarity", "i", "I")), 0L, "Noise"))  else perm
+  from_sortv      <- FALSE
   
   if(is.element(type, c("clusters", "similarity", "i", "I")) ||
     (type == "gating"   && 
      attr(x, "Gating"))) {
-    if((vsort     <- isTRUE(seriobs)    && 
+    if((vsort     <- isTRUE(seriobs)          && 
        !is.null(sortv)  &&
-       !identical(sortv, "membership"))) {
+       !is.element(sortv, c("from.start", "from.end",
+                            "membership"))))   {
       if(length(sortv)   > 1  ||
          !is.character(sortv))   stop("'sortv' must be a character vector of length 1", call.=FALSE)
       if(type     == "I"      &&
          isTRUE(soft))   {
         if(!is.element(sortv,
-           c("dbs", "asw", 
-             "membership")))     stop("'sortv' must be one of \"dbs\", \"asw\", or \"membership\"", call.=FALSE)
-      } else if(!is.element(sortv, 
-           c("dbs", "asw")))     stop("'sortv' must be one of \"dbs\" or \"asw\"", call.=FALSE)
+           c("dbs", "asw")))     stop(paste0("'sortv' must be one of \"dbs\", \"asw\",", ifelse(is.element(type, c("gating", "similarity")), " or", ""), " \"membership\"", ifelse(is.element(type, c("gating", "similarity")), "", ", \"from.start\", or \"from.end\"")), call.=FALSE)
+      } else if(!is.element(sortv,
+           c("dbs", "asw")))     stop(paste0("'sortv' must be one of \"dbs\"", ifelse(is.element(type, c("gating", "similarity")), " or", ","), " \"asw\"", ifelse(is.element(type, c("gating", "similarity")), "", ", \"from.start\", or \"from.end\"")),                 call.=FALSE)
       if(sortv    ==  "dbs"   &&
         (!attr(x, "DBS")      ||
          is.null(x$DBSvals)))    stop(paste0("DBS values cannot be used for sorting as ", ifelse(attr(x, "Algo") == "CEM", "the CEM algorithm was used to fit the models", "only 1-component models were fitted")), call.=FALSE)
@@ -2102,10 +2105,14 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
       if(isFALSE(seriobs))       stop("'sortv' can only be supplied when 'seriated' is one of \"observations\" or \"both\"", call.=FALSE)
       if(identical(sortv, "membership")) {
         if(any(type     != "I",
-               !isTRUE(soft))) { stop("'sortv'=\"membership\" is only permissible when 'type' is one of \"i\" or \"I\" and 'soft'=TRUE", call.=FALSE)
+               !isTRUE(soft))) { stop("'sortv'=\"membership\" is only permissible when 'type' is \"I\" and 'soft'=TRUE",     call.=FALSE)
         } else     {
           vsort   <- seriobs  <- FALSE
         }
+      }   else if(from_sortv  <- is.element(sortv, c("from.start", "from.end"))) {
+        if(is.element(type, c("gating", 
+           "similarity")))       stop(paste0("'sortv'=\"", sortv, "\" is only permissible when 'type' is one of \"clusters\", \"i\", or \"I\""), call.=FALSE)
+        sortv     <- do.call(order, unname(as.data.frame(dat))[,switch(EXPR=sortv, from.end=rev(Pseq), Pseq)])
       }
     }
     glo.order     <-
@@ -2118,7 +2125,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
       }
       srows       <- Nseq[MAP == perm[g]]
       num.cl      <- c(num.cl, length(srows))
-      glo.order   <- c(glo.order, if(isTRUE(vsort)) srows[order(sortv[sortv[,1L] == replace(perm, G, G)[g],2L])] else if(isTRUE(seriobs)) srows[get_order(seriate(stats::as.dist(dmat[srows,srows]), method=smeth))] else srows)
+      glo.order   <- c(glo.order, if(isTRUE(vsort)) srows[order(sortv[sortv[,1L] == replace(perm, G, G)[g],2L])] else if(isTRUE(from_sortv)) sortv[srows] else if(isTRUE(seriobs)) srows[get_order(seriate(stats::as.dist(dmat[srows,srows]), method=smeth))] else srows)
     }
     cum.cl        <- cumsum(num.cl)
     gcl           <- c(0L,  cum.cl)
@@ -2141,7 +2148,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     y_labs        <- y_labs[num.cl   != 0]
     gcl           <- unique(gcl)
     graphics::axis(side=2,   at=gcl[-length(gcl)] + diff(gcl)/2 + 0.5, lwd=1, las=2, tick=FALSE, cex.axis=0.75, labels=y_labs, line=-0.25)
-    graphics::axis(side=1,   at=Pseq, labels=attr(x$data, "names"), cex.axis=0.75)
+    graphics::axis(side=1,   at=Pseq, labels=attr(dat, "names"), cex.axis=0.75)
     if(isTRUE(SPS)) {
       y_labs      <- tmp_labs[num.cl != 0]
       graphics::axis(side=4, at=gcl[-length(gcl)] + diff(gcl)/2 + 0.5, lwd=1, las=2, tick=FALSE, cex.axis=0.67, labels=y_labs, line=-0.5)
@@ -2686,7 +2693,7 @@ print.MEDgating    <- function(x, call = FALSE, SPS = FALSE, ...) {
     cat("Call:\n")
     dput(cl, control = NULL)
   }
-  cat("\nCoefficients:\n")
+  cat("Coefficients:\n")
   if(isTRUE(SPS))   {
     x$lab          <- attr(x, "Gname")
   }
@@ -3475,11 +3482,11 @@ MEDseq_AvePP.MEDseq        <- function(x) {
 #' Regarding the modes, ties are broken at random when \code{TRUE} and the first candidate state is always chosen for the mode when \code{FALSE}. Regarding assignments, tie-breaking is always first biased in favour of the observation's most recent cluster: regarding ties thereafter, these are broken at random when \code{TRUE} or the first other candidate cluster is always chosen when \code{FALSE}.
 #' @param ... Catches unused arguments.
 #'
-#' @details The k-modes algorithm (Huang, 1997) is an extension of the k-means algorithm by MacQueen (1967).
+#' @details The k-modes algorithm (Huang, 1997, 1998) is an extension of the k-means algorithm by MacQueen (1967).
 #' 
-#' The data given by \code{data} is clustered by the k-modes method (Huang, 1997) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
+#' The data given by \code{data} is clustered by the k-modes method (Huang, 1997, 1998) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
 #' 
-#' By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, for details). For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
+#' By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, 1998, for details). For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
 #' 
 #' If an initial matrix of modes is supplied, it is possible that no object will be closest to one or more modes. In this case, fewer clusters than the number of supplied modes will be returned and a warning will be printed.
 #' 
@@ -3503,7 +3510,9 @@ MEDseq_AvePP.MEDseq        <- function(x) {
 #' \item{\code{random}}{A logical indicating whether ties were broken at random or not throughout the algorithm.}}
 #' @references Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
 #' 
-#' MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In L. M. L. Cam and J. Neyman (Eds.), \emph{Proceedings of the Fifth Berkeley Symposium on  Mathematical Statistics and Probability}, Volume 1, pp. 281-297. Berkeley, CA, USA: University of California Press.
+#' Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. \emph{Data Mining and Knowledge Discovery}, 2(3): 283-304.
+#' 
+#' MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In L. M. L. Cam and J. Neyman (Eds.), \emph{Proceedings of the Fifth Berkeley Symposium on  Mathematical Statistics and Probability}, Volume 1, June 21-July 18, 1965 and December 27 1965-January 7, 1966, Statistical Laboratory of the University of California, Berkelely, CA, USA, pp. 281-297. University of California Press.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' (adapted from \code{klaR::kmodes})
 #' @seealso \code{\link{MEDseq_control}}, \code{\link{MEDseq_fit}}, \code{\link{dist_freqwH}}
@@ -3739,6 +3748,8 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
 #' @details As per \code{\link{wKModes}}, the frequency weights are computed within the function and are \emph{not} user-specified. These frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.
 #' @return The whole matrix of pairwise distances if \code{full.matrix=TRUE}, otherwise the corresponding \code{\link[stats]{dist}} object.
 #' @references Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
+#' 
+#' Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. \emph{Data Mining and Knowledge Discovery}, 2(3): 283-304.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @seealso \code{\link{wKModes}}
 #' @keywords utility

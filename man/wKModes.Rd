@@ -49,11 +49,11 @@ An object of class \code{"wKModes"} which is a list with the following component
 Perform k-modes clustering on categorical data with observation-specific sampling weights and tie-breaking adjustments.
 }
 \details{
-The k-modes algorithm (Huang, 1997) is an extension of the k-means algorithm by MacQueen (1967).
+The k-modes algorithm (Huang, 1997, 1998) is an extension of the k-means algorithm by MacQueen (1967).
 
-The data given by \code{data} is clustered by the k-modes method (Huang, 1997) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
+The data given by \code{data} is clustered by the k-modes method (Huang, 1997, 1998) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
 
-By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, for details). For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
+By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, 1998, for details). For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
 
 If an initial matrix of modes is supplied, it is possible that no object will be closest to one or more modes. In this case, fewer clusters than the number of supplied modes will be returned and a warning will be printed.
 
@@ -104,7 +104,9 @@ plot(TWDiff, type="b", xlab="K")}
 \references{
 Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
 
-MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In L. M. L. Cam and J. Neyman (Eds.), \emph{Proceedings of the Fifth Berkeley Symposium on  Mathematical Statistics and Probability}, Volume 1, pp. 281-297. Berkeley, CA, USA: University of California Press.
+Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. \emph{Data Mining and Knowledge Discovery}, 2(3): 283-304.
+
+MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In L. M. L. Cam and J. Neyman (Eds.), \emph{Proceedings of the Fifth Berkeley Symposium on  Mathematical Statistics and Probability}, Volume 1, June 21-July 18, 1965 and December 27 1965-January 7, 1966, Statistical Laboratory of the University of California, Berkelely, CA, USA, pp. 281-297. University of California Press.
 }
 \seealso{
 \code{\link{MEDseq_control}}, \code{\link{MEDseq_fit}}, \code{\link{dist_freqwH}}
