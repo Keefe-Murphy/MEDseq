@@ -275,9 +275,17 @@
     return(list(ERR = ERR, j = j, Mstep = Mstep, ll = ll, z = z, MLRconverge = MLRconverge))
 }
 
-.entropy          <- function(p) {
-  p               <- p[p > 0]
-    sum(-p * log(p))
+#' @importFrom matrixStats "rowSums2"
+.entropy          <- function(p, obs = FALSE) {
+  if(length(obs)   > 1  ||
+     !is.logical(obs))           stop("'obs' must be a single logical indicator", call.=FALSE)
+  if(isTRUE(obs))  {
+    p[p == 0]     <- NA
+      rowSums2(-p  * log(p), na.rm=TRUE)
+  } else {
+    p             <- p[p > 0]  
+      sum(-p * log(p))
+  }
 }
 
 .fac_to_num       <- function(x) {

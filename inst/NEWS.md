@@ -10,6 +10,7 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
     * `x.axis` is supplied via the `...` construct.
   * Removed spurious warnings in `TraMineR` `type` plots when using extra args. via `...`.
   * Remedied labelling issues introduced in previous update when `seriated="none"` is supplied.
+* `MEDseq_entropy` gains the arg. `group` for computing the average entropy of each component.
 * Now using newer `CITATION` commands.
 
 ## MEDseq v1.4.0 - (_11<sup>th</sup> release [minor update]: 2022-12-20_)
