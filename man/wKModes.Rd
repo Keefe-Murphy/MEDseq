@@ -115,4 +115,4 @@ MacQueen, J. (1967). Some methods for classification and analysis of multivariat
 Keefe Murphy - <\email{keefe.murphy@mu.ie}>
 (adapted from \code{klaR::kmodes})
 }
-\keyword{utility}
+\keyword{clustering}

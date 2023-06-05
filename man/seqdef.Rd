@@ -9,13 +9,13 @@ seqdef(data, ...)
 \arguments{
 \item{data}{A data frame or matrix containing sequence data.}
 
-\item{...}{All other arguments; see \code{\link[TraMineR]{seqdef}} in the \pkg{TraMineR} package.}
+\item{...}{All other arguments; see \code{\link[TraMineR:seqdef]{TraMineR::seqdef}} in the \pkg{TraMineR} package.}
 }
 \value{
 An object of class \code{"stslist"}, for which dedicated \code{print} and \code{summary} methods are inherited from \pkg{TraMineR}.
 }
 \description{
-Create a state sequence object with attributes such as alphabet, colour palette, and state labels. This a minimalist copy of \code{\link[TraMineR]{seqdef}} in the \pkg{TraMineR} package.
+Create a state sequence object with attributes such as alphabet, colour palette, and state labels. This a minimalist copy of \code{\link[TraMineR:seqdef]{TraMineR::seqdef}} in the \pkg{TraMineR} package.
 }
 \details{
 This function exists only so experienced users of \pkg{MEDseq} and \pkg{TraMineR} can use the former without explicitly requiring the latter to be loaded. In particular, \code{\link{MEDseq_fit}} requires a state-sequence object of class \code{"stslist"} (as created by \code{seqdef}) as input. Users are encouraged to see the documentation at \code{\link[TraMineR:seqdef]{TraMineR::seqdef}} for complete details and further examples.

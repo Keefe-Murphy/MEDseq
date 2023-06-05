@@ -16,7 +16,7 @@ BugReports: https://github.com/Keefe-Murphy/MEDseq
 LazyData: true
 Imports:
   cluster,
-  matrixStats (>= 0.53.1),
+  matrixStats (>= 1.0.0),
   nnet (>= 7.3-0),
   seriation,
   stringdist,

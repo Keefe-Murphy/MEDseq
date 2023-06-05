@@ -73,11 +73,11 @@ Note that the data set must have equal sequence lengths, intervals must be evenl
 data(mvad, package="MEDseq")
 mvad$Location <- factor(apply(mvad[,5L:9L], 1L, function(x) which(x == "yes")), 
                         labels = colnames(mvad[,5L:9L]))
-mvad          <- list(covariates = mvad[c(3L:4L,10L:14L,87L)], 
+mvad          <- list(covariates = mvad[c(3L:4L, 10L:14L, 87L)], 
                       sequences = mvad[,15L:86L],
                       weights = mvad[,2L])
 mvad.cov      <- mvad$covariates
-mvad.seq      <- seqdef(mvad$sequences[-c(1L,2L)],
+mvad.seq      <- seqdef(mvad$sequences[-c(1L, 2L)],
                         states = c("EM", "FE", "HE", "JL", "SC", "TR"),
                         labels = c("Employment", "Further Education", "Higher Education", 
                                    "Joblessness", "School", "Training"))
