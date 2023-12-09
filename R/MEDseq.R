@@ -6,7 +6,7 @@
 #' 
 #' A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces.
 #' 
-#' The most important function in the \pkg{MEDseq} package is: \code{\link{MEDseq_fit}}, for fitting the models via EM/CEM. 
+#' The most important function in the \pkg{MEDseq} package is: \code{\link{MEDseq_fit}}, for fitting the models via EM/CEM. This function requires the data to be in \code{"stslist"} format; the function \code{\link[TraMineR]{seqdef}} is conveniently reexported from the \pkg{TraMineR} package for this purpose.
 #' 
 #' \code{\link{MEDseq_control}} allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. 
 #' 
@@ -19,12 +19,12 @@
 #' Finally, the package also contains two data sets: \code{\link{biofam}} and \code{\link{mvad}}.
 #' 
 #' @section Details:
-#' \itemize{
+#' \describe{
 #' \item{Type: }{Package}
 #' \item{Package: }{MEDseq}
-#' \item{Version: }{1.4.0}
-#' \item{Date: }{2022-12-20 (this version), 2019-08-24 (original release)}
-#' \item{Licence: }{GPL (>=2)}
+#' \item{Version: }{1.4.1}
+#' \item{Date: }{2023-12-12 (this version), 2019-08-24 (original release)}
+#' \item{Licence: }{GPL (>= 3)}
 #' }
 #'
 #' @section See Also:

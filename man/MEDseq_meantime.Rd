@@ -56,7 +56,7 @@ The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be u
 seqs <- seqdef(biofam[10:25] + 1L,
                states = c("P", "L", "M", "L+M", "C", 
                           "L+C", "L+M+C", "D"))
-mod <- MEDseq_fit(seqs, G=10, modtype="UUN")
+mod  <- MEDseq_fit(seqs, G=10, modtype="UUN")
 
 MEDseq_meantime(mod)
 MEDseq_meantime(mod, prop=TRUE)

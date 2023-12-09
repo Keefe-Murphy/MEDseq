@@ -89,10 +89,10 @@ seqs <- seqdef(biofam[10:25] + 1L,
 covs <- cbind(biofam[2:3], age=2002 - biofam$birthyr)
 \donttest{ 
 # Fit a range of models
-# m1   <- MEDseq_fit(seqs, G=9:10)
-# m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex,       covars=covs, noise.gate=FALSE)
-# m3   <- MEDseq_fit(seqs, G=9:10, gating=~age,       covars=covs, noise.gate=FALSE)
-# m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + age, covars=covs, noise.gate=FALSE)
+# m1 <- MEDseq_fit(seqs, G=9:10)
+# m2 <- MEDseq_fit(seqs, G=9:10, gating=~sex,       covars=covs, noise.gate=FALSE)
+# m3 <- MEDseq_fit(seqs, G=9:10, gating=~age,       covars=covs, noise.gate=FALSE)
+# m4 <- MEDseq_fit(seqs, G=9:10, gating=~sex + age, covars=covs, noise.gate=FALSE)
 
 # Rank only the optimal models (according to the dbs criterion)
 # Examine the best model in more detail

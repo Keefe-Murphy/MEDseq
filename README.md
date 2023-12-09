@@ -11,7 +11,9 @@
 
 Fits _MEDseq_ models introduced by Murphy et al. (2021) <[doi:10.1111/rssa.12712](https://rss.onlinelibrary.wiley.com/doi/abs/10.1111/rssa.12712)>, i.e. fits mixtures of exponential-distance models for clustering longitudinal/categorical life-course sequence data via the EM/CEM algorithm. A family of parsimonious precision parameter constraints are accommodated. So too are sampling weights. Gating covariates can be supplied via formula interfaces. Visualisation of the results of such models is also facilitated.
 
-The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via EM/CEM. `MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. `MEDseq_stderr` is provided for computing the standard errors of the coefficients for the covariates in the gating network.
+The most important function in the __MEDseq__ package is: `MEDseq_fit`, for fitting the models via EM/CEM. This function requires the data to be in `"stslist"` format; the function `seqdef` is conveniently reexported from the __TraMineR__ package for this purpose.
+
+`MEDseq_control` allows supplying additional arguments which govern, among other things, controls on the initialisation of the allocations for the EM/CEM algorithm and the various model selection options. `MEDseq_compare` is provided for conducting model selection between different results from using different covariate combinations &/or initialisation strategies, etc. `MEDseq_stderr` is provided for computing the standard errors of the coefficients for the covariates in the gating network.
 
 A dedicated plotting function exists for visualising various aspects of the results, using new methods as well as some existing methods adapted from the __TraMineR__ package. Finally, the package also contains two data sets: `biofam` and `mvad`.
 

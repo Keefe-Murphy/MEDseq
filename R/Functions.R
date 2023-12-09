@@ -316,10 +316,10 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' covs <- cbind(biofam[2:3], age=2002 - biofam$birthyr)
 #' \donttest{ 
 #' # Fit a range of models
-#' # m1   <- MEDseq_fit(seqs, G=9:10)
-#' # m2   <- MEDseq_fit(seqs, G=9:10, gating=~sex,       covars=covs, noise.gate=FALSE)
-#' # m3   <- MEDseq_fit(seqs, G=9:10, gating=~age,       covars=covs, noise.gate=FALSE)
-#' # m4   <- MEDseq_fit(seqs, G=9:10, gating=~sex + age, covars=covs, noise.gate=FALSE)
+#' # m1 <- MEDseq_fit(seqs, G=9:10)
+#' # m2 <- MEDseq_fit(seqs, G=9:10, gating=~sex,       covars=covs, noise.gate=FALSE)
+#' # m3 <- MEDseq_fit(seqs, G=9:10, gating=~age,       covars=covs, noise.gate=FALSE)
+#' # m4 <- MEDseq_fit(seqs, G=9:10, gating=~sex + age, covars=covs, noise.gate=FALSE)
 #' 
 #' # Rank only the optimal models (according to the dbs criterion)
 #' # Examine the best model in more detail
@@ -607,7 +607,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' # The CC MEDseq model is almost equivalent to k-medoids when the
 #' # CEM algorithm is employed, mixing proportions are constrained,
 #' # and the central sequences are restricted to the observed sequences
-#' ctrl   <- MEDseq_control(algo="CEM", equalPro=TRUE, opti="medoid", criterion="asw")
+#' ctrl  <- MEDseq_control(algo="CEM", equalPro=TRUE, opti="medoid", criterion="asw")
 #' \donttest{
 #' data(mvad)
 #' # Note that ctrl must be explicitly named 'ctrl'
@@ -706,13 +706,13 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' MEDseq: Mixtures of Exponential-Distance Models with Covariates
 #'
 #' Fits MEDseq models: mixtures of Exponential-Distance models with gating covariates and sampling weights. Typically used for clustering categorical/longitudinal life-course sequences. Additional arguments are available via the function \code{\link{MEDseq_control}}.
-#' @param seqs A state-sequence object of class \code{"stslist"} as created by the \code{\link[TraMineR]{seqdef}} function in the \pkg{TraMineR} package. Note that the data set must have equal sequence lengths, the intervals are assumed to be evenly spaced, and missingness is not allowed.
+#' @param seqs A state-sequence object of class \code{"stslist"} as created by the \code{\link[TraMineR]{seqdef}} function in the \pkg{TraMineR} package (which is reexported by \pkg{MEDseq} for convenience). Note that the data set must have equal sequence lengths, the intervals are assumed to be evenly spaced, and missingness is not allowed.
 #' @param G A positive integer vector specifying the numbers of mixture components (clusters) to fit. Defaults to \code{G=1:9}.
 #' @param modtype A vector of character strings indicating the type of MEDseq models to be fitted, in terms of the constraints or lack thereof on the precision parameters. By default, all valid model types are fitted (except some only where \code{G > 1} or \code{G > 2}, see \code{Note}). 
 #' The models are named \code{"CC"}, \code{"CU"}, \code{"UC"}, \code{"UU"}, \code{"CCN"}, \code{"CUN"}, \code{"UCN"}, and \code{"UUN"}. The first letter denotes whether the precision parameters are constrained/unconstrained across clusters. The second letter denotes whether the precision parameters are constrained/unconstrained across sequence positions (i.e. time points). The third letter denotes whether one of the components is constrained to have zero-precision/infinite variance. Such a noise component assumes sequences in that cluster follow a uniform distribution.
 #' @param gating A \code{\link[stats]{formula}} for determining the model matrix for the multinomial logistic regression in the gating network when fixed covariates enter the mixing proportions. Defaults to \code{~1}, i.e. no covariates. This will be ignored where \code{G=1}. Continuous, categorical, and/or ordinal covariates are allowed. Logical covariates will be coerced to factors. Interactions, transformations, and higher order terms are permitted: the latter \strong{must} be specified explicitly using the \code{AsIs} operator (\code{\link{I}}). The specification of the LHS of the formula is ignored. Intercept terms are included by default.
 #' @param covars An optional data frame (or a matrix with named columns) in which to look for the covariates in the \code{gating} network formula, if any. If not found in \code{covars}, any supplied \code{gating} covariates are taken from the environment from which \code{MEDseq_fit} is called. Try to ensure the names of variables in \code{covars} do not match any of those in \code{seqs}.
-#' @param weights Optional numeric vector containing observation-specific sampling weights, which are accounted for in the model fitting and other functions where applicable. \code{weights} are always internally normalised to sum to the sample size. See the \code{unique} argument to \code{\link{MEDseq_control}} to see how incorporating weights also yields computational benefits. Note that \code{weights} must \strong{always} be explicitly supplied here; it is not enough to use weights when constructing the state sequence object via \code{\link[TraMineR]{seqdef}}. If you \emph{are} using a weighted \code{"stslist"} state sequence object and do not specify \code{weights}, you will be prompted to explicitly specify \code{weights=attr(seqs, "weights")} for a weighted model or \code{weights=NULL} for an unweighted model.
+#' @param weights Optional numeric vector containing observation-specific sampling weights, which are accounted for in the model fitting and other functions where applicable. \code{weights} are always internally normalised to sum to the sample size. See the \code{unique} argument to \code{\link{MEDseq_control}} to see how incorporating weights also yields computational benefits. Note that \code{weights} must \strong{always} be explicitly supplied here; it is not enough to use weights when constructing the state sequence object via \code{\link[TraMineR]{seqdef}} (reexported by \pkg{MEDseq} for convenience). If you \emph{are} using a weighted \code{"stslist"} state sequence object and do not specify \code{weights}, you will be prompted to explicitly specify \code{weights=attr(seqs, "weights")} for a weighted model or \code{weights=NULL} for an unweighted model.
 #' @param ctrl A list of control parameters for the EM/CEM and other aspects of the algorithm. The defaults are set by a call to \code{\link{MEDseq_control}}.
 #' @param ... Catches unused arguments (see \code{\link{MEDseq_control}}).
 #' @param x,object,digits,classification,parameters,network,SPS Arguments required for the \code{print} and \code{summary} functions: \code{x} and \code{object} are objects of class \code{"MEDseq"} resulting from a call to \code{\link{MEDseq_fit}}, while \code{digits} gives the number of decimal places to round to for printing purposes (defaults to \code{3}). \code{classification}, \code{parameters}, and \code{network} are logicals which govern whether a table of the MAP classification of observations, the mixture component parameters, and the gating network coefficients are printed, respectively. \code{SPS} governs the printing of the relevant quantities in \code{"summaryMEDseq"} objects when any of \code{classification}, \code{parameters}, &/or \code{network} are \code{TRUE} (see \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}).
@@ -774,7 +774,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\doi{10.1111/rssa.12712}>.
 #' @keywords clustering main
-#' @seealso \code{\link[TraMineR]{seqdef}}, \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{predict.MEDgating}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}
+#' @seealso \code{\link[TraMineR]{seqdef}} (reexported by \pkg{MEDseq} for convenience), \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{predict.MEDgating}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}
 #' @usage
 #' MEDseq_fit(seqs, 
 #'            G = 1L:9L, 
@@ -785,7 +785,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #'            ctrl = MEDseq_control(...), 
 #'            covars = NULL, 
 #'            ...)
-#' @examples
+#' @examplesIf interactive()
 #' # Load the MVAD data
 #' data(mvad)
 #' mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
@@ -804,10 +804,10 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' # Fit a range of exponential-distance models without clustering
 #' mod0          <- MEDseq_fit(mvad.seq, G=1)
 #' 
+#' \donttest{
 #' # Fit a range of unweighted mixture models without covariates
 #' # Only consider models with a noise component
 #' # Supply some MEDseq_control() arguments
-#' \donttest{
 #' # mod1        <- MEDseq_fit(mvad.seq, G=9:10, modtype=c("CCN", "CUN", "UCN", "UUN"),
 #' #                           algo="CEM", init.z="kmodes", criterion="icl")
 #' 
@@ -1833,7 +1833,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' Additionally, when (and only when) \code{soft=TRUE} and \code{type="I"}, the additional option \code{sortv="membership"} is provided in accordance with \code{\link[WeightedCluster]{fuzzyseqplot}}, on which such plots are based.
 #' @param subset An optional numeric vector giving the indices of the clusters to be plotted. For models with a noise component, values in \code{0:x$G} are admissible, where \code{0} denotes the noise component, otherwise only values in \code{1:x$G}. Only relevant for the \pkg{TraMineR}-\code{type} plots, i.e. \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. Note however, that noise components are never plotted for \code{type="ms"} plots, so \code{subset} values of \code{0} will be ignored in this instance.
 #' @param quant.scale Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.
-#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \pkg{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types (e.g. \code{border} and/or \code{ylab}, \code{serr} where \code{type="mt"}, and \code{info} where \code{type="ms"}) and the \code{size} argument to \code{\link{MEDseq_clustnames}}, where relevant.
+#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \pkg{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types (e.g. \code{border}, \code{yaxis} and/or \code{ylab}, \code{serr} where \code{type="mt"}, and \code{info} where \code{type="ms"}) and the \code{size} argument to \code{\link{MEDseq_clustnames}}, where relevant.
 #'
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
 #' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
@@ -1872,7 +1872,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @importFrom WeightedCluster "fuzzyseqplot"
 #' @seealso \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}, \code{\link[seriation]{list_seriation_methods}}, \code{\link[WeightedCluster]{fuzzyseqplot}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}
 #'
-#' @examples
+#' @examplesIf interactive()
 #' # Load the MVAD data
 #' data(mvad)
 #' mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
@@ -3150,7 +3150,7 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #' seqs <- seqdef(biofam[10:25] + 1L,
 #'                states = c("P", "L", "M", "L+M", "C", 
 #'                           "L+C", "L+M+C", "D"))
-#' mod <- MEDseq_fit(seqs, G=10, modtype="UUN")
+#' mod  <- MEDseq_fit(seqs, G=10, modtype="UUN")
 #' 
 #' MEDseq_meantime(mod)
 #' MEDseq_meantime(mod, prop=TRUE)
@@ -3278,7 +3278,7 @@ print.MEDseqMeanTime <- function(x, digits = 3L, ...) {
 #'                   size = FALSE,
 #'                   weighted = FALSE,
 #'                   ...)
-#' @examples
+#' @examplesIf interactive()
 #' # Load the MVAD data
 #' data(mvad)
 #' mvad$Location <- factor(apply(mvad[,5:9], 1L, function(x) 
@@ -3523,11 +3523,11 @@ MEDseq_AvePP.MEDseq        <- function(x, group = TRUE) {
 #' Regarding the modes, ties are broken at random when \code{TRUE} and the first candidate state is always chosen for the mode when \code{FALSE}. Regarding assignments, tie-breaking is always first biased in favour of the observation's most recent cluster: regarding ties thereafter, these are broken at random when \code{TRUE} or the first other candidate cluster is always chosen when \code{FALSE}.
 #' @param ... Catches unused arguments.
 #'
-#' @details The k-modes algorithm (Huang, 1997, 1998) is an extension of the k-means algorithm by MacQueen (1967).
+#' @details The k-modes algorithm (Huang, 1998) is an extension of the k-means algorithm by MacQueen (1967).
 #' 
-#' The data given by \code{data} is clustered by the k-modes method (Huang, 1997, 1998) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
+#' The data given by \code{data} is clustered by the k-modes method (Huang, 1998) which aims to partition the objects into k groups such that the distance from objects to the assigned cluster modes is minimised. 
 #' 
-#' By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1997, 1998, for details). For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
+#' By default, the simple-matching (Hamming) distance is used to determine the dissimilarity of two objects. It is computed by counting the number of mismatches in all variables. Alternatively, this distance can be weighted by the frequencies of the categories in data, using the \code{freq.weighted} argument (see Huang, 1998, for details). For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.
 #' 
 #' If an initial matrix of modes is supplied, it is possible that no object will be closest to one or more modes. In this case, fewer clusters than the number of supplied modes will be returned and a warning will be printed.
 #' 
@@ -3549,14 +3549,12 @@ MEDseq_AvePP.MEDseq        <- function(x, group = TRUE) {
 #' \item{\code{weighted}}{A logical indicating whether observation-level \code{weights} were used or not throughout the algorithm.}
 #' \item{\code{freq.weighted}}{A logical indicating whether feature-level \code{freq.weights} were used or not in the computation of the distances. For convenience, the function \code{dist_freqwH} is provided for calculating the corresponding pairwise dissimilarity matrix for subsequent use.}
 #' \item{\code{random}}{A logical indicating whether ties were broken at random or not throughout the algorithm.}}
-#' @references Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
-#' 
-#' Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. \emph{Data Mining and Knowledge Discovery}, 2(3): 283-304.
+#' @references Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. \emph{Data Mining and Knowledge Discovery}, 2(3): 283-304.
 #' 
 #' MacQueen, J. (1967). Some methods for classification and analysis of multivariate observations. In L. M. L. Cam and J. Neyman (Eds.), \emph{Proceedings of the Fifth Berkeley Symposium on  Mathematical Statistics and Probability}, Volume 1, June 21-July 18, 1965 and December 27 1965-January 7, 1966, Statistical Laboratory of the University of California, Berkelely, CA, USA, pp. 281-297. University of California Press.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' (adapted from \code{klaR::kmodes})
-#' @seealso \code{\link{MEDseq_control}}, \code{\link{MEDseq_fit}}, \code{\link{dist_freqwH}}
+#' @seealso \code{\link{MEDseq_control}}, \code{\link{MEDseq_fit}}, \code{\link{dist_freqwH}}, \code{\link[WeightedCluster]{wcAggregateCases}}, \code{\link[TraMineR]{seqformat}}
 #' @keywords clustering
 #' @importFrom matrixStats "colMeans2"
 #' @importFrom TraMineR "seqdef" "seqformat"
@@ -3788,11 +3786,9 @@ wKModes       <- function(data, modes, weights = NULL, iter.max = .Machine$integ
 #'
 #' @details As per \code{\link{wKModes}}, the frequency weights are computed within the function and are \emph{not} user-specified. These frequency weights are assigned on a per-feature basis and derived from the categories represented in each column of \code{data}.
 #' @return The whole matrix of pairwise distances if \code{full.matrix=TRUE}, otherwise the corresponding \code{\link[stats]{dist}} object.
-#' @references Huang, Z. (1997). A fast clustering algorithm to cluster very large categorical data sets in data mining. In H. Lu, H. Motoda, and H. Luu (Eds.), \emph{KDD: Techniques and Applications}, pp. 21-34. Singapore: World Scientific.
-#' 
-#' Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. \emph{Data Mining and Knowledge Discovery}, 2(3): 283-304.
+#' @references Huang, Z. (1998). Extensions to the k-means algorithm for clustering large data sets with categorical values. \emph{Data Mining and Knowledge Discovery}, 2(3): 283-304.
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
-#' @seealso \code{\link{wKModes}}
+#' @seealso \code{\link{wKModes}}, \code{\link[WeightedCluster]{wcAggregateCases}}, \code{\link[WeightedCluster]{wcSilhouetteObs}}
 #' @keywords utility
 #' @importFrom matrixStats "rowSums2"
 #' @importFrom WeightedCluster "wcAggregateCases" "wcSilhouetteObs"
@@ -4025,31 +4021,7 @@ MEDseq_news       <- function() {
     if(interactive()) file.show(newsfile) else message("The session is not interactive\n")
 }
 
-#' Create a state sequence object
-#' 
-#' Create a state sequence object with attributes such as alphabet, colour palette, and state labels. This a minimalist copy of \code{\link[TraMineR:seqdef]{TraMineR::seqdef}} in the \pkg{TraMineR} package.
-#' @param data A data frame or matrix containing sequence data.
-#' @param ... All other arguments; see \code{\link[TraMineR:seqdef]{TraMineR::seqdef}} in the \pkg{TraMineR} package.
-#'
-#' @return An object of class \code{"stslist"}, for which dedicated \code{print} and \code{summary} methods are inherited from \pkg{TraMineR}.
-#' @details This function exists only so experienced users of \pkg{MEDseq} and \pkg{TraMineR} can use the former without explicitly requiring the latter to be loaded. In particular, \code{\link{MEDseq_fit}} requires a state-sequence object of class \code{"stslist"} (as created by \code{seqdef}) as input. Users are encouraged to see the documentation at \code{\link[TraMineR:seqdef]{TraMineR::seqdef}} for complete details and further examples.
-#' @keywords utility
-#' @references Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with \pkg{TraMineR}. \emph{Journal of Statistical Software}, 40(4): 1-37.
-#' 
-#' Gabadinho, A., Ritschard, G., Studer, M., and Mueller, N. S. (2010). Mining sequence data in \code{R} with the \pkg{TraMineR} package: a user's guide. \emph{Department of Econometrics and Laboratory of Demography, University of Geneva}.
-#' @author Alexis Gabadinho and Gilbert Ritschard
-#' @seealso \code{\link[TraMineR:seqdef]{TraMineR::seqdef}}, \code{\link{MEDseq_fit}}
-#' @importFrom TraMineR "seqdef"
-#' @usage seqdef(data, ...)
 #' @export
-#' @examples
-#' data(mvad)
-#' # Create a state sequence object with the first two (summer) time points removed
-#' states   <- c("EM", "FE", "HE", "JL", "SC", "TR")
-#' labels   <- c("Employment", "Further Education", "Higher Education", 
-#'               "Joblessness", "School", "Training")
-#' mvad.seq <- seqdef(mvad[,17:86], states=states, labels=labels, weights=mvad$weight)
-seqdef <- function(data, ...) {
-  TraMineR::seqdef(data, ...)
-}
+#' @importFrom TraMineR "seqdef"
+TraMineR::seqdef
 #
