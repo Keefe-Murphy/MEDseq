@@ -32,7 +32,7 @@ A list with the following elements:
 \item{\code{wmsw}}{Depending on the value of \code{summ}, either the weighted mean or weighted median DBS width.}}
 }
 \description{
-Computes the Density-based Silhouette for a 'soft' clustering assignment matrix.
+Computes the Density-based Silhouette for a `soft' clustering assignment matrix.
 }
 \note{
 When calling \code{\link{MEDseq_fit}}, the \code{summ} argument can be passed via the \code{...} construct, in which case it governs both the \code{dbs} and \code{asw} criteria.

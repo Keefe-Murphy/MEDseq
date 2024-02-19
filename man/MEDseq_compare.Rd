@@ -47,14 +47,14 @@ A list of class \code{"MEDseqCompare"}, for which a dedicated print function exi
 \item{\code{G}}{The optimal numbers of components.}
 \item{\code{df}}{The numbers of estimated parameters.}
 \item{\code{iters}}{The numbers of EM/CEM iterations.}
-\item{\code{bic}}{BIC values, ranked according to \code{criterion}.}
-\item{\code{icl}}{ICL values, ranked according to \code{criterion}.}
-\item{\code{aic}}{AIC values, ranked according to \code{criterion}.}
-\item{\code{dbs}}{(Weighted) mean/median DBS values, ranked according to \code{criterion}.}
-\item{\code{asw}}{(Weighted) mean/median ASW values, ranked according to \code{criterion}.}
-\item{\code{cv}}{Cross-validated log-likelihood values, ranked according to \code{criterion}.}
-\item{\code{nec}}{NEC values, ranked according to \code{criterion}.}
-\item{\code{loglik}}{Maximal log-likelihood values, ranked according to \code{criterion}.}
+\item{\code{bic}}{BIC values, ranked according to \code{criterion} (not necessarily \code{"bic"}).}
+\item{\code{icl}}{ICL values, ranked according to \code{criterion} (not necessarily \code{"icl"}).}
+\item{\code{aic}}{AIC values, ranked according to \code{criterion} (not necessarily \code{"aic"}).}
+\item{\code{dbs}}{(Weighted) mean/median DBS values, ranked according to \code{criterion} (not necessarily \code{"dbs"}).}
+\item{\code{asw}}{(Weighted) mean/median ASW values, ranked according to \code{criterion} (not necessarily \code{"asw"}).}
+\item{\code{cv}}{Cross-validated log-likelihood values, ranked according to \code{criterion} (not necessarily \code{"cv"}).}
+\item{\code{nec}}{NEC values, ranked according to \code{criterion} (not necessarily \code{"nec"}).}
+\item{\code{loglik}}{Maximal log-likelihood values.}
 \item{\code{gating}}{The gating formulas.}
 \item{\code{algo}}{The algorithm used for fitting the model - either \code{"EM"}, \code{"CEM"}, \code{"cemEM"}.}
 \item{\code{equalPro}}{Logical indicating whether mixing proportions were constrained to be equal across components.}

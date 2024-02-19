@@ -201,7 +201,7 @@
             return(list(loglike = loglike, z = exp(numer - denom)))
         }
       }   else     {
-            return(if(ctrl$do.wts) logSumExp(numer * attr(seqs, "Weights")) else logSumExp(numer))
+            return(if(ctrl$do.wts) logSumExp(numer) * attr(seqs, "Weights") else logSumExp(numer))
       }
     },    CEM=     {
       if(N1)       {
@@ -890,8 +890,8 @@
   }
   cgroups         <- as.character(groups)
   if(!is.null(noise))  {
-    noiz          <- match(noise, groups, nomatch = 0)
-    if(any(noiz   == 0))         stop("noise incompatible with classification",    call.=FALSE)
+    noize         <- match(noise, groups, nomatch = 0)
+    if(any(noize  == 0))         stop("noise incompatible with classification",    call.=FALSE)
     groups        <- c(groups[groups != noise], groups[groups == noise])
     noise         <- as.numeric(factor(as.character(noise), levels = unique(groups)))
   }
@@ -915,7 +915,7 @@
   diff            <- which(cluster  == num)
   clust           <- data[diff,, drop=FALSE]
   apply(clust, 2L,   function(cat)   {
-    cat           <- if(is.null(weights))    table(cat) else tapply(weights[diff], cat, FUN=sum)
+    cat           <- if(is.null(weights))    table(cat) else vapply(split(weights[diff], cat), sum, numeric(1L))
       return(names(cat)[.rand_MAX(cat, random)])
   })
 }

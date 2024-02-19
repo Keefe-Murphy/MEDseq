@@ -36,11 +36,11 @@
 \item{\code{"asw"}}{Plots all (weighted) mean/median ASW \emph{criterion} values in a fitted \code{MEDseq} object.}
 \item{\code{"cv"}}{Plots all cross-validated log-likelihood values in a fitted \code{MEDseq} object.}
 \item{\code{"nec"}}{Plots all NEC values in a fitted \code{MEDseq} object.}
-\item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object.}
+\item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object. While the \code{type} options above, from \code{"bic"} though to \code{"nec"}, can be used as model selection criteria in \code{\link{MEDseq_compare}} and via \code{\link{MEDseq_control}} in \code{\link{MEDseq_fit}}, \code{"LOGLIK"} cannot.}
 \item{\code{"dbsvals"}}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster). See \code{seriated}.}
 \item{\code{"aswvals"}}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster). See \code{seriated}.}
 \item{\code{"similarity"}}{Produces a heatmap of the similarity matrix constructed from the \code{x$z} matrix at convergence, with observations reordered via \code{seriated} for visual clarity. The (potentially \code{seriated}) similarity matrix can also be invisibly returned.}
-\item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a bar plot.}
+\item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a bar plot. Different colours will be used to distinguish observations whose uncertainty exceeds the threshold \code{1/x$G}.}
 \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a profile plot.}
 \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
 }
@@ -68,7 +68,7 @@ Though all \code{seriated} options can be specified when \code{type} is \code{"g
 
 \item{soft}{This argument is a single logical indicator which is only relevant for the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. When \code{soft=TRUE} (the default for all but the \code{"i"} and \code{"I"} \code{type} plots) the soft cluster membership probabilities are used in a manner akin to \code{\link[WeightedCluster]{fuzzyseqplot}}. Otherwise, when \code{FALSE} (the default for \code{"i"} and \code{"I"} \code{type} plots), the soft information is discarded and the hard MAP partition is used instead. 
 
-Note that soft cluster membership probabilities will not be available if \code{x$G=1} or the model was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}}. Plots may still be weighted when \code{soft} is \code{FALSE}, according to the observation-specific sampling weights, when \code{weighted=TRUE}. Note also that \code{type="Ht"} can be used in conjunction with \code{soft=TRUE}, unlike \code{\link[WeightedCluster]{fuzzyseqplot}} for which \code{type="Ht"} is not permissible. Finally, be advised that plotting may be time-consuming when \code{soft=TRUE} for \code{"i"} and \code{"I"} \code{type} plots.}
+Note that soft cluster membership probabilities will not be available if \code{x$G=1} or the model was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}}. Plots may still be weighted when \code{soft} is \code{FALSE}, according to the observation-specific sampling weights, when \code{weighted=TRUE}, and both arguments can also be simultaneously \code{TRUE}. Note also that \code{type="Ht"} can be used in conjunction with \code{soft=TRUE}, unlike \code{\link[WeightedCluster]{fuzzyseqplot}} for which \code{type="Ht"} is not permissible. Finally, be advised that plotting may be time-consuming when \code{soft=TRUE} for \code{"i"} and \code{"I"} \code{type} plots.}
 
 \item{weighted}{This argument is a single logical indicator which is only relevant for the \code{"clusters"}, \code{"central"}, and \code{"precision"} plot types, as well as the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. For plots borrowed from \pkg{TraMineR}, when \code{TRUE} (the default), the weights (if any) are accounted for in such plots. Note that when \code{soft} is \code{TRUE}, plots will still be weighted according to the soft cluster membership probabilities; thus \code{weighted=TRUE} and \code{soft=TRUE} allows both these and the observation-specific weights to be used simultaneously (the default behaviour for both arguments). 
 
@@ -95,12 +95,12 @@ The visualisation according to \code{type} of the results of a fitted \code{MEDs
 Produces a range of plots of the results of fitted \code{MEDseq} models.
 }
 \details{
-The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
+The \code{type} options related to model selection criteria (\code{"bic"} through to \code{"nec"}) and \code{"LOGLIK"} plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
 }
 \note{
 Every \code{type} of plot respects the sampling weights, if any. However, those related to \code{\link[TraMineR]{seqplot}} plots from \pkg{TraMineR} (\code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, \code{"mt"}) do so only when \code{weighted=TRUE} (the default). 
 
-For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, the y-axis labels (which can be suppressed using \code{ylab=NA}) always display cluster sizes which correspond to the output of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, map.size=FALSE, wt.size=TRUE)}, where \code{wt.size=TRUE} is \strong{NOT} the default behaviour for \code{\link{MEDseq_meantime}}. 
+For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, the y-axis labels (which can be suppressed using \code{ylab=NA}) always display cluster sizes which correspond to the output of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, map.size=FALSE, wt.size=TRUE)}, where \code{wt.size=TRUE} is \strong{NOT} the default behaviour for \code{\link{MEDseq_meantime}}.
 
 Please note that \code{type="dH"} will be unavailable if versions of \pkg{TraMineR} prior to \code{2.2-4} are in use. The colour of the entropy line(s) will be \code{"blue"} for \code{type="Ht"} and \code{"black"} for \code{type="dH"}. Finally, the plot types borrowed from \pkg{TraMineR} may be too wide to display in the preview panel. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}.
 }
@@ -195,7 +195,7 @@ Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence ana
 Gabadinho, A., Ritschard, G., Mueller, N. S., and Studer, M. (2011). Analyzing and visualizing state sequences in R with \pkg{TraMineR}. \emph{Journal of Statistical Software}, 40(4): 1-37.
 }
 \seealso{
-\code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}, \code{\link[seriation]{list_seriation_methods}}, \code{\link[WeightedCluster]{fuzzyseqplot}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}
+\code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}, \code{\link[seriation]{list_seriation_methods}}, \code{\link[WeightedCluster]{fuzzyseqplot}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}, \code{\link{MEDseq_compare}}, \code{\link{MEDseq_control}}
 }
 \author{
 Keefe Murphy - <\email{keefe.murphy@mu.ie}>

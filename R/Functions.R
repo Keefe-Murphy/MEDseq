@@ -1,6 +1,6 @@
 #' Compute the Density-based Silhouette
 #' 
-#' Computes the Density-based Silhouette for a 'soft' clustering assignment matrix.
+#' Computes the Density-based Silhouette for a `soft' clustering assignment matrix.
 #' @param z A numeric matrix such that rows correspond to observations, columns correspond to clusters, and rows sum to \code{1}.
 #' @param ztol A small (single, numeric, non-negative) tolerance parameter governing whether small assignment probabilities are treated instead as crisp assignments. Defaults to \code{1E-100}.
 #' @param weights An optional numeric vector giving observation-specific weights for computing the (weighted) mean/median DBS (see \code{summ}).
@@ -275,14 +275,14 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' \item{\code{G}}{The optimal numbers of components.}
 #' \item{\code{df}}{The numbers of estimated parameters.}
 #' \item{\code{iters}}{The numbers of EM/CEM iterations.}
-#' \item{\code{bic}}{BIC values, ranked according to \code{criterion}.}
-#' \item{\code{icl}}{ICL values, ranked according to \code{criterion}.}
-#' \item{\code{aic}}{AIC values, ranked according to \code{criterion}.}
-#' \item{\code{dbs}}{(Weighted) mean/median DBS values, ranked according to \code{criterion}.}
-#' \item{\code{asw}}{(Weighted) mean/median ASW values, ranked according to \code{criterion}.}
-#' \item{\code{cv}}{Cross-validated log-likelihood values, ranked according to \code{criterion}.}
-#' \item{\code{nec}}{NEC values, ranked according to \code{criterion}.}
-#' \item{\code{loglik}}{Maximal log-likelihood values, ranked according to \code{criterion}.}
+#' \item{\code{bic}}{BIC values, ranked according to \code{criterion} (not necessarily \code{"bic"}).}
+#' \item{\code{icl}}{ICL values, ranked according to \code{criterion} (not necessarily \code{"icl"}).}
+#' \item{\code{aic}}{AIC values, ranked according to \code{criterion} (not necessarily \code{"aic"}).}
+#' \item{\code{dbs}}{(Weighted) mean/median DBS values, ranked according to \code{criterion} (not necessarily \code{"dbs"}).}
+#' \item{\code{asw}}{(Weighted) mean/median ASW values, ranked according to \code{criterion} (not necessarily \code{"asw"}).}
+#' \item{\code{cv}}{Cross-validated log-likelihood values, ranked according to \code{criterion} (not necessarily \code{"cv"}).}
+#' \item{\code{nec}}{NEC values, ranked according to \code{criterion} (not necessarily \code{"nec"}).}
+#' \item{\code{loglik}}{Maximal log-likelihood values.}
 #' \item{\code{gating}}{The gating formulas.}
 #' \item{\code{algo}}{The algorithm used for fitting the model - either \code{"EM"}, \code{"CEM"}, \code{"cemEM"}.}
 #' \item{\code{equalPro}}{Logical indicating whether mixing proportions were constrained to be equal across components.}
@@ -542,7 +542,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' When \code{weights} \emph{are} supplied and \code{isTRUE(unique)}, the weights are summed for each set of duplicate observations and assigned to one retained copy of each corresponding unique sequence. Hence, observations with different weights that are otherwise duplicates are treated as duplicates and significant computational gains can be made. 
 #' 
 #' In both cases, the results will be unchanged, but setting \code{unique} to \code{TRUE} can often be much faster. 
-#' @param criterion When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.
+#' @param criterion When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the `best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.
 #' @param tau0 Prior mixing proportion for the noise component. If supplied, a noise component will be added to the model in the estimation, with \code{tau0} giving the prior probability of belonging to the noise component for \emph{all} observations. Typically supplied as a scalar in the interval (0, 1), e.g. \code{0.1}. Can be supplied as a vector when gating covariates are present and \code{noise.gate} is \code{TRUE}.
 #' @param noise.gate A logical indicating whether gating network covariates influence the mixing proportion for the noise component, if any. Defaults to \code{TRUE}, but leads to greater parsimony if \code{FALSE}. Only relevant in the presence of a noise component (i.e. the \code{"CCN"}, \code{"UCN"}, \code{"CUN"}, and \code{"UUN"} models); only affects estimation in the presence of gating covariates.
 #' @param random A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default prior to version \code{1.2.0} of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations. 
@@ -550,7 +550,7 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{init.z} is \code{"kmodes"} or \code{"kmodes2"} and that, in certain rare cases when the \code{"CEM"} \code{algo} is invoked when \code{equalPro} is \code{TRUE} and the precision parameter(s) are somehow constrained across clusters, this argument also governs ties for cluster assignments within \code{MEDseq_fit} as well.
 #' @param do.cv A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.
 #' @param do.nec A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.
-#' @param nfolds The number of folds to use when \code{isTRUE{do.cv}}.
+#' @param nfolds The number of folds to use when \code{isTRUE{do.cv}}. Defaults to \code{10}.
 #' @param nstarts The number of random initialisations to use when \code{init.z="random"}. Defaults to \code{1}. Results will be based on the random start yielding the highest estimated log-likelihood.
 #' @param stopping The criterion used to assess convergence of the EM/CEM algorithm. The default (\code{"aitken"}) uses Aitken's acceleration method, otherwise the \code{"relative"} change in log-likelihood is monitored (which may be less strict).
 #' @param equalPro Logical variable indicating whether or not the mixing proportions are to be constrained to be equal in the model. Default: \code{equalPro = FALSE}. Only relevant when \code{gating} covariates are \emph{not} supplied within \code{\link{MEDseq_fit}}, otherwise ignored. In the presence of a noise component, only the mixing proportions for the non-noise components are constrained to be equal (by default, see \code{equalNoise}), after accounting for the noise component.
@@ -712,7 +712,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' The models are named \code{"CC"}, \code{"CU"}, \code{"UC"}, \code{"UU"}, \code{"CCN"}, \code{"CUN"}, \code{"UCN"}, and \code{"UUN"}. The first letter denotes whether the precision parameters are constrained/unconstrained across clusters. The second letter denotes whether the precision parameters are constrained/unconstrained across sequence positions (i.e. time points). The third letter denotes whether one of the components is constrained to have zero-precision/infinite variance. Such a noise component assumes sequences in that cluster follow a uniform distribution.
 #' @param gating A \code{\link[stats]{formula}} for determining the model matrix for the multinomial logistic regression in the gating network when fixed covariates enter the mixing proportions. Defaults to \code{~1}, i.e. no covariates. This will be ignored where \code{G=1}. Continuous, categorical, and/or ordinal covariates are allowed. Logical covariates will be coerced to factors. Interactions, transformations, and higher order terms are permitted: the latter \strong{must} be specified explicitly using the \code{AsIs} operator (\code{\link{I}}). The specification of the LHS of the formula is ignored. Intercept terms are included by default.
 #' @param covars An optional data frame (or a matrix with named columns) in which to look for the covariates in the \code{gating} network formula, if any. If not found in \code{covars}, any supplied \code{gating} covariates are taken from the environment from which \code{MEDseq_fit} is called. Try to ensure the names of variables in \code{covars} do not match any of those in \code{seqs}.
-#' @param weights Optional numeric vector containing observation-specific sampling weights, which are accounted for in the model fitting and other functions where applicable. \code{weights} are always internally normalised to sum to the sample size. See the \code{unique} argument to \code{\link{MEDseq_control}} to see how incorporating weights also yields computational benefits. Note that \code{weights} must \strong{always} be explicitly supplied here; it is not enough to use weights when constructing the state sequence object via \code{\link[TraMineR]{seqdef}} (reexported by \pkg{MEDseq} for convenience). If you \emph{are} using a weighted \code{"stslist"} state sequence object and do not specify \code{weights}, you will be prompted to explicitly specify \code{weights=attr(seqs, "weights")} for a weighted model or \code{weights=NULL} for an unweighted model.
+#' @param weights Optional numeric vector containing observation-specific sampling weights, which are accounted for in the model fitting and other functions where applicable. All \code{weights} must be non-negative and non-missing. \code{weights} are always internally normalised to sum to the sample size. See the \code{unique} argument to \code{\link{MEDseq_control}} to see how incorporating weights also yields computational benefits. Note that \code{weights} must \strong{always} be explicitly supplied here; it is not enough to use weights when constructing the state sequence object via \code{\link[TraMineR]{seqdef}} (reexported by \pkg{MEDseq} for convenience). If you \emph{are} using a weighted \code{"stslist"} state sequence object and do not specify \code{weights}, you will be prompted to explicitly specify \code{weights=attr(seqs, "weights")} for a weighted model or \code{weights=NULL} for an unweighted model.
 #' @param ctrl A list of control parameters for the EM/CEM and other aspects of the algorithm. The defaults are set by a call to \code{\link{MEDseq_control}}.
 #' @param ... Catches unused arguments (see \code{\link{MEDseq_control}}).
 #' @param x,object,digits,classification,parameters,network,SPS Arguments required for the \code{print} and \code{summary} functions: \code{x} and \code{object} are objects of class \code{"MEDseq"} resulting from a call to \code{\link{MEDseq_fit}}, while \code{digits} gives the number of decimal places to round to for printing purposes (defaults to \code{3}). \code{classification}, \code{parameters}, and \code{network} are logicals which govern whether a table of the MAP classification of observations, the mixture component parameters, and the gating network coefficients are printed, respectively. \code{SPS} governs the printing of the relevant quantities in \code{"summaryMEDseq"} objects when any of \code{classification}, \code{parameters}, &/or \code{network} are \code{TRUE} (see \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}).
@@ -725,7 +725,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' \item{\code{params}}{A list with the following named components:
 #' \describe{
 #' \item{\code{theta}}{A matrix with \code{G} rows and T columns, where T is the number of sequence positions, giving the central sequences of each cluster. The mean of the noise component is not reported, as it does not contribute in any way to the likelihood. A dedicated \code{print} function is provided.}
-#' \item{\code{lambda}}{A matrix of precision parameters. Will contain \code{1} row if the 1st letter of \code{modtype} is "C" and \code{G} columns otherwise. Will contain \code{1} column if the 2nd letter of \code{modtype} is "C" and T columns otherwise, where T is the number of sequence positions. Precision parameter values of zero are reported for the noise component, if any. Note that values of \code{Inf} are also possible, corresponding to zero-variance, which is most likely under the \code{"UU"} or \code{"UUN"} models. A dedicated \code{print} function is provided.}
+#' \item{\code{lambda}}{A matrix of precision parameters. Will contain \code{1} row if the 1st letter of \code{modtype} is `\code{C}' and \code{G} columns otherwise. Will contain \code{1} column if the 2nd letter of \code{modtype} is `\code{C}' and T columns otherwise, where T is the number of sequence positions. Precision parameter values of zero are reported for the noise component, if any. Note that values of \code{Inf} are also possible, corresponding to zero-variance, which is most likely under the \code{"UU"} or \code{"UUN"} models. A dedicated \code{print} function is provided.}
 #' \item{\code{tau}}{The mixing proportions: either a vector of length \code{G} or, if \code{gating} covariates were supplied, a matrix with an entry for each observation (rows) and component (columns).}}
 #' }
 #' \item{\code{gating}}{An object of class \code{"MEDgating"} (for which dedicated \code{print}, \code{summary}, and \code{\link[=predict.MEDgating]{predict}} methods exist) and either \code{"multinom"} or \code{"glm"} (only for single-component models) giving the \code{\link[nnet]{multinom}} regression coefficients of the \code{gating} network. If \code{gating} covariates were \emph{NOT} supplied (or the best model has just one component), this corresponds to a RHS of \code{~1}, otherwise the supplied \code{gating} formula. As such, a fitted \code{gating} network is always returned even in the absence of supplied covariates or clusters. If there is a noise component (and the option \code{noise.gate=TRUE} is invoked), its coefficients are those for the \emph{last} component. \strong{Users are cautioned against making inferences about statistical significance from summaries of the coefficients in the gating network. Users are instead advised to use the function \code{\link{MEDseq_stderr}}}.}
@@ -743,7 +743,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' \item{\code{asw}}{The (weighted) mean/median ASW value corresponding to the optimal model. May not necessarily be the optimal ASW.}
 #' \item{\code{aswvals}}{Observation-specific ASW values corresponding to the optimum model, which may not be optimal in terms of ASW.}
 #' \item{\code{LOGLIK}}{A matrix of \emph{all} maximal log-likelihood values with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note}.}
-#' \item{\code{DF}}{A matrix giving the numbers of estimated parameters (i.e. the number of 'used' degrees of freedom) for \emph{all} visited models, with \code{length{G}} rows and \code{length(modtype)} columns. Subtract these numbers from the sample size to get the degrees of freedom. See \code{Note}.}
+#' \item{\code{DF}}{A matrix giving the numbers of estimated parameters (i.e. the number of `used' degrees of freedom) for \emph{all} visited models, with \code{length{G}} rows and \code{length(modtype)} columns. Subtract these numbers from the sample size to get the degrees of freedom. See \code{Note}.}
 #' \item{\code{ITERS}}{A matrix giving the total number of EM/CEM iterations for \emph{all} visited models, with \code{length{G}} rows and \code{length(modtype)} columns. See \code{Note}.}
 #' \item{\code{CV}}{A matrix of \emph{all} cross-validated log-likelihood values with \code{length{G}} rows and \code{length(modtype)} columns, if available. See \code{Note} and the arguments \code{do.cv} and \code{nfolds} to \code{\link{MEDseq_control}}.}
 #' \item{\code{NEC}}{A matrix of \emph{all} NEC values with \code{length{G}} rows and \code{length(modtype)} columns, if available. See \code{Note} and the argument \code{do.nec} to \code{\link{MEDseq_control}}.}
@@ -751,7 +751,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' \item{\code{icl}}{The ICL value corresponding to the optimal model. May not necessarily be the optimal ICL.}
 #' \item{\code{aic}}{The AIC value corresponding to the optimal model. May not necessarily be the optimal AIC.}
 #' \item{\code{loglik}}{The vector of increasing log-likelihood values for every EM/CEM iteration under the optimal model. The last element of this vector is the maximum log-likelihood achieved by the parameters returned at convergence.}
-#' \item{\code{df}}{The number of estimated parameters in the optimal model (i.e. the number of 'used' degrees of freedom). Subtract this number from the sample size to get the degrees of freedom.}
+#' \item{\code{df}}{The number of estimated parameters in the optimal model (i.e. the number of `used' degrees of freedom). Subtract this number from the sample size to get the degrees of freedom.}
 #' \item{\code{iters}}{The total number of EM/CEM iterations for the optimal model.}
 #' \item{\code{cv}}{The cross-validated log-likelihood value corresponding to the optimal model, if available. May not necessarily be the optimal one.}
 #' \item{\code{nec}}{The NEC value corresponding to the optimal model, if available. May not necessarily be the optimal NEC.}
@@ -762,7 +762,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @details The function effectively allows 8 different MEDseq precision parameter settings for models with or without gating network covariates. By constraining the mixing proportions to be equal (see \code{equalPro} in \code{\link{MEDseq_control}}) an extra special case is facilitated in the latter case. 
 #' 
 #' While model selection in terms of choosing the optimal number of components and the MEDseq model type is performed within \code{\link{MEDseq_fit}}, using one of the \code{criterion} options within \code{\link{MEDseq_control}}, choosing between multiple fits with different combinations of covariates or different initialisation settings can be done by supplying objects of class \code{"MEDseq"} to \code{\link{MEDseq_compare}}.
-#' @note Where \code{BIC}, \code{ICL}, \code{AIC}, \code{DBS}, \code{ASW}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{CV}, and \code{NEC} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which dedicated \code{print} and \code{summary} methods exist. For plotting, please see \code{\link[=plot.MEDseq]{plot}}.
+#' @note Where \code{BIC}, \code{ICL}, \code{AIC}, \code{DBS}, \code{ASW}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{CV}, and \code{NEC} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which dedicated \code{print} and \code{summary} methods exist. For plotting, please see \code{\link{plot.MEDseq}}.
 
 #' @importFrom cluster "agnes" "pam"
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowAlls" "rowLogSumExps" "rowMaxs" "rowMeans2" "rowSums2" "weightedMedian" "weightedMean"
@@ -1792,11 +1792,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' \item{\code{"asw"}}{Plots all (weighted) mean/median ASW \emph{criterion} values in a fitted \code{MEDseq} object.}
 #' \item{\code{"cv"}}{Plots all cross-validated log-likelihood values in a fitted \code{MEDseq} object.}
 #' \item{\code{"nec"}}{Plots all NEC values in a fitted \code{MEDseq} object.}
-#' \item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object.}
+#' \item{\code{"LOGLIK"}}{Plots all maximal log-likelihood values in a fitted \code{MEDseq} object. While the \code{type} options above, from \code{"bic"} though to \code{"nec"}, can be used as model selection criteria in \code{\link{MEDseq_compare}} and via \code{\link{MEDseq_control}} in \code{\link{MEDseq_fit}}, \code{"LOGLIK"} cannot.}
 #' \item{\code{"dbsvals"}}{Silhouette plot using observations-specific DBS values for the optimal model (coloured by cluster). See \code{seriated}.}
 #' \item{\code{"aswvals"}}{Silhouette plot using observations-specific ASW values for the optimal model (coloured by cluster). See \code{seriated}.}
 #' \item{\code{"similarity"}}{Produces a heatmap of the similarity matrix constructed from the \code{x$z} matrix at convergence, with observations reordered via \code{seriated} for visual clarity. The (potentially \code{seriated}) similarity matrix can also be invisibly returned.}
-#' \item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a bar plot.}
+#' \item{\code{"uncert.bar"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a bar plot. Different colours will be used to distinguish observations whose uncertainty exceeds the threshold \code{1/x$G}.}
 #' \item{\code{"uncert.profile"}}{Plot the observation-specific clustering uncertainties, if any, in the form of a profile plot.}
 #' \item{\code{"loglik"}}{Plot the log-likelihood at every iteration of the EM/CEM algorithm used to fit the model.}
 #' }
@@ -1822,7 +1822,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' Though all \code{seriated} options can be specified when \code{type} is \code{"gating"}, they are only invoked and relevant when the model actually contains gating network covariates and \code{x.axis} is not supplied via the \code{...} construct.
 #' @param soft This argument is a single logical indicator which is only relevant for the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. When \code{soft=TRUE} (the default for all but the \code{"i"} and \code{"I"} \code{type} plots) the soft cluster membership probabilities are used in a manner akin to \code{\link[WeightedCluster]{fuzzyseqplot}}. Otherwise, when \code{FALSE} (the default for \code{"i"} and \code{"I"} \code{type} plots), the soft information is discarded and the hard MAP partition is used instead. 
 #' 
-#' Note that soft cluster membership probabilities will not be available if \code{x$G=1} or the model was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}}. Plots may still be weighted when \code{soft} is \code{FALSE}, according to the observation-specific sampling weights, when \code{weighted=TRUE}. Note also that \code{type="Ht"} can be used in conjunction with \code{soft=TRUE}, unlike \code{\link[WeightedCluster]{fuzzyseqplot}} for which \code{type="Ht"} is not permissible. Finally, be advised that plotting may be time-consuming when \code{soft=TRUE} for \code{"i"} and \code{"I"} \code{type} plots.
+#' Note that soft cluster membership probabilities will not be available if \code{x$G=1} or the model was fitted using the \code{algo="CEM"} option to \code{\link{MEDseq_control}}. Plots may still be weighted when \code{soft} is \code{FALSE}, according to the observation-specific sampling weights, when \code{weighted=TRUE}, and both arguments can also be simultaneously \code{TRUE}. Note also that \code{type="Ht"} can be used in conjunction with \code{soft=TRUE}, unlike \code{\link[WeightedCluster]{fuzzyseqplot}} for which \code{type="Ht"} is not permissible. Finally, be advised that plotting may be time-consuming when \code{soft=TRUE} for \code{"i"} and \code{"I"} \code{type} plots.
 #' @param weighted This argument is a single logical indicator which is only relevant for the \code{"clusters"}, \code{"central"}, and \code{"precision"} plot types, as well as the \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} plot types borrowed from \pkg{TraMineR}. For plots borrowed from \pkg{TraMineR}, when \code{TRUE} (the default), the weights (if any) are accounted for in such plots. Note that when \code{soft} is \code{TRUE}, plots will still be weighted according to the soft cluster membership probabilities; thus \code{weighted=TRUE} and \code{soft=TRUE} allows both these and the observation-specific weights to be used simultaneously (the default behaviour for both arguments). 
 #' 
 #' Additionally, for these plots and the \code{"clusters"}, \code{"central"}, and \code{"precision"} types, \code{weighted} is passed through to \code{\link{MEDseq_clustnames}} in the rare case where \code{SPS=TRUE} (see below) and the optional \code{\link{MEDseq_clustnames}} argument \code{size=TRUE} is invoked (again, see below).
@@ -1836,8 +1836,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \pkg{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types (e.g. \code{border}, \code{yaxis} and/or \code{ylab}, \code{serr} where \code{type="mt"}, and \code{info} where \code{type="ms"}) and the \code{size} argument to \code{\link{MEDseq_clustnames}}, where relevant.
 #'
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
-#' @details The \code{type} options related to model selection criteria plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
 #' @note Every \code{type} of plot respects the sampling weights, if any. However, those related to \code{\link[TraMineR]{seqplot}} plots from \pkg{TraMineR} (\code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, \code{"mt"}) do so only when \code{weighted=TRUE} (the default). 
+#' @details The \code{type} options related to model selection criteria (\code{"bic"} through to \code{"nec"}) and \code{"LOGLIK"} plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
 #' 
 #' For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, the y-axis labels (which can be suppressed using \code{ylab=NA}) always display cluster sizes which correspond to the output of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, map.size=FALSE, wt.size=TRUE)}, where \code{wt.size=TRUE} is \strong{NOT} the default behaviour for \code{\link{MEDseq_meantime}}. 
 #' 
@@ -1870,7 +1870,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' @importFrom seriation "get_order" "list_seriation_methods" "seriate"
 #' @importFrom TraMineR "seqdef" "seqdist" "seqformat" "seqplot"
 #' @importFrom WeightedCluster "fuzzyseqplot"
-#' @seealso \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}, \code{\link[seriation]{list_seriation_methods}}, \code{\link[WeightedCluster]{fuzzyseqplot}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}
+#' @seealso \code{\link{MEDseq_fit}}, \code{\link[TraMineR]{seqplot}}, \code{\link{dbs}}, \code{\link{get_MEDseq_results}}, \code{\link[seriation]{seriate}}, \code{\link[seriation]{list_seriation_methods}}, \code{\link[WeightedCluster]{fuzzyseqplot}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}, \code{\link{MEDseq_compare}}, \code{\link{MEDseq_control}}
 #'
 #' @examplesIf interactive()
 #' # Load the MVAD data
@@ -2024,7 +2024,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   if(is.element(type, c("aswvals", "dbsvals", "gating", "precision"))) {
     has_viridis   <- all(isTRUE(suppressMessages(requireNamespace("viridisLite", quietly=TRUE))),
                          isTRUE(.version_above("viridisLite", switch(EXPR=type, precision="0.2.0", "0.4.0"))))
-    if(isFALSE(has_viridis))     message(paste0("Nicer colour palettes are invoked for the '", type, "' plot types if the suggested \"viridisLite\" library is installed\n"))
+    if(isFALSE(has_viridis))     message(paste0("Nicer colour palettes are invoked for the '", type, "' plot types if the suggested \"viridisLite\" package is installed\n"))
   }
   if((has.MAP     <- length(dots) > 0 && any(names(dots)  == "MAP")))             {
     MAP           <- dots$MAP
@@ -2388,9 +2388,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     } else         {
       switch(EXPR=summ, median=graphics::mtext(expression(paste(g, " : ", n[g], " | ", med[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2),
                           mean=graphics::mtext(expression(paste(g, " : ", n[g], " | ", avg[i %in% Cg] ~ ~s[i])), adj=1.05, line=-1.2))
-      meds        <- tapply(sil, cli, switch(EXPR=summ, median=stats::median, mean=mean))
+      meds        <- vapply(split(sil,  cli), switch(EXPR=summ, median=stats::median, mean=mean), numeric(1L))
     }
-    medy          <- tapply(dat, cli, stats::median)
+    medy          <- vapply(split(dat,  cli), stats::median, numeric(1L))
     for(g in seq_len(G)) {
       graphics::text(1, medy[g], paste(ifelse(g == G && noise, "Noise", g), ":  ", ng[g], " | ", format(meds[g], digits=1, nsmall=2)), xpd=NA, adj=0.8)
     }
@@ -3118,8 +3118,8 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #'
 #' Computes the mean time (per cluster) spent in each sequence category (i.e. state value) for a fitted \code{MEDseq} model.
 #' @param x An object of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}} or an object of class \code{"MEDseqCompare"} generated by \code{\link{MEDseq_compare}}.
-#' @param MAP A logical indicating whether to use the MAP classification in the computation of the averages, or the 'soft' clustering assignment probabilities given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}). See \code{weighted} for incorporating the sampling weights (regardless of the value of \code{MAP}). See \code{map.size} below.
-#' @param weighted A logical indicating whether the sampling weights (if used during model fitting) are used to compute the weighted averages. These can be used alone (when \code{MAP} is \code{TRUE}) or in conjunction with the 'soft' clustering assignment probabilities (when \code{MAP} is \code{FALSE}). Defaults to \code{TRUE}. Note that, \emph{by default}, the first column of the output is not affected by the value of \code{weighted} (see \code{wt.size}).
+#' @param MAP A logical indicating whether to use the MAP classification in the computation of the averages, or the `soft' clustering assignment probabilities given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}). See \code{weighted} for incorporating the sampling weights (regardless of the value of \code{MAP}). See \code{map.size} below.
+#' @param weighted A logical indicating whether the sampling weights (if used during model fitting) are used to compute the weighted averages. These can be used alone (when \code{MAP} is \code{TRUE}) or in conjunction with the `soft' clustering assignment probabilities (when \code{MAP} is \code{FALSE}). Defaults to \code{TRUE}. Note that, \emph{by default}, the first column of the output is not affected by the value of \code{weighted} (see \code{wt.size}).
 #' @param norm A logical indicating whether the mean times (outputted values after the first column) are normalised to sum to the sequence length within each cluster (defaults to \code{TRUE}). Otherwise, when \code{FALSE}, entries beyond the first column give the total (weighted) number of times a given sequence category was observed in a given cluster.
 #' @param prop A logical (defaulting to \code{FALSE} and only invoked when \code{norm} is also \code{TRUE}) which further normalises the output to give the \emph{proportions} of time spent in each state on average instead of the absolute values.
 #' @param map.size A logical (defaulting to \code{FALSE}, unless the model was fitted by the CEM algorithm (see \code{\link{MEDseq_control}})) which overrides \code{MAP} in the \code{Size} column (or \code{Weighted.Size} column, see \code{wt.size}) of the output, e.g. if \code{MAP=FALSE} and \code{map.size=TRUE}, the MAP classification is used to determine the cluster sizes but the soft cluster-membership probabilities are used to calculate quantities in remaining columns. Only relevant when \code{MAP=FALSE} or \code{wt.size=TRUE}.
@@ -3127,7 +3127,7 @@ MEDseq_stderr.MEDseq <- function(mod, method = c("WLBS", "Jackknife"), N = 1000L
 #' @param SPS A logical indicating whether the output should be labelled according to the state-permanence-sequence representation of the central sequences. Defaults to \code{FALSE}. See \code{\link{MEDseq_clustnames}} and \code{\link[TraMineR]{seqformat}}.
 #' 
 #' @details Models with weights, covariates, &/or a noise component are also accounted for.
-#' @note The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be used to visualise the mean times (by cluster). However, the results displayed therein (at present) always assume \code{norm=TRUE}, \code{prop=FALSE}, and \code{wt.size=TRUE}, while the \code{MAP} argument is renamed to \code{soft}, where \code{MAP=!soft}.
+#' @note The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be used to visualise the mean times (by cluster). However, the results displayed therein (at present) always assume \code{norm=TRUE}, \code{prop=FALSE}, and \code{wt.size=TRUE}, while the \code{MAP} argument is renamed to \code{soft}, where \code{MAP=!soft} such that \code{soft=TRUE} by default, and \code{weighted} can also be user-specified but defaults again to \code{TRUE}.
 #' @return A matrix with sequence category and cluster-specific mean times, giving clusters on the rows, corresponding cluster sizes (or weighted cluster sizes) in the first column, and sequence categories in the remaining columns.
 #' @importFrom matrixStats "colSums2"
 #' @importFrom TraMineR "seqdef" "seqformat" "seqistatd"
@@ -3205,7 +3205,8 @@ MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE,
   tabMAPw         <- if(weighted ||  
                             wt.size)      colSums2(z, useNames=FALSE) else tabMAP
   if(isTRUE(wt.size))     {
-    wtabMAP       <- if(isTRUE(map.size)) tapply(weights, class, sum) else tabMAPw
+    wtabMAP       <- if(isTRUE(map.size)) vapply(split(weights, class), 
+                                                 sum, numeric(1L))    else tabMAPw
   } else wtabMAP  <- if(map.size && 
                         isFALSE(MAP))        tabulate(class, nbins=G) else tabMAP
   if(isTRUE(MAP))  {
@@ -3218,7 +3219,7 @@ MEDseq_meantime.MEDseq <- function(x, MAP = FALSE, weighted = TRUE, norm = TRUE,
     }
   }   else         {
     x$data        <- do.call(base::c, .fac_to_num(x$data))
-    temp          <- do.call(rbind, lapply(seq_len(G), function(g) tapply(rep(z[,g], P), droplevels(x$data), sum)))  
+    temp          <- do.call(rbind, lapply(seq_len(G), function(g) vapply(split(rep(z[,g], P), droplevels(x$data)), sum, numeric(1L))))
   }
   if(isTRUE(weighted))    {
     temp          <- temp / tabMAPw
@@ -3252,8 +3253,8 @@ print.MEDseqMeanTime <- function(x, digits = 3L, ...) {
 #' 
 #' These functions extract names for clusters according to the SPS representation of their central sequences.
 #' @param x An object of class \code{"MEDseq"} generated by \code{\link{MEDseq_fit}} or an object of class \code{"MEDseqCompare"} generated by \code{\link{MEDseq_compare}}.
-#' @param cluster A logical indicating whether names should be prepended with the text "\code{Cluster g: }", where \code{g} is the cluster number. Defaults to \code{TRUE}. 
-#' @param size A logical indicating whether the (typically 'soft') size of each cluster is appended to the label of each group, expressed as a percentage of the total number of observations. Defaults to \code{FALSE}. 
+#' @param cluster A logical indicating whether names should be prepended with the text ``\code{Cluster g: }'', where \code{g} is the cluster number. Defaults to \code{TRUE}. 
+#' @param size A logical indicating whether the (typically `soft') size of each cluster is appended to the label of each group, expressed as a percentage of the total number of observations. Defaults to \code{FALSE}. 
 #' @param weighted A logical indicating whether the sampling weights (if any) are used when appending the \code{size} of each cluster to the labels. Defaults to \code{FALSE}.
 #' @param ... Catches unused arguments. 
 #' @param names The output of \code{MEDseq_clustnames} to be passed to the convenience function \code{MEDseq_nameclusts} (see \code{Details}).
@@ -3435,8 +3436,8 @@ MEDseq_entropy.MEDseq      <- function(x, group = FALSE) {
     } else {
       nX      <- attr(x, "Noise")
       gnam    <- paste0("Group", seq_len(G))
-      stats::setNames(tapply(pmax(0L, 1 - .entropy(z, obs=TRUE)/log(G)), 
-                             replace(x$MAP, x$MAP == 0, G), mean),
+      stats::setNames(vapply(split(pmax(0L, 1 - .entropy(z, obs=TRUE)/log(G)), 
+                             replace(x$MAP, x$MAP == 0, G)), mean, numeric(1L)),
                       if(isTRUE(nX)) replace(gnam, G, "Noise") else gnam)
     }
   }   else {
@@ -4008,8 +4009,8 @@ residuals.MEDgating  <- function(object, ...)   {
 
 #' Show the NEWS file
 #'
-#' Show the \code{NEWS} file of the \code{MEDseq} package.
-#' @return The \code{MEDseq} \code{NEWS} file, provided the session is interactive.
+#' Show the \code{NEWS} file of the \pkg{MEDseq} package.
+#' @return The \pkg{MEDseq} \code{NEWS} file, provided the session is interactive.
 #' @export
 #' @keywords utility
 #'

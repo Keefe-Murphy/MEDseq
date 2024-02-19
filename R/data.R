@@ -2,7 +2,7 @@
 #'
 #' The data comes from a study by McVicar and Anyadike-Danes on transition from school to work. The data consist of static background characteristics and a time series sequence of 72 monthly labour market activities for each of a cohort of 712 individuals in the Status Zero Survey. The individuals were followed up from July 1993 to June 1999. The monthly states are recorded in columns 15 (\code{Jul.93}) to 86 (\code{Jun.99}).
 #' @format A data frame containing 712 rows, 72 state variables, 1 id variable and 13 covariates.
-#' @details States are:\cr
+#' @details States are:
 #' 
 #'\tabular{ll}{
 #'  \code{employment}  \tab (EM) \cr
@@ -10,11 +10,11 @@
 #'  \code{HE}          \tab higher education (HE) \cr
 #'  \code{joblessness} \tab (JL) \cr
 #'  \code{school}      \tab (SC) \cr
-#'  \code{training}    \tab (TR) \cr
+#'  \code{training}    \tab (TR)
 #'}
 
-#'The data set contains also ids (\code{id}) and sample weights (\code{weights}) as well as the following binary covariates:\cr
-#'\cr
+#'The data set contains also ids (\code{id}) and sample weights (\code{weights}) as well as the following binary covariates:
+#'
 #'\code{male}\cr
 #'\code{catholic}\cr
 #'\code{Belfast}, \code{N.Eastern}, \code{Southern}, \code{S.Eastern}, \code{Western} (location of school, one of five Education and Library Board areas in Northern Ireland)\cr
@@ -58,18 +58,19 @@
 #' 
 #' The data set contains (in columns 10 to 25) sequences of family life states from age 15 to 30 (sequence length is 16) and a series of covariates. The sequences are a sample of 2000 sequences of those created from the SHP biographical survey. It includes only individuals who were at least 30 years old at the time of the survey. The \emph{biofam} data set describes family life courses of 2000 individuals born between 1909 and 1972. 
 #' 
-#' The states numbered from 0 to 7 are defined from the combination of five basic states, namely Living with parents (Parent), Left home (Left), Married (Marr), Having Children (Child), Divorced:\cr
-#' \cr
-#' 0 = "Parent" \cr
-#' 1 = "Left" \cr
-#' 2 = "Married" \cr
-#' 3 = "Left+Marr" \cr
-#' 4 = "Child" \cr
-#' 5 = "Left+Child" \cr
-#' 6 = "Left+Marr+Child" \cr
-#' 7 = "Divorced" \cr
+#' The states numbered from 0 to 7 are defined from the combination of five basic states, namely Living with parents (Parent), Left home (Left), Married (Marr), Having Children (Child), Divorced:
 #' 
-#' The covariates are: \cr
+#' 0 = ``Parent'' \cr
+#' 1 = ``Left'' \cr
+#' 2 = ``Married'' \cr
+#' 3 = ``Left+Marr'' \cr
+#' 4 = ``Child'' \cr
+#' 5 = ``Left+Child'' \cr
+#' 6 = ``Left+Marr+Child'' \cr
+#' 7 = ``Divorced''
+#' 
+#' The covariates are:
+#' 
 #' \tabular{ll}{
 #' \code{sex}      \tab \cr
 #' \code{birthyr}  \tab (birth year) \cr
@@ -78,12 +79,13 @@
 #' \code{p02r01}   \tab (religion) \cr
 #' \code{p02r04}   \tab (religious participation) \cr
 #' \code{cspfaj}   \tab (father's social status) \cr
-#' \code{cspmoj}   \tab (mother's social status) \cr
+#' \code{cspmoj}   \tab (mother's social status)
 #' }
-#' Two additional weights variables are inserted for illustrative purpose ONLY (since \code{biofam} is a subsample of the original data, these weights are not adapted to the actual data): \cr
+#' Two additional weights variables are inserted for illustrative purpose ONLY (since \code{biofam} is a subsample of the original data, these weights are not adapted to the actual data):
+#' 
 #' \tabular{ll}{
 #' \code{wp00tbgp} \tab (weights inflating to the Swiss population) \cr
-#' \code{wp00tbgs} \tab (weights respecting sample size) \cr
+#' \code{wp00tbgs} \tab (weights respecting sample size)
 #'}
 #' @references Müller, N. S., Studer, M. and Ritschard, G. (2007). Classification de parcours de vie à l'aide de l'optimal matching. In \emph{XIVe Rencontre de la Société francophone de classification (SFC 2007)}, Paris, 5-7 septembre 2007, pp. 157-160.
 #' @examples

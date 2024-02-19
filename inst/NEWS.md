@@ -1,6 +1,10 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+### Improvements, Bug Fixes & Miscellaneous Edits
+* Minor speedups to various utility functions using `vapply` in place of `tapply`.
+* Additional minor documentation improvements.
+
 ## MEDseq v1.4.1 - (_12<sup>th</sup> release [patch update]: 2023-12-12_)
 ### Improvements, Bug Fixes & Miscellaneous Edits
 * Minor fixes to `plot.MEDseq`:
@@ -47,7 +51,7 @@ and posterior probabilities of each component, respectively: defaults to `FALSE`
 * New function `MEDseq_entropy` added.
 * Fixed mismatched plotting symbols for models with noise in model-selection criteria plot legends.
 * Minor fix to handle (rare) empty components.
-* Minor edits for compatibility w/ latest `TraMineR` release, w.r.t. `"mt"` and `"ms"` plots.
+* Minor edits for compatibility w/ latest `TraMineR` release w.r.t. `"mt"` & `"ms"` plots.
 
 ## MEDseq v1.3.2 - (_9<sup>th</sup> release [patch update]: 2021-12-19_)
 ### Bug Fixes & Miscellaneous Edits

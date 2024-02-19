@@ -17,7 +17,7 @@ data(mvad)
 The data comes from a study by McVicar and Anyadike-Danes on transition from school to work. The data consist of static background characteristics and a time series sequence of 72 monthly labour market activities for each of a cohort of 712 individuals in the Status Zero Survey. The individuals were followed up from July 1993 to June 1999. The monthly states are recorded in columns 15 (\code{Jul.93}) to 86 (\code{Jun.99}).
 }
 \details{
-States are:\cr
+States are:
 
 \tabular{ll}{
  \code{employment}  \tab (EM) \cr
@@ -25,10 +25,10 @@ States are:\cr
  \code{HE}          \tab higher education (HE) \cr
  \code{joblessness} \tab (JL) \cr
  \code{school}      \tab (SC) \cr
- \code{training}    \tab (TR) \cr
+ \code{training}    \tab (TR)
 }
-The data set contains also ids (\code{id}) and sample weights (\code{weights}) as well as the following binary covariates:\cr
-\cr
+The data set contains also ids (\code{id}) and sample weights (\code{weights}) as well as the following binary covariates:
+
 \code{male}\cr
 \code{catholic}\cr
 \code{Belfast}, \code{N.Eastern}, \code{Southern}, \code{S.Eastern}, \code{Western} (location of school, one of five Education and Library Board areas in Northern Ireland)\cr

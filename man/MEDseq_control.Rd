@@ -47,7 +47,7 @@ When \code{weights} \emph{are} supplied and \code{isTRUE(unique)}, the weights a
 
 In both cases, the results will be unchanged, but setting \code{unique} to \code{TRUE} can often be much faster.}
 
-\item{criterion}{When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the 'best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.}
+\item{criterion}{When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the `best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.}
 
 \item{tau0}{Prior mixing proportion for the noise component. If supplied, a noise component will be added to the model in the estimation, with \code{tau0} giving the prior probability of belonging to the noise component for \emph{all} observations. Typically supplied as a scalar in the interval (0, 1), e.g. \code{0.1}. Can be supplied as a vector when gating covariates are present and \code{noise.gate} is \code{TRUE}.}
 
@@ -61,7 +61,7 @@ Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{
 
 \item{do.nec}{A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.}
 
-\item{nfolds}{The number of folds to use when \code{isTRUE{do.cv}}.}
+\item{nfolds}{The number of folds to use when \code{isTRUE{do.cv}}. Defaults to \code{10}.}
 
 \item{nstarts}{The number of random initialisations to use when \code{init.z="random"}. Defaults to \code{1}. Results will be based on the random start yielding the highest estimated log-likelihood.}
 

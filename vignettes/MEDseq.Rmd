@@ -124,7 +124,7 @@ load(file="mvad_mod3.rda")
 ```
 
 ```{r}
-opt   <- comp$optimal
+opt <- comp$optimal
 summary(opt, classification = TRUE, parameters = FALSE, network = FALSE)
 ```
 
@@ -160,7 +160,7 @@ Use the following code to see the observation-specific (weighted) density-based 
 plot(opt, type="dbsvals")
 ```
 
-Finally, we can quantify the type of observation characterising each cluster by computing the mean time spent in each state within each cluster. Specifying `MAP=TRUE` computes the mean times based on the hard MAP partition rather than weighted by the soft cluster membership probabilities (albeit still weighted by the sampling weights used during model fitting, by default). Specifying `norm=TRUE` (the default), normalises the mean times to sum to the sequence length within each cluster. The size of each cluster in terms of the number of observations assigned to it is also reported.
+Finally, we can quantify the type of observation characterising each cluster by computing the mean time spent in each state within each cluster. Specifying `MAP=TRUE` computes the mean times based on the hard MAP partition rather than weighted by the soft cluster membership probabilities (albeit still weighted by the sampling weights used during model fitting, by default). Specifying `norm=TRUE` (the default) normalises the mean times to sum to the sequence length within each cluster. The size of each cluster in terms of the number of observations assigned to it is also reported.
 
 ```{r}
 MEDseq_meantime(opt, MAP=TRUE, norm=TRUE)

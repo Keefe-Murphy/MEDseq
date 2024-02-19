@@ -7,10 +7,10 @@
 MEDseq_news()
 }
 \value{
-The \code{MEDseq} \code{NEWS} file, provided the session is interactive.
+The \pkg{MEDseq} \code{NEWS} file, provided the session is interactive.
 }
 \description{
-Show the \code{NEWS} file of the \code{MEDseq} package.
+Show the \code{NEWS} file of the \pkg{MEDseq} package.
 }
 \examples{
 MEDseq_news()

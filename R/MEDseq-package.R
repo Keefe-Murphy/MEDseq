@@ -18,19 +18,23 @@
 #' 
 #' Finally, the package also contains two data sets: \code{\link{biofam}} and \code{\link{mvad}}.
 #' 
-#' @section Details:
+#' @details
 #' \describe{
 #' \item{Type: }{Package}
-#' \item{Package: }{MEDseq}
+#' \item{Date: }{2023-12-13 (this version), 2019-08-24 (original release)}
 #' \item{Version: }{1.4.1}
-#' \item{Date: }{2023-12-12 (this version), 2019-08-24 (original release)}
+#' \item{Package: }{\pkg{MEDseq}}
 #' \item{Licence: }{GPL (>= 3)}
 #' }
 #'
-#' @section See Also:
-#' Further details and examples are given in the associated vignette document:\cr
-#' \code{vignette("MEDseq", package = "MEDseq")}
-#'
+#' @seealso Useful links:
+#' \itemize{
+#' \item \url{https://cran.r-project.org/package=MEDseq}
+#' \item Report bugs at \url{https://github.com/Keefe-Murphy/MEDseq}
+#' }
+#' 
+#' Further details and examples are given in the associated vignette document:
+#' \preformatted{vignette("MEDseq", package = "MEDseq")}
 #' @author
 #' Keefe Murphy [aut, cre], Thomas Brendan Murphy [ctb], Raffaella Piccarreta [ctb], Isobel Claire Gormley [ctb]
 #'
