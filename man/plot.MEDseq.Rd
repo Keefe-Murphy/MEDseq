@@ -49,13 +49,13 @@ Also available are the following options which act as wrappers to types of plots
 Note also that all of the plot types below can be made to either work with the hard MAP partition (as per \code{\link[TraMineR]{seqplot}}), or to use the soft cluster membership probabilities, via the \code{soft} argument below. The soft information is used by default for all but the \code{"i"} and \code{"I"} plot types, which (by default) discard this information to instead use the MAP partition: see the \code{soft} argument below for modifying this default behaviour for all of the following plot types.
 \describe{
 \item{\code{"d"}}{State distribution plots (chronograms, by cluster).}
-\item{\code{"dH"}}{State distribution plots (chronograms, by cluster) with overlaid entropy line as per \code{type="Ht"}. Note that this option is only available if version \code{2.2-4} or later of \pkg{TraMineR} is installed.}
+\item{\code{"dH"}}{State distribution plots (chronograms, by cluster) with overlaid entropy line as per \code{type="Ht"}.}
 \item{\code{"f"}}{Sequence frequency plots (by cluster).}
 \item{\code{"Ht"}}{Transversal entropy plots (by cluster).}
 \item{\code{"i"}}{Selected sequence index plots (by cluster). By default, bar widths for each observation will be proportional to their weight (if any). However, this can be overruled by specifying \code{weighted=FALSE}.}
 \item{\code{"I"}}{Whole set index plots (by cluster). This plot effectively contains almost exactly the same information as \code{type="clusters"} plots, and is similarly affected by the \code{seriated} argument, albeit shown on a by-cluster basis rather than stacked in one plot. However, bar widths for each observation will (by default) be proportional to their weight (if any), which is not the case for \code{type="clusters"} plots. However, this can be overruled by specifying \code{weighted=FALSE}.}
 \item{\code{"ms"}}{Modal state sequence plots (by cluster). This is an alternative way of displaying the central sequences beyond the \code{type="central"} option above. Notably, this option respects arguments passed to \code{\link{get_MEDseq_results}} via the \code{...} construct (see below), while \code{type="central"} does not, although still nothing is shown for the noise component. \strong{Note}: unlike \code{type="central"}, this option always plots \emph{modal} sequences, even if another \code{opti} setting was invoked during model-fitting via \code{\link{MEDseq_control}}, in which case there will be a mismatch between the visualisation and \code{x$params$theta}. Similarly, there may be a mismatch if \code{soft} and/or \code{weighted} are modified from their default values of \code{TRUE}.}
-\item{\code{"mt"}}{Mean times plots (by cluster). This is equivalent to plotting the results of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, norm=TRUE, prop=FALSE, map.size=FALSE, wt.size=TRUE)}. Other options for \code{norm=FALSE}, \code{prop=TRUE}, \code{map.size=TRUE}, and \code{wt.size=FALSE} may be added in future versions of this package.}
+\item{\code{"mt"}}{Mean times plots (by cluster). This is equivalent to plotting the results of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, norm=TRUE, prop=FALSE, map.size=FALSE, wt.size=TRUE)}. Other options for \code{norm=FALSE}, \code{prop=TRUE}, \code{map.size=TRUE}, and/or \code{wt.size=FALSE} may be added in future versions of this package.}
 }}
 
 \item{seriated}{Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} and \code{sortv} arguments below. 
@@ -86,7 +86,11 @@ Additionally, when (and only when) \code{soft=TRUE} and \code{type="I"}, the add
 
 \item{quant.scale}{Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.}
 
-\item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \pkg{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types (e.g. \code{border}, \code{yaxis} and/or \code{ylab}, \code{serr} where \code{type="mt"}, and \code{info} where \code{type="ms"}) and the \code{size} argument to \code{\link{MEDseq_clustnames}}, where relevant.}
+\item{...}{Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. 
+
+Also allows select additional arguments to the \pkg{TraMineR} function \code{\link[TraMineR]{seqplot}} (and the functions it calls in turn) to be used for the relevant plot types (e.g. \code{border}, \code{col}, \code{yaxis}/\code{xaxis} and/or \code{ylab}/\code{xlab}, \code{pbarw} when \code{type="f"}, \code{serr} when \code{type="mt"}, \code{col.entr} when \code{type="dH"} or \code{type="Ht"} (with respective implied defaults of \code{"black"} and \code{"blue"}), \code{info} when \code{type="ms"}), and the \code{size} argument to \code{\link{MEDseq_clustnames}} (where relevant). 
+
+For the plot types borrowed from \pkg{TraMineR}, select additional generic graphical parameters can also be supplied (see \code{\link[graphics]{par}}, \code{\link[graphics]{barplot}}, and \code{\link[graphics]{legend}}).}
 }
 \value{
 The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
@@ -97,13 +101,18 @@ Produces a range of plots of the results of fitted \code{MEDseq} models.
 \details{
 The \code{type} options related to model selection criteria (\code{"bic"} through to \code{"nec"}) and \code{"LOGLIK"} plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
 }
-\note{
-Every \code{type} of plot respects the sampling weights, if any. However, those related to \code{\link[TraMineR]{seqplot}} plots from \pkg{TraMineR} (\code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, \code{"mt"}) do so only when \code{weighted=TRUE} (the default). 
+\section{Note}{
+
+Every \code{type} of plot respects the sampling weights, if any. However, those related to \code{\link[TraMineR]{seqplot}} plots from \pkg{TraMineR} (\code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, \code{"mt"}) do so only when \code{weighted=TRUE} (the default). Further customisation of such plots is possible via the \code{...} construct.
 
 For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, the y-axis labels (which can be suppressed using \code{ylab=NA}) always display cluster sizes which correspond to the output of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, map.size=FALSE, wt.size=TRUE)}, where \code{wt.size=TRUE} is \strong{NOT} the default behaviour for \code{\link{MEDseq_meantime}}.
-
-Please note that \code{type="dH"} will be unavailable if versions of \pkg{TraMineR} prior to \code{2.2-4} are in use. The colour of the entropy line(s) will be \code{"blue"} for \code{type="Ht"} and \code{"black"} for \code{type="dH"}. Finally, the plot types borrowed from \pkg{TraMineR} may be too wide to display in the preview panel. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}.
 }
+
+\section{Warning}{
+
+The plot types borrowed from \pkg{TraMineR} may be too tall/wide to display in the preview panel. This can lead to error messages about figure margins being too large and the graphics state being invalid. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}.
+}
+
 \examples{
 \dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
 # Load the MVAD data
@@ -134,7 +143,7 @@ plot(mod0, type="precision")
 # mod1        <- MEDseq_fit(mvad.seq, G=9:11, modtype=c("CCN", "CUN", "UCN", "UUN"))
 
 # Plot the DBS values for all fitted models
-# plot(mod1, "dbs")
+# plot(mod1, "dbs")                  #equivalent to plot(mod1$DBS)
 
 # Plot the clusters of the optimal model (according to the dbs criterion)
 # plot(mod1, "clusters", criterion="dbs")
@@ -171,9 +180,10 @@ plot(mod0, type="precision")
 
 # Plot the  transversal entropies by cluster & then the state-distributions by cluster
 # Note that these plots may not display properly in the preview panel
-# plot(mod2, "Ht", ylab=NA)              # suppress the y-axis labels
-# plot(mod2, "d", border=TRUE)           # add borders
-# plot(mod2, "dH", ylab=NA, border=TRUE) # both simultaneously (needs TraMineR >=2.2-4)
+# plot(mod2, "Ht", ylab=NA)          # suppress the y-axis labels
+# plot(mod2, "d", border=TRUE)       # add borders
+# plot(mod2, "dH", col.entr="brown", # add colour
+#      ylab=NA, border=TRUE)         # both simultaneously
 
 # The plots above use the soft cluster membership probabilities
 # Discard this information and reproduce the per-cluster state-distributions plot
@@ -183,8 +193,9 @@ plot(mod0, type="precision")
 # Discard this information and plot the mean times per state per cluster
 # plot(mod2, "mt", weighted=FALSE)
 
-# Use type="I" and subset=0 to examine the noise component
-# plot(mod2, "I", subset=0, border=TRUE, weighted=FALSE, seriated="none")}
+# Use type="I" and subset=0 to examine the noise component, with additional legend arguments
+# plot(mod2, "I", subset=0, border=TRUE, weighted=FALSE, 
+#      seriated="none", bty="n", cex.legend=0.75)}
 \dontshow{\}) # examplesIf}
 }
 \references{

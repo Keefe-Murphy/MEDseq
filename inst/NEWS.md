@@ -2,6 +2,12 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 ===================================================================
 
 ### Improvements, Bug Fixes & Miscellaneous Edits
+* `plot.MEDcriterion` added as a wrapper to `plot.MEDseq` with related `type`, for convenience:  
+  for example, `plot(x$BIC)` is now equivalent to `plot(x, type="bic")`.
+* Allowed new `TraMineR` arg. `col.entr` to be passed via `...` in `plot.MEDseq`;  
+consequently, ensured `TraMineR (>= 2.2-10)` in `DESCRIPTION` `Imports:` field.
+* `MEDseq_fit` now checks for and terminates in the presence of _both_ types of missingness  
+as per new `TraMineR` function `seqhasmiss`, i.e. now also accounts for _void_ values.
 * Minor speedups to various utility functions using `vapply` in place of `tapply`.
 * Additional minor documentation improvements.
 

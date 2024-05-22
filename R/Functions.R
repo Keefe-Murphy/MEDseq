@@ -706,7 +706,7 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' MEDseq: Mixtures of Exponential-Distance Models with Covariates
 #'
 #' Fits MEDseq models: mixtures of Exponential-Distance models with gating covariates and sampling weights. Typically used for clustering categorical/longitudinal life-course sequences. Additional arguments are available via the function \code{\link{MEDseq_control}}.
-#' @param seqs A state-sequence object of class \code{"stslist"} as created by the \code{\link[TraMineR]{seqdef}} function in the \pkg{TraMineR} package (which is reexported by \pkg{MEDseq} for convenience). Note that the data set must have equal sequence lengths, the intervals are assumed to be evenly spaced, and missingness is not allowed.
+#' @param seqs A state-sequence object of class \code{"stslist"} as created by the \code{\link[TraMineR]{seqdef}} function in the \pkg{TraMineR} package (which is reexported by \pkg{MEDseq} for convenience). Note that the data set must have equal sequence lengths, the intervals are assumed to be evenly spaced, and neither missing values nor void values are allowed. These conditions can be checked using \code{\link[TraMineR]{is.stslist}} and \code{\link[TraMineR]{seqhasmiss}}.
 #' @param G A positive integer vector specifying the numbers of mixture components (clusters) to fit. Defaults to \code{G=1:9}.
 #' @param modtype A vector of character strings indicating the type of MEDseq models to be fitted, in terms of the constraints or lack thereof on the precision parameters. By default, all valid model types are fitted (except some only where \code{G > 1} or \code{G > 2}, see \code{Note}). 
 #' The models are named \code{"CC"}, \code{"CU"}, \code{"UC"}, \code{"UU"}, \code{"CCN"}, \code{"CUN"}, \code{"UCN"}, and \code{"UUN"}. The first letter denotes whether the precision parameters are constrained/unconstrained across clusters. The second letter denotes whether the precision parameters are constrained/unconstrained across sequence positions (i.e. time points). The third letter denotes whether one of the components is constrained to have zero-precision/infinite variance. Such a noise component assumes sequences in that cluster follow a uniform distribution.
@@ -762,19 +762,19 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 #' @details The function effectively allows 8 different MEDseq precision parameter settings for models with or without gating network covariates. By constraining the mixing proportions to be equal (see \code{equalPro} in \code{\link{MEDseq_control}}) an extra special case is facilitated in the latter case. 
 #' 
 #' While model selection in terms of choosing the optimal number of components and the MEDseq model type is performed within \code{\link{MEDseq_fit}}, using one of the \code{criterion} options within \code{\link{MEDseq_control}}, choosing between multiple fits with different combinations of covariates or different initialisation settings can be done by supplying objects of class \code{"MEDseq"} to \code{\link{MEDseq_compare}}.
-#' @note Where \code{BIC}, \code{ICL}, \code{AIC}, \code{DBS}, \code{ASW}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{CV}, and \code{NEC} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which dedicated \code{print} and \code{summary} methods exist. For plotting, please see \code{\link{plot.MEDseq}}.
+#' @note Where \code{BIC}, \code{ICL}, \code{AIC}, \code{DBS}, \code{ASW}, \code{LOGLIK}, \code{DF}, \code{ITERS}, \code{CV}, and \code{NEC} contain \code{NA} entries, this corresponds to a model which was not run; for instance a UU model is never run for single-component models as it is equivalent to CU, while a UCN model is never run for two-component models as it is equivalent to CCN. As such, one can consider the value as not really missing, but equivalent to the corresponding value. On the other hand, \code{-Inf} represents models which were terminated due to error, for which a log-likelihood could not be estimated. These objects all inherit the class \code{"MEDCriterion"} for which dedicated \code{print}, \code{summary}, and \code{plot} methods exist. For plotting, the method is a wrapper to \code{\link{plot.MEDseq}}, with its \code{type} argument specified appropriately, which is the recommended approach. Note that all but \code{"LOGLIK"} can be used as model selection criteria via \code{\link{MEDseq_control}}.
 
 #' @importFrom cluster "agnes" "pam"
 #' @importFrom matrixStats "colSums2" "logSumExp" "rowAlls" "rowLogSumExps" "rowMaxs" "rowMeans2" "rowSums2" "weightedMedian" "weightedMean"
 #' @importFrom nnet "multinom"
 #' @importFrom stringdist "stringdistmatrix"
-#' @importFrom TraMineR "disscenter" "seqdef" "seqformat"
+#' @importFrom TraMineR "disscenter" "is.stslist" "seqdef" "seqformat" "seqhasmiss"
 #' @importFrom WeightedCluster "wcKMedoids" "wcSilhouetteObs"
 #' @export
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\doi{10.1111/rssa.12712}>.
 #' @keywords clustering main
-#' @seealso \code{\link[TraMineR]{seqdef}} (reexported by \pkg{MEDseq} for convenience), \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{predict.MEDgating}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}
+#' @seealso \code{\link[TraMineR]{seqdef}} (reexported by \pkg{MEDseq} for convenience), \code{\link{MEDseq_control}}, \code{\link{MEDseq_compare}}, \code{\link{plot.MEDseq}}, \code{\link{predict.MEDgating}}, \code{\link{MEDseq_stderr}}, \code{\link{I}}, \code{\link{MEDseq_clustnames}}, \code{\link[TraMineR]{seqformat}}, \code{\link[TraMineR]{is.stslist}}, \code{\link[TraMineR]{seqhasmiss}}
 #' @usage
 #' MEDseq_fit(seqs, 
 #'            G = 1L:9L, 
@@ -824,9 +824,11 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
 MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), 
                               gating = NULL, weights = NULL, ctrl = MEDseq_control(...), covars = NULL, ...) {
   call            <- cX  <- match.call()
-  if(!inherits(seqs, "stslist")) stop("'seqs' must be of class 'stslist'",        call.=FALSE)
-  if(any(seqs     ==
-         attr(seqs, "nr")))      stop("Missing values in 'seqs' are not allowed", call.=FALSE)
+  if(isFALSE(is.stslist(seqs)))  stop("'seqs' must be of class 'stslist'",        call.=FALSE)
+  if(any(apply(seqs, 1L, "%in%", 
+         attr(seqs, "nr"))))     stop("Missing values in 'seqs' are not allowed", call.=FALSE)
+  if(any(apply(seqs, 1L, "%in%", 
+         attr(seqs, "void"))))   stop("Void values in 'seqs' are not allowed",    call.=FALSE)
   SEQ             <- apply(.fac_to_num(seqs), 1L, .num_to_char)
   seqX            <- seqs
   levs            <- attr(seqs, "alphabet")
@@ -1499,7 +1501,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(AICs, "Criterion")  <- "AIC"
   attr(DF.x, "Criterion")  <- "DF"
   attr(IT.x, "Criterion")  <- "ITERS"
-  attr(LL.x, "Criterion")  <- "loglik"
+  attr(LL.x, "Criterion")  <- "LOGLIK"
   attr(LL.x, "Weighted")   <- do.wts
   CRITs           <- switch(EXPR=criterion, bic=BICs, icl=ICLs, aic=AICs, dbs=DBSs, asw=ASWs, cv=CV.x, nec=NECs)
   best.ind        <- which(CRITs == switch(EXPR=criterion, nec=-crit.gx, crit.gx), arr.ind=TRUE)
@@ -1528,6 +1530,18 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(DF.x, "modelNames") <-
   attr(IT.x, "modelNames") <-
   attr(LL.x, "modelNames") <- colnames(BICs)
+  attr(BICs, "N") <- 
+  attr(ICLs, "N") <- 
+  attr(AICs, "N") <- 
+  attr(DF.x, "N") <- 
+  attr(IT.x, "N") <- 
+  attr(LL.x, "N") <- N2
+  attr(BICs, "T") <- 
+  attr(ICLs, "T") <- 
+  attr(AICs, "T") <- 
+  attr(DF.x, "T") <- 
+  attr(IT.x, "T") <- 
+  attr(LL.x, "T") <- P
   if(cvsel)        {
     CV.x          <- CV.x * 2
     x.cv          <- CV.x[best.ind]
@@ -1535,6 +1549,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     attr(CV.x, "Criterion")     <- "CV"
     attr(CV.x, "G")             <- rownames(BICs)
     attr(CV.x, "modelNames")    <- colnames(BICs)
+    attr(CV.x, "N")             <- N2
+    attr(CV.x, "T")             <- P
     attr(CV.x, "Weighted")      <- 
     attr(x.cv, "Weighted")      <- do.wts
   }
@@ -1550,7 +1566,6 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   attr(x.lambda, "Names")       <- attr(seqs, "names")
   attr(x.lambda, "Nzero")       <- Nzero.x[best.ind]
   attr(x.lambda, "Ninfty")      <- Ninfty.x[best.ind]
-  attr(x.lambda, "P")           <- P
   class(x.lambda)               <- "MEDlambda"
   attr(DF.x,     "Nzero")       <- Nzero.x
   attr(DF.x,     "Ninfty")      <- Ninfty.x
@@ -1675,6 +1690,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     attr(DBSs, "Criterion")     <- "DBS"
     attr(DBSs, "G")             <- if(any(rG  == 1)) rownames(BICs)[-1L] else rownames(BICs)
     attr(DBSs, "modelNames")    <- colnames(BICs)
+    attr(DBSs, "N")             <- N2
+    attr(DBSs, "T")             <- P
     DBSvals       <- if(any(rG  == 1)) stats::setNames(DBSvals, rG)[-1L] else stats::setNames(DBSvals, rG)
     attr(DBSs,    "Weighted")   <- 
     attr(DBSvals, "Weighted")   <- do.wts
@@ -1696,6 +1713,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     attr(ASWs, "Criterion")     <- "ASW"
     attr(ASWs, "G")             <- if(any(rG  == 1)) rownames(BICs)[-1L] else rownames(BICs)
     attr(ASWs, "modelNames")    <- colnames(BICs)
+    attr(ASWs, "N")             <- N2
+    attr(ASWs, "T")             <- P
     ASWvals       <- if(any(rG  == 1)) stats::setNames(ASWvals, rG)[-1L] else stats::setNames(ASWvals, rG)
     attr(ASWs,    "Weighted")   <- 
     attr(ASWvals, "Weighted")   <- do.wts
@@ -1726,6 +1745,8 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     attr(NECs, "Criterion")     <- "NEC"
     attr(NECs, "G")             <- rownames(BICs)[-1L]
     attr(NECs, "modelNames")    <- colnames(BICs)
+    attr(NECs, "N")             <- N2
+    attr(NECs, "T")             <- P
     results       <- c(results, list(NEC = NECs))
   }
   x.ll            <- x.ll[if(G > 1) switch(EXPR=algo, cemEM=-1L, -seq_len(2L)) else 1L]
@@ -1805,13 +1826,13 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' Note also that all of the plot types below can be made to either work with the hard MAP partition (as per \code{\link[TraMineR]{seqplot}}), or to use the soft cluster membership probabilities, via the \code{soft} argument below. The soft information is used by default for all but the \code{"i"} and \code{"I"} plot types, which (by default) discard this information to instead use the MAP partition: see the \code{soft} argument below for modifying this default behaviour for all of the following plot types.
 #' \describe{
 #' \item{\code{"d"}}{State distribution plots (chronograms, by cluster).}
-#' \item{\code{"dH"}}{State distribution plots (chronograms, by cluster) with overlaid entropy line as per \code{type="Ht"}. Note that this option is only available if version \code{2.2-4} or later of \pkg{TraMineR} is installed.}
+#' \item{\code{"dH"}}{State distribution plots (chronograms, by cluster) with overlaid entropy line as per \code{type="Ht"}.}
 #' \item{\code{"f"}}{Sequence frequency plots (by cluster).}
 #' \item{\code{"Ht"}}{Transversal entropy plots (by cluster).}
 #' \item{\code{"i"}}{Selected sequence index plots (by cluster). By default, bar widths for each observation will be proportional to their weight (if any). However, this can be overruled by specifying \code{weighted=FALSE}.}
 #' \item{\code{"I"}}{Whole set index plots (by cluster). This plot effectively contains almost exactly the same information as \code{type="clusters"} plots, and is similarly affected by the \code{seriated} argument, albeit shown on a by-cluster basis rather than stacked in one plot. However, bar widths for each observation will (by default) be proportional to their weight (if any), which is not the case for \code{type="clusters"} plots. However, this can be overruled by specifying \code{weighted=FALSE}.}
 #' \item{\code{"ms"}}{Modal state sequence plots (by cluster). This is an alternative way of displaying the central sequences beyond the \code{type="central"} option above. Notably, this option respects arguments passed to \code{\link{get_MEDseq_results}} via the \code{...} construct (see below), while \code{type="central"} does not, although still nothing is shown for the noise component. \strong{Note}: unlike \code{type="central"}, this option always plots \emph{modal} sequences, even if another \code{opti} setting was invoked during model-fitting via \code{\link{MEDseq_control}}, in which case there will be a mismatch between the visualisation and \code{x$params$theta}. Similarly, there may be a mismatch if \code{soft} and/or \code{weighted} are modified from their default values of \code{TRUE}.}
-#' \item{\code{"mt"}}{Mean times plots (by cluster). This is equivalent to plotting the results of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, norm=TRUE, prop=FALSE, map.size=FALSE, wt.size=TRUE)}. Other options for \code{norm=FALSE}, \code{prop=TRUE}, \code{map.size=TRUE}, and \code{wt.size=FALSE} may be added in future versions of this package.}
+#' \item{\code{"mt"}}{Mean times plots (by cluster). This is equivalent to plotting the results of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, norm=TRUE, prop=FALSE, map.size=FALSE, wt.size=TRUE)}. Other options for \code{norm=FALSE}, \code{prop=TRUE}, \code{map.size=TRUE}, and/or \code{wt.size=FALSE} may be added in future versions of this package.}
 #' }
 #' @param seriated Switch indicating whether seriation should be used to improve the visualisation by re-ordering the \code{"observations"} within clusters (the default), the \code{"clusters"}, \code{"both"}, or \code{"none"}. See \code{\link[seriation]{seriate}} and the \code{smeth} and \code{sortv} arguments below. 
 #' 
@@ -1833,15 +1854,20 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' Additionally, when (and only when) \code{soft=TRUE} and \code{type="I"}, the additional option \code{sortv="membership"} is provided in accordance with \code{\link[WeightedCluster]{fuzzyseqplot}}, on which such plots are based.
 #' @param subset An optional numeric vector giving the indices of the clusters to be plotted. For models with a noise component, values in \code{0:x$G} are admissible, where \code{0} denotes the noise component, otherwise only values in \code{1:x$G}. Only relevant for the \pkg{TraMineR}-\code{type} plots, i.e. \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, and \code{"mt"} \code{type} plots. Note however, that noise components are never plotted for \code{type="ms"} plots, so \code{subset} values of \code{0} will be ignored in this instance.
 #' @param quant.scale Logical indicating whether precision parameter heatmaps should use quantiles to determine non-linear colour break-points when \code{type="precision"}. This ensures each colour represents an equal proportion of the data. The behaviour of \code{0} or \code{Inf} values remains unchanged; only strictly-positive finite entries are affected. Heavily imbalanced values are more likely for the \code{"UU"} and \code{"UUN"} model types, thus \code{quant.scale} defaults to \code{TRUE} in those instances and \code{FALSE} otherwise. Note that \code{quant.scale} is \emph{always} \code{FALSE} for the \code{"CC"} and \code{"CCN"} model types.
-#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. Also allows select additional arguments to the \pkg{TraMineR} function \code{\link[TraMineR]{seqplot}} to be used for the relevant plot types (e.g. \code{border}, \code{yaxis} and/or \code{ylab}, \code{serr} where \code{type="mt"}, and \code{info} where \code{type="ms"}) and the \code{size} argument to \code{\link{MEDseq_clustnames}}, where relevant.
+#' @param ... Catches unused arguments, and allows arguments to \code{\link{get_MEDseq_results}} to be passed when \code{type} is one of \code{"clusters"}, \code{"dbsvals"}, \code{"aswvals"}, \code{"similarity"}, \code{"uncert.bar"}, \code{"uncert.profile"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}, as well as the \code{x.axis} argument when \code{type="gating"}. 
+#' 
+#' Also allows select additional arguments to the \pkg{TraMineR} function \code{\link[TraMineR]{seqplot}} (and the functions it calls in turn) to be used for the relevant plot types (e.g. \code{border}, \code{col}, \code{yaxis}/\code{xaxis} and/or \code{ylab}/\code{xlab}, \code{pbarw} when \code{type="f"}, \code{serr} when \code{type="mt"}, \code{col.entr} when \code{type="dH"} or \code{type="Ht"} (with respective implied defaults of \code{"black"} and \code{"blue"}), \code{info} when \code{type="ms"}), and the \code{size} argument to \code{\link{MEDseq_clustnames}} (where relevant). 
+#' 
+#' For the plot types borrowed from \pkg{TraMineR}, select additional generic graphical parameters can also be supplied (see \code{\link[graphics]{par}}, \code{\link[graphics]{barplot}}, and \code{\link[graphics]{legend}}).
 #'
 #' @return The visualisation according to \code{type} of the results of a fitted \code{MEDseq} model.
-#' @note Every \code{type} of plot respects the sampling weights, if any. However, those related to \code{\link[TraMineR]{seqplot}} plots from \pkg{TraMineR} (\code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, \code{"mt"}) do so only when \code{weighted=TRUE} (the default). 
 #' @details The \code{type} options related to model selection criteria (\code{"bic"} through to \code{"nec"}) and \code{"LOGLIK"} plot values for \emph{all} fitted models in the \code{"MEDseq"} object \code{x}. The remaining \code{type} options plot results for the optimal model, by default. However, arguments to \code{get_MEDseq_results} can be passed via the \code{...} construct to plot corresponding results for suboptimal models in \code{x} when \code{type} is one of \code{"clusters"}, \code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, or \code{"mt"}. See the examples below.
+#' @section Note:
+#' Every \code{type} of plot respects the sampling weights, if any. However, those related to \code{\link[TraMineR]{seqplot}} plots from \pkg{TraMineR} (\code{"d"}, \code{"dH"}, \code{"f"}, \code{"Ht"}, \code{"i"}, \code{"I"}, \code{"ms"}, \code{"mt"}) do so only when \code{weighted=TRUE} (the default). Further customisation of such plots is possible via the \code{...} construct.
 #' 
 #' For these plot types borrowed from \pkg{TraMineR}, when \code{weighted=TRUE}, the y-axis labels (which can be suppressed using \code{ylab=NA}) always display cluster sizes which correspond to the output of \code{\link{MEDseq_meantime}(x, MAP=!soft, weighted=weighted, map.size=FALSE, wt.size=TRUE)}, where \code{wt.size=TRUE} is \strong{NOT} the default behaviour for \code{\link{MEDseq_meantime}}. 
-#' 
-#' Please note that \code{type="dH"} will be unavailable if versions of \pkg{TraMineR} prior to \code{2.2-4} are in use. The colour of the entropy line(s) will be \code{"blue"} for \code{type="Ht"} and \code{"black"} for \code{type="dH"}. Finally, the plot types borrowed from \pkg{TraMineR} may be too wide to display in the preview panel. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}. 
+#' @section Warning:
+#' The plot types borrowed from \pkg{TraMineR} may be too tall/wide to display in the preview panel. This can lead to error messages about figure margins being too large and the graphics state being invalid. The same may also be true when \code{type} is \code{"dbsvals"} or \code{"aswvals"}. 
 #' @references Murphy, K., Murphy, T. B., Piccarreta, R., and Gormley, I. C. (2021). Clustering longitudinal life-course sequences using mixtures of exponential-distance models. \emph{Journal of the Royal Statistical Society: Series A (Statistics in Society)}, 184(4): 1414-1451. <\doi{10.1111/rssa.12712}>.
 #' 
 #' Studer, M. (2018). Divisive property-based and fuzzy clustering for sequence analysis. In G. Ritschard and M. Studer (Eds.), \emph{Sequence Analysis and Related Approaches: Innovative Methods and Applications}, Volume 10 of \emph{Life Course Research and Social Policies}, pp. 223-239. Cham, Switzerland: Springer.
@@ -1901,7 +1927,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' # mod1        <- MEDseq_fit(mvad.seq, G=9:11, modtype=c("CCN", "CUN", "UCN", "UUN"))
 #' 
 #' # Plot the DBS values for all fitted models
-#' # plot(mod1, "dbs")
+#' # plot(mod1, "dbs")                  #equivalent to plot(mod1$DBS)
 #' 
 #' # Plot the clusters of the optimal model (according to the dbs criterion)
 #' # plot(mod1, "clusters", criterion="dbs")
@@ -1938,9 +1964,10 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' 
 #' # Plot the  transversal entropies by cluster & then the state-distributions by cluster
 #' # Note that these plots may not display properly in the preview panel
-#' # plot(mod2, "Ht", ylab=NA)              # suppress the y-axis labels
-#' # plot(mod2, "d", border=TRUE)           # add borders
-#' # plot(mod2, "dH", ylab=NA, border=TRUE) # both simultaneously (needs TraMineR >=2.2-4)
+#' # plot(mod2, "Ht", ylab=NA)          # suppress the y-axis labels
+#' # plot(mod2, "d", border=TRUE)       # add borders
+#' # plot(mod2, "dH", col.entr="brown", # add colour
+#' #      ylab=NA, border=TRUE)         # both simultaneously
 #' 
 #' # The plots above use the soft cluster membership probabilities
 #' # Discard this information and reproduce the per-cluster state-distributions plot
@@ -1950,8 +1977,9 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #' # Discard this information and plot the mean times per state per cluster
 #' # plot(mod2, "mt", weighted=FALSE)
 #' 
-#' # Use type="I" and subset=0 to examine the noise component
-#' # plot(mod2, "I", subset=0, border=TRUE, weighted=FALSE, seriated="none")}
+#' # Use type="I" and subset=0 to examine the noise component, with additional legend arguments
+#' # plot(mod2, "I", subset=0, border=TRUE, weighted=FALSE, 
+#' #      seriated="none", bty="n", cex.legend=0.75)}
 plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "gating", "bic", "icl", "aic", "dbs", "asw", "cv", "nec", "LOGLIK", 
                               "dbsvals", "aswvals", "similarity", "uncert.bar", "uncert.profile", "loglik", "d", "dH", "f", "Ht", "i", "I", "ms", "mt"), 
                               seriated = c("observations", "both", "clusters", "none"), soft = NULL, weighted = TRUE, 
@@ -1963,10 +1991,9 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
   if(!missing(seriated)       &&
      (length(seriated)   > 1  ||
       !is.character(seriated)))  stop("'seriated' must be a character vector of length 1", call.=FALSE)
-  type            <- match.arg(type)
-  if(type == "dH" && 
-     !.version_above("TraMineR", 
-                     "2.2-4"))   stop("'type'=\"dH\" is only available if version 2.2-4 or later of the TraMineR package is installed", call.=FALSE)
+  if(!is.element(type, c("ITERS", "DF"))) {
+    type          <- match.arg(type)
+  }
   dots            <- list(...)
   dots            <- dots[unique(names(dots))]
   has.dot         <- length(names(dots)[names(dots) %in% setdiff(names(formals(get_MEDseq_results)), c("x", "what", "..."))]) > 0
@@ -2221,7 +2248,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     cmat[num.ind]          <- cols[as.numeric(facs)]
     levels        <- sort(unique(as.vector(cmat)))
     z             <- matrix(unclass(factor(cmat, levels=levels, labels=seq_along(levels))), nrow=P, ncol=G, byrow=TRUE)
-    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Positions", ylab=ifelse(isTRUE(SPS), "", switch(EXPR=seriated, clusters=, both="Ordered Clusters", "Clusters")), main=paste0("Precision Parameters Plot", ifelse(quant.scale, "\n(Quantile Scale)",  "")))
+    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Time", ylab=ifelse(isTRUE(SPS), "", switch(EXPR=seriated, clusters=, both="Ordered Clusters", "Clusters")), main=paste0("Precision Parameters Plot", ifelse(quant.scale, "\n(Quantile Scale)",  "")))
     graphics::axis(1, at=Pseq, tick=FALSE, las=1, cex.axis=0.75,                            labels=colnames(x$params$theta))
     graphics::axis(2, at=Gseq, tick=FALSE, las=1, cex.axis=ifelse(isTRUE(SPS), 0.67, 0.75), labels=if(isTRUE(SPS)) tmp_labs else as.character(perm), line=ifelse(isTRUE(SPS), -0.67, -0.25))
     graphics::box(lwd=2)
@@ -2303,10 +2330,12 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
      asw=,
      nec=,
      cv=,
-     LOGLIK=       {
+     LOGLIK=,
+     ITERS=,
+     DF= {
     if(all(type   == "cv",
        !attr(x, "CV")))          stop("Cross-validated log-likelihood values cannot be plotted as cross-validation didn't take place during model fitting\n", call.=FALSE)
-    dat           <- switch(EXPR=type, bic=x$BIC, icl=x$ICL, aic=x$AIC, dbs=x$DBS, asw=x$ASW, cv=x$CV, nec=x$NEC, LOGLIK=x$LOGLIK)
+    dat           <- x[[toupper(type)]]
     if(type ==  "dbs"      &&
        (!attr(x, "DBS")     ||
         is.null(dat)))            stop(paste0("DBS values cannot be plotted as ", ifelse(attr(x, "Algo") == "CEM", "the CEM algorithm was used to fit the models", "only 1-component models were fitted")), call.=FALSE)
@@ -2315,17 +2344,19 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
         is.null(dat)))            stop("ASW values cannot be plotted as only 1-component models were fitted", call.=FALSE)
     if(type ==  "nec"     &&
       (!attr(x, "NEC")     || 
-       is.null(dat)))            stop(paste0("NEC values cannot be plotted as ", ifelse(attr(x, "NEC"), "only 1-component models were fitted", "'do.nec' was set to FALSE")), call.=FALSE)
+       is.null(dat)))             stop(paste0("NEC values cannot be plotted as ", ifelse(attr(x, "NEC"), "only 1-component models were fitted", "'do.nec' was set to FALSE")), call.=FALSE)
     ms            <- which(c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN") %in% colnames(dat))
     symbols       <- symbols[ms]
     use.col       <- use.col[ms]
-    graphics::matplot(dat, type="b", xlab="Number of Components (G)", ylab=switch(EXPR=type, dbs=, asw=, cv=, LOGLIK="", toupper(type)), col=use.col, bg=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
+    graphics::matplot(dat, type="b", xlab="Number of Components (G)", ylab=switch(EXPR=type, dbs=, asw=, cv=, LOGLIK=, ITERS=, DF="", toupper(type)), col=use.col, bg=use.col, pch=symbols, ylim=range(as.vector(dat[!is.na(dat) & is.finite(dat)])), xaxt="n", lty=1)
     if(type == "dbs")    graphics::mtext(paste0(ifelse(Weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " DBS"), side=2, line=3, las=3)
     if(type == "asw")    graphics::mtext(paste0(ifelse(Weighted, "Weighted ", ""), switch(EXPR=attr(dat, "Summ"), median="Median", "Mean"), " ASW"), side=2, line=3, las=3)
-    if(type == "cv")     graphics::mtext(ifelse(Weighted, expression("\u2113"["cv"]^"w"), expression("\u2113"["cv"])), side=2, line=3, las=1, cex=1.5)
+    if(type == "cv")     graphics::mtext(ifelse(Weighted, expression("\u2113"["cv"]^"w"), expression("\u2113"["cv"])), side=2, line=2.5, las=1, cex=1.5)
     if(type == "LOGLIK") graphics::mtext(paste0(ifelse(Weighted, "Weighted ", ""), "Log-Likelihood"), side=2, line=3, las=3)
+    if(type == "ITERS")  graphics::mtext("Iterations", side=2, line=3, las=3)
+    if(type == "DF")     graphics::mtext("Number of Parameters (DF)", side=2, line=3, las=3)
     graphics::axis(1, at=seq_len(nrow(dat)), labels=rownames(dat))
-    graphics::legend(switch(EXPR=type, nec=, dbs="topright", "bottomright"), ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col, pt.bg=use.col)
+    graphics::legend(switch(EXPR=type, nec=, dbs="topright", DF=, ITERS="topleft", "bottomright"), ncol=2, cex=1, inset=0.01, legend=colnames(dat), pch=symbols, col=use.col, pt.bg=use.col)
       invisible()
   }, dbsvals=,
      aswvals=      {
@@ -2529,13 +2560,10 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     attr(dat, "Weights")      <- NULL
     dots          <- c(list(seqdata=dat, group=MAP, with.legend=type != "Ht", with.missing=FALSE, type=type, weighted=weighted), 
                        dots[!(names(dots) %in% c("G", "modtype", "noise", "cluster", "size", "criterion", "what", "rank"))])
-    dots          <- switch(EXPR=type, Ht=dots[names(dots) != "border"], if(!any(names(dots) == "border")) c(list(border=NA), dots) else dots)
-    if(type       == "dH"     && 
-       !("cols" %in% names(dots))) {
-      dots        <- c(dots, list(col="black", cols=NA))
-    } 
-    dots          <- switch(EXPR=type,  I=c(list(space=0L),   dots), dots)
-    dots          <- switch(EXPR=type, mt=c(list(prop=FALSE), dots), dots)
+    dots          <- switch(EXPR=type, Ht=dots[names(dots) != "border"], if(!any(names(dots) == "border")) c(dots, list(border=NA)) else dots)
+    dots          <- switch(EXPR=type, dH=, Ht=if(any(names(dots) == "col")) c(dots[names(dots) != "col"], list(col.entr=dots$col)) else dots, dots[names(dots) != "col.entr"])
+    dots          <- switch(EXPR=type,  I=c(dots[names(dots) != "space"], list(space=0L)),   dots)
+    dots          <- switch(EXPR=type, mt=c(dots[names(dots) != "prop"],  list(prop=FALSE)), dots)
     dots          <- dots[unique(names(dots))]
     suppressWarnings(do.call(seqplot, dots))
       invisible()
@@ -2601,6 +2629,26 @@ summary.MEDgating  <- function(object, SPS = FALSE, ...) {
   attr(summ, "NoiseGate")  <- noise.gate
   attr(summ, "SPS")        <- SPS
     summ
+}
+
+#' @method plot MEDcriterion
+#' @export
+plot.MEDcriterion        <- function(x, ...) {
+  type            <- attr(x, "Criterion")
+  CR              <- stats::setNames(list(x, 
+                                          as.numeric(sub('.*,\\s*', '', names(.pick_MEDCrit(x, pick=1L)$crits))), 
+                                          attr(x, "modelNames")), 
+                                     c(type, "G", "modtype")) 
+  attr(CR, "N")   <- attr(x, "N")
+  attr(CR, "T")   <- attr(x, "T")
+  attr(CR, "ASW") <- tolower(type) == "asw"
+  attr(CR, "DBS") <- tolower(type) == "dbs"
+  attr(CR, "CV")  <- tolower(type) == "cv"  || isTRUE(attr(x, "CV"))
+  attr(CR, "NEC") <- tolower(type) == "nec" || isTRUE(attr(x, "NEC"))
+  if(is.element(type, c("ASW", "DBS", "CV", "LOGLIK"))) {
+    attr(CR, "Weighted") <- attr(x, "Weighted")
+  }
+    plot.MEDseq(CR, type=switch(EXPR=type, LOGLIK=, ITERS=, DF=type, tolower(type)), ...)
 }
 
 #' @method print MEDcriterion

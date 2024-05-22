@@ -20,7 +20,7 @@ Imports:
   nnet (>= 7.3-0),
   seriation,
   stringdist,
-  TraMineR (>= 1.6),
+  TraMineR (>= 2.2-10),
   WeightedCluster
 Suggests:
   knitr,
