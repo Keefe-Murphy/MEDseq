@@ -8,6 +8,7 @@
 MEDseq_clustnames(x,
                   cluster = TRUE,
                   size = FALSE,
+                  MAP = FALSE,
                   weighted = FALSE,
                   ...)
 
@@ -20,7 +21,9 @@ MEDseq_nameclusts(names)
 
 \item{size}{A logical indicating whether the (typically `soft') size of each cluster is appended to the label of each group, expressed as a percentage of the total number of observations. Defaults to \code{FALSE}.}
 
-\item{weighted}{A logical indicating whether the sampling weights (if any) are used when appending the \code{size} of each cluster to the labels. Defaults to \code{FALSE}.}
+\item{MAP}{A logical indicating whether to use the MAP classification in the computation of the \code{size} of each cluster, or the `soft' clustering assignment probabilities given by \code{x$z}. Defaults to \code{FALSE}, but is always \code{TRUE} for models fitted by the CEM algorithm (see \code{\link{MEDseq_control}}), and is only relevant when \code{size=TRUE}. See \code{weighted} for incorporating the sampling weights (regardless of the value of \code{MAP}). The \code{MAP} argument here plays a similar role to \code{map.size} in \code{\link{MEDseq_meantime}}.}
+
+\item{weighted}{A logical indicating whether the sampling weights (if any) are used when appending the \code{size} of each cluster to the labels. Defaults to \code{FALSE} and only relevant when \code{size=TRUE}. The \code{MAP} argument here plays a similar role to \code{wt.size} in \code{\link{MEDseq_meantime}}.}
 
 \item{...}{Catches unused arguments.}
 
@@ -38,7 +41,7 @@ These functions extract names for clusters according to the SPS representation o
 Unlike the \code{\link[WeightedCluster]{seqclustname}} function from the \pkg{WeightedCluster} package which inspired these functions, \code{MEDseq_clustnames} only returns the names themselves, not the \code{factor} variable indicating cluster membership with labels given by those names. Thus, \code{MEDseq_nameclusts} is provided as a convenience function for precisely this purpose (see \code{Examples}).
 }
 \note{
-The main \code{MEDseq_clustnames} function is used internally by \code{\link{plot.MEDseq}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_stderr}}, and also other \code{print} and \code{summary} methods, where its invocation can typically controlled via a \code{SPS} logical argument. However, the optional arguments \code{cluster}, \code{size}, and \code{weighted} can only be passed through \code{\link{plot.MEDseq}}; elsewhere \code{cluster=TRUE}, \code{size=FALSE}, and \code{weighted=FALSE} are always assumed.
+The main \code{MEDseq_clustnames} function is used internally by \code{\link{plot.MEDseq}}, \code{\link{MEDseq_meantime}}, \code{\link{MEDseq_stderr}}, and also other \code{print} and \code{summary} methods, where its invocation can typically controlled via a \code{SPS} logical argument. However, the optional arguments \code{cluster}, \code{size}, \code{MAP}, and \code{weighted} can only be passed through \code{\link{plot.MEDseq}}; elsewhere \code{cluster=TRUE}, \code{size=FALSE}, \code{MAP=FALSE}, and \code{weighted=FALSE} are always assumed. When invoked within \code{\link{plot.MEDseq}}, the \code{MAP} argument is renamed to \code{soft}, where \code{MAP=!soft} such that \code{soft=TRUE} by default.
 }
 \examples{
 \dontshow{if (interactive()) (if (getRversion() >= "3.4") withAutoprint else force)(\{ # examplesIf}
@@ -85,8 +88,8 @@ print(mod$gating, SPS=TRUE)
 MEDseq_meantime(mod, SPS=TRUE)
  
 # Invoke this function in other plots
-plot(mod, type="clusters", SPS=TRUE)
-plot(mod, type="precision", SPS=TRUE)}
+plot(mod, type="clusters", SPS=TRUE, size=TRUE)
+plot(mod, type="precision", SPS=TRUE, size=TRUE, weighted=FALSE)}
 \dontshow{\}) # examplesIf}
 }
 \references{

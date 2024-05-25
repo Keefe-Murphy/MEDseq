@@ -49,7 +49,7 @@ Computes the mean time (per cluster) spent in each sequence category (i.e. state
 Models with weights, covariates, &/or a noise component are also accounted for.
 }
 \note{
-The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be used to visualise the mean times (by cluster). However, the results displayed therein (at present) always assume \code{norm=TRUE}, \code{prop=FALSE}, and \code{wt.size=TRUE}, while the \code{MAP} argument is renamed to \code{soft}, where \code{MAP=!soft} such that \code{soft=TRUE} by default, and \code{weighted} can also be user-specified but defaults again to \code{TRUE}.
+The function \code{\link{plot.MEDseq}} with the option \code{type="mt"} can be used to visualise the mean times (by cluster). However, the results displayed therein (at present) always assume \code{norm=TRUE} and \code{prop=FALSE} and assume by default that \code{map.size=FALSE} and \code{wt.size=TRUE}, while the \code{MAP} argument is renamed to \code{soft}, where \code{MAP=!soft} such that \code{soft=TRUE} by default, and \code{weighted} can also be user-specified but defaults again to \code{TRUE}.
 }
 \examples{
 \donttest{data(biofam)

@@ -2,14 +2,23 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 ===================================================================
 
 ### Improvements, Bug Fixes & Miscellaneous Edits
+* Many adjustments to `plot.MEDseq`:
+  * New `MEDseq_clustnames` arg. `MAP` (see below) now used  when `SPS=TRUE`  
+  & `size=TRUE`, where `soft=FALSE` corresponds to `MAP=TRUE`.
+  * `TraMineR` `type` y-axis labels now properly account for all combos of `soft` & `weighted`,  
+  particularly when `subset` is invoked &/or `type="ms"`, with additional minor fixes to `subset` arg.
+  * `type="ms"` can now show noise component's modal sequence by setting `subset` appropriately,   
+  but not by default as modal sequences are not estimated by the model for noise components.
+  * The `MEDseq_clustnames` arg. `cluster` can now also be passed via `...` when `SPS=TRUE`.
+  * Allowed new `TraMineR` arg. `col.entr` to be passed via `...` when `type="Ht"` or `type="dH"`.
 * `plot.MEDcriterion` added as a wrapper to `plot.MEDseq` with related `type`, for convenience:  
   for example, `plot(x$BIC)` is now equivalent to `plot(x, type="bic")`.
-* Allowed new `TraMineR` arg. `col.entr` to be passed via `...` in `plot.MEDseq`;  
-consequently, ensured `TraMineR (>= 2.2-10)` in `DESCRIPTION` `Imports:` field.
 * `MEDseq_fit` now checks for and terminates in the presence of _both_ types of missingness  
 as per new `TraMineR` function `seqhasmiss`, i.e. now also accounts for _void_ values.
+* `MEDseq_clustnames` gains the arg. `MAP` (`FALSE` by default) for use when `size=TRUE`.
 * Minor speedups to various utility functions using `vapply` in place of `tapply`.
-* Additional minor documentation improvements.
+* Ensured `TraMineR (>= 2.2-10)` in `DESCRIPTION` `Imports:` field due to `col.entr` & `seqhasmiss`. 
+* Many additional minor documentation improvements.
 
 ## MEDseq v1.4.1 - (_12<sup>th</sup> release [patch update]: 2023-12-12_)
 ### Improvements, Bug Fixes & Miscellaneous Edits
