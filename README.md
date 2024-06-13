@@ -1,6 +1,6 @@
 [![CRAN_Status_Badge](https://www.r-pkg.org/badges/version/MEDseq)](https://cran.r-project.org/package=MEDseq)
-[![rstudio mirror downloads](https://cranlogs.r-pkg.org/badges/MEDseq?)](https://github.com/r-hub/cranlogs.app)
-[![rstudio mirror downloads](https://cranlogs.r-pkg.org/badges/grand-total/MEDseq?color=82b4e8)](https://github.com/r-hub/cranlogs.app)
+[![rstudio monthly downloads](https://cranlogs.r-pkg.org/badges/MEDseq?)](https://github.com/r-hub/cranlogs.app)
+[![rstudio total downloads](https://cranlogs.r-pkg.org/badges/grand-total/MEDseq?color=82b4e8)](https://github.com/r-hub/cranlogs.app)
 
 # MEDseq R Package
 ## Mixtures of Exponential-Distance Models

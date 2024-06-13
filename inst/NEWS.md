@@ -11,6 +11,11 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
   but not by default as modal sequences are not estimated by the model for noise components.
   * The `MEDseq_clustnames` arg. `cluster` can now also be passed via `...` when `SPS=TRUE`.
   * Allowed new `TraMineR` arg. `col.entr` to be passed via `...` when `type="Ht"` or `type="dH"`.
+* Minor fixes in relation to `MEDseq_control` arg. `tau0`:
+  * `tau0` can now always be supplied as a vector (previously allowed only with `noise.gate=TRUE`).
+  * Related bug fix when `tau0` is supplied as a vector with `noise.gate=TRUE`.
+  * Related initialisation bug fix when `tau0 != 0.5` (the implied default) for `G=2` models with noise.
+* Fixed bugs when a 'soft' `z.list` is supplied when `algo != "EM"`.
 * `plot.MEDcriterion` added as a wrapper to `plot.MEDseq` with related `type`, for convenience:  
   for example, `plot(x$BIC)` is now equivalent to `plot(x, type="bic")`.
 * `MEDseq_fit` now checks for and terminates in the presence of _both_ types of missingness  

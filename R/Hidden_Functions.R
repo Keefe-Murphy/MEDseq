@@ -255,7 +255,7 @@
       MLRconverge <- Mstep$MLRconverge
       Estep       <- .E_step(SEQ, modtype=modtype, ctrl=ctrl, numseq=numseq, params=Mstep, HAM.mat=HAM.mat, z.old=z)
       z           <- Estep$z
-      ERR         <- any(is.nan(z))
+      ERR         <- any(is.nan(z) | is.na(z))
       if(isTRUE(ERR))            break
       if(isTRUE(emptywarn) && ctrl$warn         &&
          any(zsum <- (colSums2(z, useNames=FALSE)
@@ -804,9 +804,20 @@
     do.call(expand.grid, replicate(length, list(0L:(ncat - 1L))))
 }
 
+.soft_to_hard     <- function(z, G) {
+  z[,G]           <- stats::rbinom(nrow(z), size=1L, prob=z[,G])
+  z[,-G]          <- replace(z[,-G], z[,G] == 1, 0L)
+  z[,-G]          <- replace(z[,-G], z[,-G] > 0, 1L)
+    return(z)
+}
+
 .tau_noise        <- function(tau, z0)  {
   t0              <- ifelse(length(z0) == 1, z0, mean(z0))
     cbind(tau * (1 - t0), unname(t0))
+}
+
+.tau0_noise       <- function(z,   t0)  {
+    cbind(z   * (1 - t0), unname(t0))
 }
 
 #' @importFrom matrixStats "colSums2" "rowSums2"
