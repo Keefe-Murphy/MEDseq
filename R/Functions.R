@@ -263,7 +263,7 @@ get_MEDseq_results.MEDseq     <- function(x, what = c("z", "MAP", "DBS", "ASW"),
 #' \item{\code{maxi}}{A number specifying the maximum number of rows/models to print. Defaults to \code{length(index)}.}}
 #' @note The \code{criterion} argument here need not comply with the criterion used for model selection within each \code{"MEDseq"} object, but be aware that a mismatch in terms of \code{criterion} \emph{may} require the optimal model to be re-fit in order to be extracted, thereby slowing down \code{\link{MEDseq_compare}}.
 #' 
-#' If random starts had been used via \code{init.z="random"} the \code{optimal} model may not necessarily correspond to the highest-ranking model in the presence of a criterion mismatch, due to the randomness of the initialisation. 
+#' If random starts had been used via \code{init.z="random.hard"} or \code{init.z="soft.random"}, the \code{optimal} model may not necessarily correspond to the highest-ranking model in the presence of a criterion mismatch, due to the randomness of the initialisation. 
 #'
 #' A dedicated \code{print} function exists for objects of class \code{"MEDseqCompare"} and \code{\link{plot.MEDseq}} can also be called on objects of class \code{"MEDseqCompare"}.
 #' @return A list of class \code{"MEDseqCompare"}, for which a dedicated print function exists, containing the following elements (each of length \code{pick}, and ranked according to \code{criterion}, where appropriate):
@@ -477,8 +477,9 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
     old.call    <- c(as.list(old.call)[1L], list(criterion=criterion), as.list(old.call)[-1L])
     old.call    <- as.call(old.call[!duplicated(names(old.call))])
     if(!is.null(old.call$init.z)    &&
-       old.call$init.z  == 
-       "random")                 warning("Optimal model may differ slightly due to criterion mismatch and random starts used in the initialisation:\nPrinted output intended only as a guide", call.=FALSE, immediate.=TRUE)
+       is.element(old.call$init.z,
+       c("random.hard", 
+         "soft.random")))        warning("Optimal model may differ slightly due to criterion mismatch and random starts used in the initialisation:\nPrinted output intended only as a guide", call.=FALSE, immediate.=TRUE)
     best.call   <- c(list(data=best.model$data, modtype=modelNames[1L], G=G[1L], criterion="bic", verbose=FALSE, do.cv=FALSE, do.nec=FALSE), as.list(old.call[-1L]))
     best.mod    <- try(do.call(MEDseq_fit, best.call[!duplicated(names(best.call))]), silent=TRUE)
     if(!inherits(best.model, "try-error")) {
@@ -530,16 +531,16 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #'
 #' Supplies a list of arguments (with defaults) for use with \code{\link{MEDseq_fit}}.
 #' @param algo Switch controlling whether models are fit using the \code{"EM"} (the default) or \code{"CEM"} algorithm. The option \code{"cemEM"} allows running the EM algorithm starting from convergence of the CEM algorithm.
-#' @param init.z The method used to initialise the cluster labels. All options respect the presence of sampling \code{weights}, if any. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward's hierarchical clustering (\code{"hc"}, via \code{\link[stats]{hclust}}), \code{"random"} initialisation, and a user-supplied \code{"list"} (see \code{z.list} below). For weighted sequences, \code{"kmedoids"} is itself initialised using Ward's hierarchical clustering.
+#' @param init.z The method used to initialise the cluster labels. All options respect the presence of sampling \code{weights}, if any. Defaults to \code{"kmedoids"}. Other options include \code{"kmodes"}, \code{"kmodes2"}, Ward's hierarchical clustering (\code{"hc"}, via \code{\link[stats]{hclust}}), \code{"random.hard"}, or \code{"soft.random"} initialisation (see \code{nstarts} below), and a user-supplied \code{"list"} (see \code{z.list} below). Note that \code{init.z="soft.random"} is only available when \code{algo="CEM"}. For weighted sequences, \code{"kmedoids"} is itself initialised using Ward's hierarchical clustering.
 #' 
 #' The \code{"kmodes"} and \code{"kmodes2"} options both internally call the function \code{\link{wKModes}}, which \emph{typically} uses random initial modes. Under \code{"kmodes"}, the algorithm is instead initialised via the medoids of the clusters obtained from a call to \code{\link[stats]{hclust}}. The option \code{"kmodes2"} is slightly faster, by virtue of using the \emph{random} initial medoids. However, final results are by default still subject to randomness under both options (unless \code{\link{set.seed}} is invoked), as ties for modes and cluster assignments are \emph{typically} broken at random throughout the algorithm (see the \code{random} argument below, and in \code{\link{wKModes}} itself).
 #' @param z.list A user supplied list of initial cluster allocation matrices, with number of rows given by the number of observations (\emph{including duplicates} if \code{unique=TRUE}), and numbers of columns given by the range of component numbers being considered (where columns corresponding to noise components must be included). Only relevant if \code{init.z == "z.list"}. These matrices are allowed correspond to both soft or hard clusterings, and will be internally normalised so that the rows sum to 1 (or coerced always to a 'hard' matrix if \code{algo != "EM"}).
 #' @param dist.mat An optional distance matrix to use for initialisation when \code{init.z} is one of \code{"kmedoids"} or \code{"hc"}. Defaults to a Hamming distance matrix. This is an experimental feature and should only be tampered with by expert users.
 #' @param unique A logical indicating whether the model is fit only to the unique observations (defaults to \code{TRUE}). When there are covariates, this means all unique combinations of covariate and sequence patterns, otherwise only the sequence patterns. 
 #' 
-#' When \code{weights} \emph{are not} supplied to \code{\link{MEDseq_fit}} and \code{isTRUE(unique)}, weights are given by the occurrence frequency of the corresponding sequences, and the model is then fit to the unique observations only.
+#' When \code{weights} \emph{are not} supplied to \code{\link{MEDseq_fit}} and \code{unique=TRUE}, weights are given by the occurrence frequency of the corresponding sequences, and the model is then fit to the unique observations only.
 #' 
-#' When \code{weights} \emph{are} supplied and \code{isTRUE(unique)}, the weights are summed for each set of duplicate observations and assigned to one retained copy of each corresponding unique sequence. Hence, observations with different weights that are otherwise duplicates are treated as duplicates and significant computational gains can be made. 
+#' When \code{weights} \emph{are} supplied and \code{unique=TRUE}, the weights are summed for each set of duplicate observations and assigned to one retained copy of each corresponding unique sequence. Hence, observations with different weights that are otherwise duplicates are treated as duplicates and significant computational gains can be made. 
 #' 
 #' In both cases, the results will be unchanged, but setting \code{unique} to \code{TRUE} can often be much faster. 
 #' @param criterion When either \code{G} or \code{modtype} is a vector, \code{criterion} governs how the `best' model is determined when gathering output. Defaults to \code{"bic"}. Note that all criteria will be returned in any case, if possible.
@@ -550,11 +551,11 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{init.z} is \code{"kmodes"} or \code{"kmodes2"} and that, in certain rare cases when the \code{"CEM"} \code{algo} is invoked when \code{equalPro} is \code{TRUE} and the precision parameter(s) are somehow constrained across clusters, this argument also governs ties for cluster assignments within \code{MEDseq_fit} as well.
 #' @param do.cv A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.
 #' @param do.nec A logical indicating whether the normalised entropy criterion (NEC) should also be computed (for models with more than one component). Defaults to \code{FALSE}. When \code{TRUE}, models with \code{G=1} are fitted always.
-#' @param nfolds The number of folds to use when \code{isTRUE{do.cv}}. Defaults to \code{10}.
-#' @param nstarts The number of random initialisations to use when \code{init.z="random"}. Defaults to \code{1}. Results will be based on the random start yielding the highest estimated log-likelihood.
+#' @param nfolds The number of folds to use when \code{do.cv=TRUE}. Defaults to \code{10}.
+#' @param nstarts The number of random initialisations to use when \code{init.z="random.hard"} or \code{init.z="soft.random"}. Defaults to \code{1}. Results will be based on the random start yielding the highest estimated log-likelihood.
 #' @param stopping The criterion used to assess convergence of the EM/CEM algorithm. The default (\code{"aitken"}) uses Aitken's acceleration method, otherwise the \code{"relative"} change in log-likelihood is monitored (which may be less strict).
 #' @param equalPro Logical variable indicating whether or not the mixing proportions are to be constrained to be equal in the model. Default: \code{equalPro = FALSE}. Only relevant when \code{gating} covariates are \emph{not} supplied within \code{\link{MEDseq_fit}}, otherwise ignored. In the presence of a noise component, only the mixing proportions for the non-noise components are constrained to be equal (by default, see \code{equalNoise}), after accounting for the noise component.
-#' @param equalNoise Logical which is \strong{only} invoked when \code{isTRUE(equalPro)} and gating covariates are not supplied. Under the default setting (\code{FALSE}), the mixing proportion for the noise component is estimated, and remaining mixing proportions are equal; when \code{TRUE} all components, including the noise component, have equal mixing proportions.
+#' @param equalNoise Logical which is \strong{only} invoked when \code{equalPro=TRUE} and gating covariates are not supplied. Under the default setting (\code{FALSE}), the mixing proportion for the noise component is estimated, and remaining mixing proportions are equal; when \code{TRUE} all components, including the noise component, have equal mixing proportions.
 #' @param tol A vector of length two giving \emph{relative} convergence tolerances for 1) the log-likelihood of the EM/CEM algorithm, and 2) optimisation in the multinomial logistic regression in the gating network, respectively. The default is \code{c(1e-05, 1e-08)}. If only one number is supplied, it is used as the tolerance in both cases.
 #' @param itmax A vector of length two giving integer limits on the number of iterations for 1) the EM/CEM algorithm, and 2) the multinomial logistic regression in the gating network, respectively. The default is \code{c(.Machine$integer.max, 1000)}. This allows termination of the EM/CEM algorithm to be completely governed by \code{tol[1]}. If only one number is supplied, it is used as the iteration limit for the EM/CEM algorithm only and the other element of \code{itmax} retains its usual default.
 #' 
@@ -581,7 +582,8 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' @export
 #' @usage 
 #' MEDseq_control(algo = c("EM", "CEM", "cemEM"), 
-#'                init.z = c("kmedoids", "kmodes", "kmodes2", "hc", "random", "list"), 
+#'                init.z = c("kmedoids", "kmodes", "kmodes2", "hc", 
+#'                           "random.hard", "soft.random", "list"), 
 #'                z.list = NULL, 
 #'                dist.mat = NULL, 
 #'                unique = TRUE, 
@@ -619,9 +621,9 @@ MEDseq_compare    <- function(..., criterion = c("bic", "icl", "aic", "dbs", "as
 #' 
 #' # Note that supplying control arguments via a mix of the ... construct and the named argument 
 #' # 'control' or supplying MEDseq_control output without naming it 'control' can throw an error}
-MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "kmodes", "kmodes2", "hc", "random", "list"), z.list = NULL, dist.mat = NULL, unique = TRUE, 
-                              criterion = c("bic", "icl", "aic", "dbs", "asw", "cv", "nec"), tau0 = NULL, noise.gate = TRUE, random = TRUE, do.cv = FALSE, do.nec = FALSE, nfolds = 10L, 
-                              nstarts = 1L, stopping = c("aitken", "relative"), equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 1000L), 
+MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoids", "kmodes", "kmodes2", "hc", "random.hard", "soft.random", "list"), z.list = NULL, dist.mat = NULL, 
+                              unique = TRUE, criterion = c("bic", "icl", "aic", "dbs", "asw", "cv", "nec"), tau0 = NULL, noise.gate = TRUE, random = TRUE, do.cv = FALSE, do.nec = FALSE, 
+                              nfolds = 10L, nstarts = 1L, stopping = c("aitken", "relative"), equalPro = FALSE, equalNoise = FALSE, tol = c(1E-05, 1E-08), itmax = c(.Machine$integer.max, 1000L), 
                               opti = c("mode", "medoid", "first", "GA"), ordering = c("none", "decreasing", "increasing"), MaxNWts = 1000L, verbose = TRUE, ...) {
   miss.args                <- list(tau0=missing(tau0), init.z = missing(init.z), z.list = missing(z.list))
   if(!missing(algo)        &&
@@ -637,12 +639,12 @@ MEDseq_control    <- function(algo = c("EM", "CEM", "cemEM"), init.z = c("kmedoi
   }
   if(length(unique)    > 1 ||
      !is.logical(unique))        stop("'unique' must be a single logical indicator",        call.=FALSE)
-  if(init.z == "random")    {
+  if(is.element(init.z, c("random.hard", "soft.random"))) {
    if(length(nstarts) != 1 ||
       !is.numeric(nstarts) ||
       (nstarts         < 1 ||
        floor(nstarts) !=
-       nstarts))                 stop(paste0("'nstarts' must be a single integer >= 1 if when 'init.z'=", init.z), call.=FALSE)
+       nstarts))                 stop(paste0("'nstarts' must be a single integer >= 1 when 'init.z'=", init.z), call.=FALSE)
   }
   if(!missing(criterion)   &&
     (length(criterion) > 1 ||
@@ -854,10 +856,13 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
   opti            <- ctrl$opti
   criterion       <- ctrl$criterion
   init.z          <- ctrl$init.z
+  if(init.z       == "soft.random" &&
+     algo         != "EM")       stop("init.z=\"soft.random\" is only available when algo=\"EM\"", call.=FALSE)
+  nstarts         <- ifelse(is.element(init.z, c("random.hard", "soft.random")), ctrl$nstarts, 1L)
+  startseq        <- seq_len(nstarts)
+  multi.start     <- nstarts > 1
   z.list          <- ctrl$z.list
   dist.mat        <- ctrl$dist.mat
-  nstarts         <- switch(EXPR=init.z, random=ctrl$nstarts, 1L)
-  startseq        <- seq_len(nstarts)
   equalPro        <- ctrl$equalPro
   equalNoise      <- ctrl$equalNoise
   noise.gate      <- ctrl$noise.gate
@@ -1206,14 +1211,13 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
     
     if(g  > 1)     {
       algog       <- algo
-      if(init.z   == "random" &&
-         nstarts   > 1)     {
+      if(multi.start)       {
         if(isTRUE(nonoise)) {
-          zg      <- replicate(nstarts, list(.unMAP(sample(seq_len(g),  size=N, replace=TRUE), groups=seq_len(g))))
+          zg      <- replicate(nstarts, list(if(init.z == "random.hard") .unMAP(sample(seq_len(g),  size=N, replace=TRUE), groups=seq_len(g))  else .renorm_z(matrix(stats::runif(N * g),  nrow=N))))
         }
         if(isTRUE(noise))   {
           if(g0    > 1)     {
-            zg0   <- replicate(nstarts, list(.unMAP(sample(seq_len(g0), size=N, replace=TRUE), groups=seq_len(g0))))
+            zg0   <- replicate(nstarts, list(if(init.z == "random.hard") .unMAP(sample(seq_len(g0), size=N, replace=TRUE), groups=seq_len(g0)) else .renorm_z(matrix(stats::runif(N * g0), nrow=N))))
             zg0   <- lapply(zg0, .tau0_noise, tau0)
           } else   {
             zg0   <- cbind(rep(1L, N) - tau0, tau0)
@@ -1224,9 +1228,11 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
           switch(EXPR=init.z, 
                  list=      {
           zg      <- if(algo == "EM") .renorm_z(z.list[[h]]) else .unMAP(max.col(z.list[[h]]), groups=seq_len(g))
+          }, soft.random=   {
+          zg      <- .renorm_z(matrix(stats::runif(N * g), nrow=N))
           },       {
           zg      <- .unMAP(switch(EXPR=init.z, 
-                                   random=sample(seq_len(g),  size=N, replace=TRUE),
+                                   random.hard=sample(seq_len(g),  size=N, replace=TRUE),
                                    kmodes=              {
                                      Ms <- seqX[disscenter(dist.mat2, group=stats::cutree(hcZ, k=g),  medoids.index="first", weights=if(do.wts) w2),, drop=FALSE]
                                        suppressWarnings(wKModes(seqs,     weights=if(ctrl$do.wts) weights, random=ctrl$random, modes=Ms, ...)$cluster)
@@ -1243,10 +1249,12 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
           switch(EXPR=init.z, 
                  list=      {
           zg0     <- if(algo == "EM") .renorm_z(z.list[[h]]) else .unMAP(max.col(z.list[[h]]), groups=seq_len(g))
+          }, soft.random=   {
+          zg0     <- .tau0_noise(.renorm_z(matrix(stats::runif(N * g0), nrow=N)), tau0)
           },       {
           if(g0    > 1)     {
             zg0   <- .unMAP(switch(EXPR=init.z, 
-                                   random=sample(seq_len(g0), size=N, replace=TRUE),
+                                   random.hard=sample(seq_len(g0), size=N, replace=TRUE),
                                    kmodes=              {
                                      Ms <- seqX[disscenter(dist.mat2, group=stats::cutree(hcZ, k=g0), medoids.index="first", weights=if(do.wts) w2),, drop=FALSE]
                                        suppressWarnings(wKModes(seqs,     weights=if(ctrl$do.wts) weights, random=ctrl$random, modes=Ms, ...)$cluster)
@@ -1283,15 +1291,14 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       ctrl$noise.gate    <- !ctrl$nmeth    || noise.gate[2L, h]
       zm          <- if(attr(SEQ, "Noise") <- gN0 <- ctrl$nmeth) zg0 else zg
       if(gN0      &&   !ctrl$noise.gate    && algog  != "EM") {
-        if(init.z == "random" &&
-           nstarts > 1)   {
+        if(init.z == "random.hard" &&
+           multi.start)   {
           zm      <- lapply(zm, .soft_to_hard, G)
         } else zm <- .soft_to_hard(zm, G)
       }
       m           <- which(modtype == modtypes)
-      if(init.z   == "random" &&
-         g - gN0   > 1        &&
-         nstarts   > 1)        {
+      if(g - gN0   > 1        &&
+         multi.start)          {
         EMX       <- list()
         for(i in startseq)     {
          if(isTRUE(verbose))     message(paste0("\tRandom Start: #", i, "...\n"))
