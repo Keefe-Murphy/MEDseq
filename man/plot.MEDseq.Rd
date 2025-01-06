@@ -17,7 +17,7 @@
      smeth = "TSP",
      sortv = NULL,
      subset = NULL,
-     quant.scale = FALSE, 
+     quant.scale = NULL, 
      ...)
 }
 \arguments{

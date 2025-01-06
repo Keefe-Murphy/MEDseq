@@ -1407,7 +1407,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
       Gfit        <- if(ctrl$gate.g) Mstep$fitG
       gate.pen    <- ifelse(ctrl$gate.g, length(stats::coef(Gfit)) + !ctrl$noise.gate, 
                      ifelse(ctrl$equalPro, as.integer(ctrl$nmeth  && !ctrl$equalNoise), g - 1L))
-      choice      <- .choice_crit(ll=log.lik, seqs=SEQ, z=z, modtype=modtype, gp=gate.pen)
+      choice      <- .choice_crit(ll=log.lik, seqs=SEQ, z=z, modtype=modtype, gp=gate.pen, type="new")
       bicx        <- choice$bic
       iclx        <- choice$icl
       aicx        <- choice$aic
@@ -1898,7 +1898,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 #'      smeth = "TSP",
 #'      sortv = NULL,
 #'      subset = NULL,
-#'      quant.scale = FALSE, 
+#'      quant.scale = NULL, 
 #'      ...)
 #' @author Keefe Murphy - <\email{keefe.murphy@@mu.ie}>
 #' @keywords plotting main
@@ -1998,7 +1998,7 @@ MEDseq_fit        <- function(seqs, G = 1L:9L, modtype = c("CC", "UC", "CU", "UU
 plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "gating", "bic", "icl", "aic", "dbs", "asw", "cv", "nec", "LOGLIK", 
                               "dbsvals", "aswvals", "similarity", "uncert.bar", "uncert.profile", "loglik", "d", "dH", "f", "Ht", "i", "I", "ms", "mt"), 
                               seriated = c("observations", "both", "clusters", "none"), soft = NULL, weighted = TRUE, 
-                              SPS = NULL, smeth = "TSP", sortv = NULL, subset = NULL, quant.scale = FALSE, ...) {
+                              SPS = NULL, smeth = "TSP", sortv = NULL, subset = NULL, quant.scale = NULL, ...) {
   x               <- if(inherits(x, "MEDseqCompare")) x$optimal else x
   if(!missing(type)           &&
      (length(type)       > 1  ||
@@ -2244,7 +2244,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     graphics::layout(1)
       invisible()
   }, precision=    {
-    quant.scale   <- ifelse(missing(quant.scale), is.element(modtype, c("UU", "UUN")), !is.element(modtype, c("CC", "CCN")) && quant.scale)
+    quant.scale   <- ifelse(is.null(quant.scale), is.element(modtype, c("UU", "UUN")) || (!is.element(modtype, c("CC", "CCN")) && isTRUE(quant.scale)), quant.scale)
     if(length(quant.scale)  > 1  ||
        !is.logical(quant.scale)) stop("'quant.scale' must be a single logical indicator", call.=FALSE)
     if(all("CCN"  == modtype     &&
@@ -2273,7 +2273,7 @@ plot.MEDseq       <- function(x, type = c("clusters", "central", "precision", "g
     cmat[num.ind]          <- cols[as.numeric(facs)]
     levels        <- sort(unique(as.vector(cmat)))
     z             <- matrix(unclass(factor(cmat, levels=levels, labels=seq_along(levels))), nrow=P, ncol=G, byrow=TRUE)
-    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Time", ylab=ifelse(isTRUE(SPS), "", switch(EXPR=seriated, clusters=, both="Ordered Clusters", "Clusters")), main=paste0("Precision Parameters Plot", ifelse(quant.scale, "\n(Quantile Scale)",  "")))
+    graphics::image(Pseq, Gseq, z, col=levels, axes=FALSE, xlab="Time", ylab=ifelse(isTRUE(SPS), "", switch(EXPR=seriated, clusters=, both="Ordered Clusters", "Clusters")), main=paste0("Precision Parameters Plot", ifelse(isTRUE(quant.scale), "\n(Quantile Scale)",  "")))
     graphics::axis(1, at=Pseq, tick=FALSE, las=1, cex.axis=0.75,                            labels=colnames(x$params$theta))
     graphics::axis(2, at=Gseq, tick=FALSE, las=1, cex.axis=ifelse(isTRUE(SPS), 0.67, 0.75), labels=if(isTRUE(SPS)) tmp_labs else as.character(perm), line=ifelse(isTRUE(SPS), -0.67, -0.25))
     graphics::box(lwd=2)

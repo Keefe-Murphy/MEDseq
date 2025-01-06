@@ -26,5 +26,5 @@ Suggests:
   knitr,
   rmarkdown,
   viridisLite (>= 0.4.0)
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 VignetteBuilder: knitr

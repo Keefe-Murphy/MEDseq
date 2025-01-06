@@ -3,12 +3,12 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
 
 ### Improvements, Bug Fixes & Miscellaneous Edits
 * Many adjustments to `plot.MEDseq`:
-  * New `MEDseq_clustnames` arg. `MAP` (see below) now used  when `SPS=TRUE`  
-  & `size=TRUE`, where `soft=FALSE` corresponds to `MAP=TRUE`.
+  * New `MEDseq_clustnames` arg. `MAP` (see below) can now be used when both  
+  `SPS=TRUE` & `size=TRUE`, where `soft=FALSE` corresponds to `MAP=TRUE`.
   * `TraMineR` `type` y-axis labels now properly account for all combos of `soft` & `weighted`,  
   particularly when `subset` is invoked &/or `type="ms"`, with additional minor fixes to `subset` arg.
   * `type="ms"` can now show noise component's modal sequence by setting `subset` appropriately,   
-  but not by default as modal sequences are not estimated for noise components by the model.
+  but not by default as the model does not estimate modal sequences for noise components.
   * The `MEDseq_clustnames` arg. `cluster` can now also be passed via `...` when `SPS=TRUE`.
   * Allowed new `TraMineR` arg. `col.entr` to be passed via `...` when `type="Ht"` or `type="dH"`.
 * Minor fixes in relation to `MEDseq_control` arg. `tau0`:
@@ -23,7 +23,10 @@ to `"random.hard"`, but `init.z="random"` will work as before due to partial mat
 * `MEDseq_fit` now checks for and terminates in the presence of _both_ types of missingness  
 as per new `TraMineR` function `seqhasmiss`, i.e. now also accounts for _void_ values.
 * `MEDseq_clustnames` gains the arg. `MAP` (`FALSE` by default) for use when `size=TRUE`.
-* Minor speedups to various utility functions using `vapply` in place of `tapply`.
+* Detecting modal sequence ties is now handled properly for alphabets of size greater than 9.
+* Minor E-step speed-ups for `"CU"`, `"CUN"`, `"UU"`, & `"UUN"` models for clusters with only one observation.
+* Additional minor speed-ups for unweighted models with `G=1`.
+* Further minor speedups to various utility functions using `vapply` in place of `tapply`.
 * Ensured `TraMineR (>= 2.2-10)` in `DESCRIPTION` `Imports:` field due to `col.entr` & `seqhasmiss`. 
 * Many additional minor documentation improvements.
 

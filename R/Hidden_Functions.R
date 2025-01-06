@@ -19,18 +19,17 @@
                 a  = a, ldiff  = ldiff))
 }
 
-.char_to_num      <- function(x) {
-    utf8ToInt(x)
-}
+.char_to_num      <- function(x) utf8ToInt(x)
 
 #' @importFrom matrixStats "rowMaxs"
-.choice_crit      <- function(ll, seqs, z, gp, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), type = c("new", "old")) {
+.choice_crit      <- function(ll, seqs, z, gp, modtype = c("CC", "UC", "CU", "UU", "CCN", "UCN", "CUN", "UUN"), type = c("new", "old", "older")) {
   type            <- match.arg(type)
   G               <- attr(seqs, ifelse(is.element(modtype, c("CCN", "UCN", "CUN", "UUN")), "G0", "G"))
   P               <- attr(seqs, "T")
   mp              <- switch(EXPR=type, 
-                            new=attr(seqs, "VTS"),
-                            old=P)   * G
+                            new =attr(seqs, "VTS"),
+                            old =(attr(seqs, "V") - 1L)  * P,
+                           older=P)  * G
   kpar            <- switch(EXPR= modtype,
                             CC  = mp + 1L,
                             CCN = mp + (G > 0),
@@ -40,8 +39,9 @@
                             CUN = mp + P,
                             UU  =,
                             UUN = switch(EXPR=type, 
-                                          new=mp + G * P,
-                                          old=mp * 2L)) + gp
+                                         new =,
+                                         old =mp  + G    * P,
+                                        older=mp  * 2L)) + gp
   ll2             <- ll  * 2L
   bic             <- ll2 - kpar * log(attr(seqs, "W"))
     return(list(bic = bic, icl = bic + 2L * sum(log(rowMaxs(z, useNames=FALSE)), na.rm=TRUE), aic = ll2 - kpar * 2L, df = kpar))
@@ -54,11 +54,6 @@
 
 .crits_names      <- function(x) {
     unlist(lapply(seq_along(x), function(i) stats::setNames(x[[i]], paste0(names(x[i]), "|", names(x[[i]])))))
-}
-
-#' @importFrom stringdist "stringdistmatrix"
-.dbar             <- function(seqs, theta) {
-    mean(.dseq(seqs, theta))
 }
 
 .drop_constants   <- function(dat, formula, sub = NULL) {
@@ -130,17 +125,17 @@
   }
   
   if(G  == 1L)     { 
+    dG  <- if(dG.X)  switch(EXPR=modtype, CC=switch(EXPR=opti, medoid=HAM.mat[,attr(theta, "Ind"), drop=FALSE], .dseq(seqs, theta)), CU=numseq != .char_to_num(theta)) else params$dG
     return(if(ctrl$do.wts)   {
-     dG <- if(dG.X)  switch(EXPR=modtype, CC=switch(EXPR=opti, medoid=HAM.mat[,attr(theta, "Ind"), drop=FALSE], .dseq(seqs, theta)), CU=numseq != .char_to_num(theta)) else params$dG
              switch(EXPR=modtype, 
                     CC  = -ifelse(lambda  == 0, attr(seqs, "W") * lPV, lambda * sum(attr(seqs, "Weights") * dG,  na.rm=TRUE) + attr(seqs, "W")  * P * log1p(V1 * exp(-lambda))),
                     CCN = -attr(seqs, "W") * lPV,
                     CU  = -sum(sweep(dG * drop(lambda), 2L, attr(seqs, "Weights"), FUN="*", check.margin=FALSE), na.rm=TRUE) - attr(seqs, "W")  * sum(log1p(V1 * exp(-lambda))))
            } else  {
              switch(EXPR=modtype,
-                    CC  = -ifelse(0    == lambda, N * lPV, sum(lambda * N * .dbar(seqs, theta), N * P * log1p(V1 * exp(-lambda)), na.rm=TRUE)),
+                    CC  = -ifelse(lambda  == 0, N * lPV, lambda * sum(dG, na.rm=TRUE) + N * P * log1p(V1  * exp(-lambda))),
                     CCN = -N * lPV,
-                    CU  = -sum((numseq != .char_to_num(theta)) * drop(lambda), na.rm=TRUE)    - N * sum(log1p(V1 * exp(-lambda))))
+                    CU  = -sum(dG * drop(lambda), na.rm=TRUE) - N * sum(log1p(V1 * exp(-lambda))))
            })
   } else {
     dG  <- if(dG.X)  switch(EXPR=modtype, 
@@ -165,12 +160,12 @@
       numer       <- switch(EXPR=modtype,
                             CC  = -dG * lambda - P   * log1p(V1 * exp(-lambda)),
                             UC  = -dG * lambda - P   * log1p(V1 * exp(-lambda)),
-                            CU  = -colSums2(simplify2array(dG, higher=FALSE)   * drop(lambda), useNames=FALSE, na.rm=TRUE) - sum(log1p(V1 * exp(-lambda))),
-                            UU  = -vapply(Gseq, function(g) colSums2(dG[[g]]   * lambda[g,],   useNames=FALSE, na.rm=TRUE), numeric(N))   - rowSums2(log1p(V1 * exp(-lambda)), useNamse=FALSE),
+                            CU  = -vapply(dG,   function(x) sum(lambda[x]), numeric(1L)) - sum(log1p(V1 * exp(-lambda))),
+                            UU  = -vapply(Gseq, function(g) sum(lambda[g,dG[[g]]]), numeric(N))   - rowSums2(log1p(V1 * exp(-lambda)), useNamse=FALSE),
                             CCN = c(-dG * lambda[1L] - P * log1p(V1 * exp(-lambda[1L])), - lPV),
                             UCN = c(-dG * lambda[-G] - P * log1p(V1 * exp(-lambda[-G])), - lPV),
-                            CUN = c(-colSums2(simplify2array(dG, higher=FALSE) * lambda[1L,],  useNames=FALSE, na.rm=TRUE) - sum(log1p(V1 * exp(-lambda[1L,]))),    - lPV),
-                            UUN = c(-vapply(Gseq, function(g) colSums2(dG[[g]] * lambda[g,],   useNames=FALSE, na.rm=TRUE), numeric(N))   - rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE])), useNames=FALSE), - lPV))
+                            CUN = c(vapply(dG, function(x) -sum(lambda[1L,x]), numeric(1L)) - sum(log1p(V1 * exp(-lambda[1L,]))), - lPV),
+                            UUN = c(-vapply(Gseq, function(g) sum(lambda[g,dG[[g]]]), numeric(N)) - rowSums2(log1p(V1 * exp(-lambda[-G,, drop=FALSE])), useNames=FALSE), - lPV))
       numer       <- matrix(numer, nrow=1L) + switch(EXPR=modtype, CC=, UC=, CU=, UU=log.tau, c(log.tau, tau0))
     }
     
@@ -602,8 +597,8 @@
         theta     <- .weighted_mode(numseq=numseq, 
                                     z=if(G == 1) as.matrix(attr(seqs, "Weights"))   else if(nmeth) z[,Gseq, drop=FALSE] else z)
         if(is.list(theta)   && 
-           (any(ties_t      <- vapply(theta, is.matrix, logical(1L)))) ||
-           (any(t_ties      <- apply(theta, c(1L, 2L), function(x) any(nchar(x) > 1))))) {
+           (any(ties_t      <- vapply(theta, is.matrix, logical(1L))) ||
+           (any(t_ties      <- !apply(theta, c(1L, 2L), grepl, pattern="^[0-9]+$"))))) {
           noties  <- FALSE
           if(any(ties_t))    {
             nonu  <- ties_t
