@@ -1,11 +1,12 @@
 __MEDseq: Mixtures of Exponential-Distance Models with Covariates__   
 ===================================================================
 
+## MEDseq v1.4.2 - (_13<sup>th</sup> release [patch update]: 2025-03-10_)
 ### Improvements, Bug Fixes & Miscellaneous Edits
 * Many adjustments to `plot.MEDseq`:
-  * New `MEDseq_clustnames` arg. `MAP` (see below) can now be used when both  
-  `SPS=TRUE` & `size=TRUE`, where `soft=FALSE` corresponds to `MAP=TRUE`.
-  * `TraMineR` `type` y-axis labels now properly account for all combos of `soft` & `weighted`,  
+  * `MEDseq_clustnames` gains the `MAP=FALSE` arg., for use when `size=TRUE`: this is now used by  
+  `plot.MEDseq` (where `soft=FALSE` corresponds to `MAP=TRUE`) when both `SPS` & `size` are `TRUE`.
+  * `TraMineR` `type` y-axis labels now properly account for all combinations of `soft` & `weighted`,  
   particularly when `subset` is invoked &/or `type="ms"`, with additional minor fixes to `subset` arg.
   * `type="ms"` can now show noise component's modal sequence by setting `subset` appropriately,   
   but not by default as the model does not estimate modal sequences for noise components.
@@ -15,18 +16,21 @@ __MEDseq: Mixtures of Exponential-Distance Models with Covariates__
   * `tau0` can now always be supplied as a vector (previously allowed only with `noise.gate=TRUE`).
   * Related bug fix when `tau0` is supplied as a vector with `noise.gate=TRUE`.
   * Related initialisation bug fix when `tau0 != 0.5` (the implied default) for `G=2` models with noise.
-* `MEDseq_control` gains new `init.z` option `"soft.random"` and related bugs when a 'soft' `z.list`  
-is supplied with `algo != "EM"` have also been fixed: the `"random"` option has been renamed  
-to `"random.hard"`, but `init.z="random"` will work as before due to partial matching.
-* `plot.MEDcriterion` added as a wrapper to `plot.MEDseq` with related `type`, for convenience:  
-  for example, `plot(x$BIC)` is now equivalent to `plot(x, type="bic")`.
+* `MEDseq_control` gains new `init.z` option `"soft.random"`: 
+  * The `"random"` option has been renamed to `"random.hard"`, but  
+  `init.z="random"` will work as before due to partial matching.
+  * Related bugs when a 'soft' `z.list` is used with `algo != "EM"` are also fixed.
 * `MEDseq_fit` now checks for and terminates in the presence of _both_ types of missingness  
 as per new `TraMineR` function `seqhasmiss`, i.e. now also accounts for _void_ values.
-* `MEDseq_clustnames` gains the arg. `MAP` (`FALSE` by default) for use when `size=TRUE`.
+* `plot.MEDcriterion` added as a wrapper to `plot.MEDseq` with related `type`, for convenience:  
+  for example, `plot(x$BIC)` is now equivalent to `plot(x, type="bic")`.
+* Experimental `MEDseq_control` arg. `dist.mat` no longer governs ASW calculations: it still defaults  
+to a Hamming distance matrix but now allows only for _initialisation_ to be based on other distances.
 * Detecting modal sequence ties is now handled properly for alphabets of size greater than 9.
 * Minor E-step speed-ups for `"CU"`, `"CUN"`, `"UU"`, & `"UUN"` models for clusters with only one observation.
 * Additional minor speed-ups for unweighted models with `G=1`.
-* Further minor speedups to various utility functions using `vapply` in place of `tapply`.
+* `print.MEDseq` now works again for all models with `G=1`.
+* Further minor speed-ups to various utility functions using `vapply` in place of `tapply`.
 * Ensured `TraMineR (>= 2.2-10)` in `DESCRIPTION` `Imports:` field due to `col.entr` & `seqhasmiss`. 
 * Many additional minor documentation improvements.
 

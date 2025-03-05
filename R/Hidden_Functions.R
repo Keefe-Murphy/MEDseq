@@ -260,11 +260,11 @@
       }
       ll          <- c(ll, Estep$loglike)
       if(isTRUE(st.ait))    {
-        dX        <- .aitken(ll[seq(j  - 2L, j, 1L)])$ldiff
+        dA        <- .aitken(ll[seq(j  - 2L, j, 1L)])$ldiff
       } else       {
-        dX        <- abs(ll[j]  - ll[j - 1L])/(1 + abs(ll[j]))
+        dA        <- abs(ll[j]  - ll[j - 1L])/(1 + abs(ll[j]))
       }
-      runEM       <- dX >= tol && j    < itmax  &&   !ERR
+      runEM       <- dA >= tol && j    < itmax  &&   !ERR
     } # while (j)
   }
     return(list(ERR = ERR, j = j, Mstep = Mstep, ll = ll, z = z, MLRconverge = MLRconverge))
@@ -789,14 +789,15 @@
     if(is.null(levels)) factor(seq) else factor(seq, levels=seq_along(levels) - any(seq == 0), labels=as.character(levels))
 }
 
-.seq_grid         <- function(length, ncat) {
+.seq_grid         <- function(length, ncat, start_zero = FALSE) {
   if(!is.numeric(length) ||
      length(length)      != 1 ||
      length       <= 0)          stop("'length' must a strictly positive scalar", call.=FALSE)
   if(!is.numeric(ncat)   ||
      length(ncat)        != 1 ||
      ncat         <= 0)          stop("'ncat' must a strictly positive scalar",   call.=FALSE)
-    do.call(expand.grid, replicate(length, list(0L:(ncat - 1L))))
+    seqs          <- do.call(expand.grid, replicate(length, list(0L:(ncat - 1L))))
+      if(isTRUE(start_zero)) seqs else seqs + 1L
 }
 
 .soft_to_hard     <- function(z, G) {
@@ -813,6 +814,14 @@
 
 .tau0_noise       <- function(z,   t0)  {
     cbind(z   * (1 - t0), unname(t0))
+}
+
+.theta0           <- function(x, ...)   {
+  if(!inherits(x, "MEDseq"))     stop("'x' must be an object of class 'MEDseq'", call.=FALSE)
+  numseq          <- .fac_to_num(x$data)
+  z               <- x$z[,x$G] * attr(x, "Weights")
+  Vs              <- seq_len(attr(x, "V"))
+    vapply(seq_len(attr(x, "T")), function(p, x=vapply(Vs, function(v) sum(z[numseq[,p] == v]), numeric(1L))) which.max(x), numeric(1L))
 }
 
 #' @importFrom matrixStats "colSums2" "rowSums2"

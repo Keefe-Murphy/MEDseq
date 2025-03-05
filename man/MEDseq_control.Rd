@@ -8,12 +8,12 @@ MEDseq_control(algo = c("EM", "CEM", "cemEM"),
                init.z = c("kmedoids", "kmodes", "kmodes2", "hc", 
                           "random.hard", "soft.random", "list"), 
                z.list = NULL, 
-               dist.mat = NULL, 
                unique = TRUE, 
                criterion = c("bic", "icl", "aic", "dbs", "asw", "cv", "nec"), 
                tau0 = NULL, 
                noise.gate = TRUE, 
                random = TRUE,
+               dist.mat = NULL, 
                do.cv = FALSE, 
                do.nec = FALSE, 
                nfolds = 10L, 
@@ -38,8 +38,6 @@ The \code{"kmodes"} and \code{"kmodes2"} options both internally call the functi
 
 \item{z.list}{A user supplied list of initial cluster allocation matrices, with number of rows given by the number of observations (\emph{including duplicates} if \code{unique=TRUE}), and numbers of columns given by the range of component numbers being considered (where columns corresponding to noise components must be included). Only relevant if \code{init.z == "z.list"}. These matrices are allowed correspond to both soft or hard clusterings, and will be internally normalised so that the rows sum to 1 (or coerced always to a 'hard' matrix if \code{algo != "EM"}).}
 
-\item{dist.mat}{An optional distance matrix to use for initialisation when \code{init.z} is one of \code{"kmedoids"} or \code{"hc"}. Defaults to a Hamming distance matrix. This is an experimental feature and should only be tampered with by expert users.}
-
 \item{unique}{A logical indicating whether the model is fit only to the unique observations (defaults to \code{TRUE}). When there are covariates, this means all unique combinations of covariate and sequence patterns, otherwise only the sequence patterns. 
 
 When \code{weights} \emph{are not} supplied to \code{\link{MEDseq_fit}} and \code{unique=TRUE}, weights are given by the occurrence frequency of the corresponding sequences, and the model is then fit to the unique observations only.
@@ -57,6 +55,8 @@ In both cases, the results will be unchanged, but setting \code{unique} to \code
 \item{random}{A logical governing how ties for estimated central sequence positions are handled. When \code{TRUE} (the default), such ties are broken at random. When \code{FALSE} (the implied default prior to version \code{1.2.0} of this package), the first candidate state is always chosen. This argument affects all \code{opti} options. If \code{verbose} is \code{TRUE} and there are tie-breaking operations performed, a warning message is printed once per model, regardless of the number of such operations. 
 
 Note that this argument is \emph{also} passed to \code{\link{wKModes}} if \code{init.z} is \code{"kmodes"} or \code{"kmodes2"} and that, in certain rare cases when the \code{"CEM"} \code{algo} is invoked when \code{equalPro} is \code{TRUE} and the precision parameter(s) are somehow constrained across clusters, this argument also governs ties for cluster assignments within \code{MEDseq_fit} as well.}
+
+\item{dist.mat}{An optional distance matrix to use - \emph{for initialisation only} - when \code{init.z} is one of \code{"kmedoids"}, \code{"kmodes"}, or \code{"hc"}. Defaults to a Hamming distance matrix. This is an experimental feature and should only be tampered with by expert users.}
 
 \item{do.cv}{A logical indicating whether cross-validated log-likelihood scores should also be computed (see \code{nfolds}). Defaults to \code{FALSE} due to significant computational burden incurred.}
 

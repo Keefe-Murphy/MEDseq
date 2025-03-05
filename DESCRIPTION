@@ -1,19 +1,20 @@
 Package: MEDseq
 Type: Package
-Date: 2023-12-12
+Date: 2025-03-10
 Title: Mixtures of Exponential-Distance Models with Covariates
-Version: 1.4.1
+Version: 1.4.2
 Authors@R: c(person("Keefe", "Murphy", email = "keefe.murphy@mu.ie", role = c("aut", "cre"), comment = c(ORCID = "0000-0002-7709-3159")),
            person("Thomas Brendan", "Murphy", email = "brendan.murphy@ucd.ie", role = "ctb", comment = c(ORCID = "0000-0002-5668-7046")),
-           person("Raffaella", "Piccarreta", email = "raffaella.piccarreta@unibocconi.it ", role = "ctb"),
+           person("Raffaella", "Piccarreta", email = "raffaella.piccarreta@unibocconi.it ", role = "ctb", comment = c(ORCID = "0000-0002-8876-3656")),
            person("Isobel Claire", "Gormley", email = "claire.gormley@ucd.ie", role = "ctb", comment = c(ORCID = "0000-0001-7713-681X")))
 Description: Implements a model-based clustering method for categorical life-course sequences relying on mixtures of exponential-distance models introduced by Murphy et al. (2021) <doi:10.1111/rssa.12712>. A range of flexible precision parameter settings corresponding to weighted generalisations of the Hamming distance metric are considered, along with the potential inclusion of a noise component. Gating covariates can be supplied in order to relate sequences to baseline characteristics and sampling weights are also accommodated. The models are fitted using the EM algorithm and tools for visualising the results are also provided.
 Depends: R (>= 4.0.0)
 License: GPL (>= 3)
 Encoding: UTF-8
 URL: https://cran.r-project.org/package=MEDseq
-BugReports: https://github.com/Keefe-Murphy/MEDseq
+BugReports: https://github.com/Keefe-Murphy/MEDseq/issues
 LazyData: true
+Language: en-GB
 Imports:
   cluster,
   matrixStats (>= 1.0.0),

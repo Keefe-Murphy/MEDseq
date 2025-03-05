@@ -11,9 +11,9 @@ Fits MEDseq models: mixtures of Exponential-Distance models with gating covariat
 \details{
 \describe{
 \item{Type: }{Package}
-\item{Date: }{2023-12-13 (this version), 2019-08-24 (original release)}
-\item{Version: }{1.4.1}
 \item{Package: }{\pkg{MEDseq}}
+\item{Version: }{1.4.2}
+\item{Date: }{2025-03-10 (this version), 2019-08-24 (original release)}
 \item{Licence: }{GPL (>= 3)}
 }
 }
